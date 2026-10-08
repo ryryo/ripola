@@ -25,4 +25,6 @@
 
 個人のenv・本文・音声・運用設定・旧リポジトリの履歴は同梱していません。公開可能な青空文庫・VOICEVOX・Geminiサンプルの出典と条件はサンプルNOTICEに保持しています。ローカルで生成するファイルはGitとnpm配布の除外対象です。
 
-この検査とCIはビルド・サンプル検査のみです。GitHub PagesとCloudflareへの新規デプロイは行っていません。READMEの公開デモは従来の配布版です。音声生成後の同期補正環境はmacOS Apple Silicon向けで、Windows／Linux・Intel Macの初期セットアップは未検証です。
+この公開準備段階ではビルド・サンプル検査だけを行いました。その後、[GitHub Pagesの公開と実URL検証](github-pages-2026-10-08.md)を完了しています。Cloudflareへの新規デプロイは行っていません。音声生成後の同期補正環境はmacOS Apple Silicon向けで、Windows／Linux・Intel Macの初期セットアップは未検証です。
+
+[Pages初期デモ文のローカル候補検査](pages-default-draft-2026-10-08.md)は公開済みPagesとは別の結果です。

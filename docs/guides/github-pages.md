@@ -1,6 +1,6 @@
 # GitHub Pages の公開デモ
 
-https://ryryo.github.io/ripola/ で、TXT・Markdown・テキスト層付きPDFの取り込み、端末内のRSVP生成、青空文庫『吾輩は猫である』の黙読と冒頭3音声（VOICEVOX:ずんだもん／Gemini Puck／Kore）を利用できます。OCRは対象外です。
+https://ryryo.github.io/ripola/ で、TXT・Markdown・テキスト層付きPDFの取り込み、端末内のRSVP生成、青空文庫『吾輩は猫である』の黙読と冒頭3音声（VOICEVOX:ずんだもん／Gemini Puck／Kore）を利用できます。OCRは対象外です。最初の入力欄には公開サンプルの冒頭抜粋が入り、「テキストのみ生成して読む」を押すだけで試せます。消去・書き換えた本文や任意タイトルは再入力せず、そのまま利用できます。デモ文は自動保存しません。編集した入力は音声サンプルからブラウザの「戻る」で戻れるよう、そのページの履歴entryだけで保持します。本文をURL・本棚・サーバーへ自動保存しません。
 
 入力した文章・PDF・読書位置はブラウザ内で処理します。明示保存はそのoriginのIndexedDBです。ローカル版の保存とは別になります。公開サイトで音声を生成する機能や生成APIはありません。[サンプルの帰属と条件](../../apps/web/public/samples/audio/NOTICE.md)を確認してください。
 
