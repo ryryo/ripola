@@ -27,6 +27,8 @@ import { InputFormatControl } from './InputFormatControl';
 import { EnvironmentAvailability } from './EnvironmentAvailability';
 import { resolveInputFormat, type InputFormat } from '../input-format';
 import { readerCapabilities } from '../environment';
+import { initialReadingDraft, PAGES_DEMO } from '../pages-demo';
+
 
 const CAPABILITIES = readerCapabilities(import.meta.env.VITE_RSVP_PROFILE);
 const LocalGeneration = import.meta.env.VITE_RSVP_PROFILE === 'local' ? lazy(() => import('../../generation-ui/GenerationApp').then(module => ({ default: module.GenerationApp }))) : null;
@@ -34,20 +36,24 @@ const LocalGeneration = import.meta.env.VITE_RSVP_PROFILE === 'local' ? lazy(() 
 const SAMPLE = '# 朝の図書館\n\n静かな朝、私は<ruby>図書館<rt>としょかん</rt></ruby>へ向かった。窓辺で一冊の本を開く。\n\n今日は2026年10月5日。温かいお茶は1,200円でした。👩‍💻が書いたが、まだ終わっていない文章もある。\n\n急がず、ひとつずつ。分からないところでは立ち止まり、原文を読み返そう。';
 
 export function ReaderApp() {
+  const [initialDraft] = useState(() => initialReadingDraft(import.meta.env.VITE_RSVP_PROFILE, typeof window === 'undefined' ? undefined : window.history.state));
   const [controller] = useState(() => new PlaybackController(DEFAULT_SETTINGS));
   const playback = useSyncExternalStore(controller.subscribe, controller.getSnapshot, controller.getSnapshot);
   const [document, setDocument] = useState<ReadingDocument>();
   const [pdfData, setPdfData] = useState<ArrayBuffer>();
   const [settings, setSettings] = useState<ReaderSettings>(DEFAULT_SETTINGS);
   const [cpmInput, setCpmInput] = useState(String(DEFAULT_SETTINGS.cpm));
-  const [title, setTitle] = useState('');
+  const [title, setTitle] = useState(() => initialDraft.title);
   const [audioEnabled, setAudioEnabled] = useState(false);
   const [audioBusy, setAudioBusy] = useState(false);
   const [draftRevision, setDraftRevision] = useState(0);
   const [generationDocument, setGenerationDocument] = useState<ReadingDocument>();
   const [draftPdfData, setDraftPdfData] = useState<ArrayBuffer>();
-  const [input, setInput] = useState('');
-  const [format, setFormat] = useState<InputFormat>('auto');
+  const [input, setInput] = useState(() => initialDraft.text);
+  const [format, setFormat] = useState<InputFormat>(() => initialDraft.format);
+  const draftEdited = useRef(false);
+  const historyDraft = useRef({ title, text: input, format });
+  historyDraft.current = { title, text: input, format };
   const [importOpen, setImportOpen] = useState(false);
   const [sourceOpen, setSourceOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
@@ -87,10 +93,18 @@ export function ReaderApp() {
       if (active) setNotice(`保存したデータを開けませんでした。${message(e)}「保存を削除」で消去できます。`);
     });
     const stop = () => controller.pause();
+    const pageHide = () => {
+      stop();
+      if (import.meta.env.VITE_RSVP_PROFILE === 'pages' && draftEdited.current) {
+        // Preserve only this edited form in its browser history entry, never in a URL or bookshelf.
+        try { window.history.replaceState({ ...window.history.state, ripolaPagesDraft: historyDraft.current }, ''); }
+        catch { /* Restricted browser history must not prevent navigation. */ }
+      }
+    };
     const visibility = () => { if (globalThis.document.hidden) stop(); };
     globalThis.document.addEventListener('visibilitychange', visibility);
     window.addEventListener('blur', stop);
-    window.addEventListener('pagehide', stop);
+    window.addEventListener('pagehide', pageHide);
     window.addEventListener('resize', stop);
     return () => {
       active = false;
@@ -99,7 +113,7 @@ export function ReaderApp() {
       controller.pause();
       globalThis.document.removeEventListener('visibilitychange', visibility);
       window.removeEventListener('blur', stop);
-      window.removeEventListener('pagehide', stop);
+      window.removeEventListener('pagehide', pageHide);
       window.removeEventListener('resize', stop);
     };
   }, [controller]);
@@ -252,17 +266,18 @@ export function ReaderApp() {
   const completed = playback.status === 'completed';
   const count = completed ? document?.totalCharacters ?? 0 : current?.cumulativeCharacters ?? 0;
 
-  function changeDraft() { setGenerationDocument(undefined); setDraftPdfData(undefined); setDraftRevision(value => value + 1); }
+  function changeDraft() { draftEdited.current = true; setGenerationDocument(undefined); setDraftPdfData(undefined); setDraftRevision(value => value + 1); }
   const draftDisabled = loading || audioBusy;
   const onGenerationBusy = useCallback((value: boolean) => setAudioBusy(value), []);
   const manuscriptFields = <>
-    <TextInput label="タイトル" description="任意。未入力ならこの端末の日付と時刻を使います。後から変更できます。" placeholder="未入力なら作成日時" maxLength={MAX_TITLE_LENGTH} value={title} onChange={event => { setTitle(event.target.value); if (generationDocument) setGenerationDocument({ ...generationDocument, title: event.target.value }); setDraftRevision(value => value + 1); }} disabled={draftDisabled} />
+    <TextInput label="タイトル" description="任意。未入力ならこの端末の日付と時刻を使います。後から変更できます。" placeholder="未入力なら作成日時" maxLength={MAX_TITLE_LENGTH} value={title} onChange={event => { draftEdited.current = true; setTitle(event.target.value); if (generationDocument) setGenerationDocument({ ...generationDocument, title: event.target.value }); setDraftRevision(value => value + 1); }} disabled={draftDisabled} />
     <Button component="label" htmlFor="reading-file" variant="light" fullWidth className="file-button" disabled={draftDisabled}>ファイルを選ぶ<span className="file-types">MD / TXT / PDF / HTML · 20 MBまで</span></Button>
-    <input id="reading-file" aria-label="読み込むファイル" type="file" accept=".md,.markdown,.txt,.pdf,.html,.htm" className="visually-hidden" disabled={draftDisabled} onChange={e => { const file = e.target.files?.[0]; if (file) { setDraftRevision(value => value + 1); void importInput(file, undefined, false, true); } e.target.value = ''; }} />
+    <input id="reading-file" aria-label="読み込むファイル" type="file" accept=".md,.markdown,.txt,.pdf,.html,.htm" className="visually-hidden" disabled={draftDisabled} onChange={e => { const file = e.target.files?.[0]; if (file) { draftEdited.current = true; setDraftRevision(value => value + 1); void importInput(file, undefined, false, true); } e.target.value = ''; }} />
     <div className="divider"><span>または、文章を貼り付け</span></div>
     <div className="manuscript-heading"><label htmlFor="home-manuscript">読む文章</label></div>
     <InputFormatControl text={input} value={format} sourceFormat={generationDocument?.format} disabled={draftDisabled} onChange={value => { setFormat(value); changeDraft(); }} />
     <Textarea id="home-manuscript" aria-label="読む文章" placeholder="ここに文章を貼り付けてください…" value={input} disabled={draftDisabled} onChange={e => { setInput(e.target.value); changeDraft(); }} rows={3} resize="vertical" maxLength={MAX_TEXT_LENGTH + 1} spellCheck={false} />
+    {import.meta.env.VITE_RSVP_PROFILE === 'pages' && input === PAGES_DEMO.text && <p className="input-note">デモ文：夏目漱石『吾輩は猫である』冒頭（<a href={PAGES_DEMO.sourceUrl} target="_blank" rel="noreferrer">青空文庫</a>）。そのまま読み始めるか、自分の文章に書き換えられます。</p>}
     {generationDocument && <details className="home-manuscript-preview"><summary>取り込んだ本文を確認 · {generationDocument.title} · {generationDocument.totalCharacters.toLocaleString()}字</summary><pre>{generationDocument.blocks.map(block => block.text).join('\n\n')}</pre>{generationDocument.warnings.map((warning, i) => <p className="muted" key={i}>{warning}</p>)}</details>}
   </>;
   const sampleActions = <section className="home-samples" aria-label="サンプルで試す"><h2>サンプルで試す</h2>

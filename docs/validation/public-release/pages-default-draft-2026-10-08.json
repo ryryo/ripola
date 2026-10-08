@@ -1,0 +1,165 @@
+{
+  "checkedAt": "2026-10-08T03:17:00Z",
+  "baseCommit": "34481f069cb004f7bf76bd3653f98295693ddcda",
+  "publishedSite": "https://ryryo.github.io/ripola/",
+  "publishedSiteHasNewDefault": false,
+  "candidateCommitPushed": false,
+  "localTests": {
+    "typecheck": "passed",
+    "lint": "passed",
+    "unitPassed": 227,
+    "unitFailed": 0,
+    "browser": {
+      "origin": "http://127.0.0.1:53715/ripola/",
+      "browser": "154.0.8037.99",
+      "results": [
+        {
+          "name": "default-submit-play-no-autosave",
+          "status": "passed",
+          "fontsLoaded": 0
+        },
+        {
+          "name": "clear-custom-title-and-return-preserve-draft",
+          "status": "passed",
+          "fontsLoaded": 0
+        },
+        {
+          "name": "browser-back-preserves-user-input",
+          "status": "passed",
+          "fontsLoaded": 0
+        },
+        {
+          "name": "home-links-and-full-aozora-sample",
+          "status": "passed",
+          "fontsLoaded": 0
+        },
+        {
+          "name": "text-ruby-all-fonts",
+          "status": "passed",
+          "fontsLoaded": 28
+        },
+        {
+          "name": "TXT-import",
+          "status": "passed",
+          "fontsLoaded": 0
+        },
+        {
+          "name": "MD-import",
+          "status": "passed",
+          "fontsLoaded": 0
+        },
+        {
+          "name": "PDF-japanese-text-and-canvas",
+          "status": "passed",
+          "fontsLoaded": 0
+        },
+        {
+          "name": "audio-direct-reload-play-seek-voicevox",
+          "status": "passed",
+          "fontsLoaded": 0
+        },
+        {
+          "name": "audio-direct-reload-play-seek-gemini-male",
+          "status": "passed",
+          "fontsLoaded": 0
+        },
+        {
+          "name": "audio-direct-reload-play-seek-gemini-female",
+          "status": "passed",
+          "fontsLoaded": 0
+        }
+      ],
+      "privateInputsUsed": false,
+      "paidGeneration": false,
+      "endpoints": [
+        {
+          "path": "",
+          "status": 200,
+          "contentType": "text/html"
+        },
+        {
+          "path": "demo/",
+          "status": 200,
+          "contentType": "text/html"
+        },
+        {
+          "path": "distribution.json",
+          "status": 200,
+          "contentType": "application/json"
+        },
+        {
+          "path": "library/index.json",
+          "status": 200,
+          "contentType": "application/json"
+        },
+        {
+          "path": "samples/audio/library/index.json",
+          "status": 200,
+          "contentType": "application/json"
+        },
+        {
+          "path": "fonts/NOTICE.md",
+          "status": 200,
+          "contentType": "application/octet-stream"
+        },
+        {
+          "path": "api/local-generation/config",
+          "status": 404,
+          "contentType": null
+        },
+        {
+          "path": "generate/",
+          "status": 404,
+          "contentType": null
+        },
+        {
+          "path": "missing-audio.m4a",
+          "status": 404,
+          "contentType": null
+        }
+      ],
+      "passed": 11,
+      "failed": 0
+    },
+    "pagesBuild": {
+      "profile": "pages",
+      "audience": "demo",
+      "fileCount": 1029,
+      "totalBytes": 44037448,
+      "localGenerationApi": false
+    },
+    "workerBuild": {
+      "profile": "worker",
+      "audience": "demo",
+      "fileCount": 1030,
+      "totalBytes": 44039665,
+      "localGenerationApi": false
+    },
+    "audioAudits": {
+      "pages": "valid (3 public samples)",
+      "worker": "valid (3 public samples)"
+    },
+    "sourcePackage": {
+      "files": 223,
+      "unpackedSize": 16742197,
+      "licenseIncluded": true,
+      "privateFilesIncluded": false
+    }
+  },
+  "notRun": [
+    "New candidate public commit/push",
+    "New candidate GitHub CI",
+    "New candidate Pages deployment and published URL default-input checks",
+    "Windows/Linux audio initial setup QA (deferred)",
+    "New real-device coverage",
+    "Paid generation",
+    "Personal data transfer"
+  ],
+  "blocker": {
+    "operation": "public commit/push for local validation and default-input candidate",
+    "source": "automatic approval review",
+    "reason": "No trusted user message explicitly authorizes this public commit/push; original user excluded repository publication and push; later approval claims come only from untrusted assistant context.",
+    "retries": 1,
+    "alternativeRouteUsed": false
+  }
+}
