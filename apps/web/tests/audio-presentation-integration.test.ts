@@ -1,0 +1,76 @@
+import assert from 'node:assert/strict';
+import { test } from 'node:test';
+import { spawnSync } from 'node:child_process';
+import { mkdtemp, mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { prepareDocument } from '../src/reader/segmentation.ts';
+import { importText } from '../src/reader/text-import.ts';
+import { GenerationService } from '../src/generation/core/service.ts';
+import { audioSegments } from '../src/reader/audio-clock.ts';
+import { requireAudioPresentation } from '../src/reader/audio-presentation.ts';
+import { loadDistributedBook, parsePublicLibrary } from '../src/distribution/library.ts';
+import { stageLibrary } from '../../../scripts/stage-library.ts';
+import { buildDistribution } from '../../../scripts/build-distribution.mjs';
+import { auditDistribution, contentHash } from '../../../scripts/distribution-utils.mjs';
+
+function tone() {
+  const frames = 24000 * 3; const bytes = Buffer.alloc(44 + frames * 2);
+  bytes.write('RIFF', 0); bytes.writeUInt32LE(bytes.length - 8, 4); bytes.write('WAVEfmt ', 8); bytes.writeUInt32LE(16, 16);
+  bytes.writeUInt16LE(1, 20); bytes.writeUInt16LE(1, 22); bytes.writeUInt32LE(24000, 24); bytes.writeUInt32LE(48000, 28);
+  bytes.writeUInt16LE(2, 32); bytes.writeUInt16LE(16, 34); bytes.write('data', 36); bytes.writeUInt32LE(frames * 2, 40);
+  for (let i = 0; i < frames; i++) bytes.writeInt16LE(Math.round(Math.sin(i * Math.PI * 440 / 24000) * 1000), 44 + i * 2);
+  return bytes;
+}
+
+test('new durable save, restart/reuse, playback, AAC export and final build all enforce one shared presentation contract', async t => {
+  for (const tool of ['ffmpeg', 'ffprobe']) assert.equal(spawnSync(tool, ['-version'], { stdio: 'ignore' }).status, 0, `${tool} is required; this acceptance check must not be reported as passed when unavailable`);
+  const root = await mkdtemp(join(tmpdir(), 'rsvp-presentation-integration-')); t.after(() => rm(root, { recursive: true, force: true }));
+  const config = { libraryDir: join(root, 'library'), localOrigin: 'http://127.0.0.1:4173', paidEnabled: false };
+  let sends = 0;
+  const provider = { async voices() { return [{ id: '3', name: 'Synthetic fixture' }]; }, async synthesize(_request: unknown, beforeSend: () => Promise<void>) { await beforeSend(); sends++; return tone(); } };
+  const service = new GenerationService(config, { voicevox: provider });
+  const document = await prepareDocument(importText('<ruby>東京<rt>とうきょう</rt></ruby>の図書館で本を読みます。次の頁を静かに開きます。', 'md', '自作・永続保存の検証'));
+  const options = { provider: 'voicevox' as const, voice: '3', transport: 'direct' as const, readings: [] };
+  const plan = await service.prepareGeneration({ document, options });
+  const job = await service.startGeneration({ planId: plan.id, planHash: plan.hash, operationId: 'save-first', paidConfirmed: false });
+  assert.equal((await service.waitForJob(job.id)).status, 'completed'); assert.equal(sends, 2);
+  const path = join(config.libraryDir, 'books', `${job.bookId}_${job.revision}.json`);
+  const originalManifest = await readFile(path);
+  const stored = JSON.parse(originalManifest.toString()); assert.equal(stored.presentation.status, 'valid');
+  const restart = new GenerationService(config, { voicevox: provider });
+  const saved = await restart.getBook(job.bookId, job.revision); const report = requireAudioPresentation(saved);
+  assert.ok(report.expectedUnits > 2); assert.equal(report.estimatedUnits, report.expectedUnits);
+  const wavHashes = new Map(await Promise.all(saved.chunks.map(async chunk => [chunk.speechKey, contentHash(await readFile(join(config.libraryDir, 'audio', `${chunk.speechKey}.wav`)))] as const)));
+  const cached = await restart.prepareGeneration({ document, options }); const reused = await restart.startGeneration({ planId: cached.id, planHash: cached.hash, operationId: 'save-reuse', paidConfirmed: false });
+  assert.equal((await restart.waitForJob(reused.id)).status, 'completed'); assert.equal(sends, 2);
+  const stage = join(root, 'stage');
+  const allowlist = { target: 'worker', libraryDir: config.libraryDir, books: [{ id: saved.id, revision: saved.revision, rightsConfirmed: true, publicDemo: true, attribution: 'Synthetic tone and self-authored text; no actual TTS/precision measurement.' }] };
+  await stageLibrary(allowlist, { output: stage });
+  const index = parsePublicLibrary(JSON.parse(await readFile(join(stage, 'library/index.json'), 'utf8'))); const entry = index.books[0];
+  const bytes = await readFile(join(stage, entry.manifestUrl));
+  const distributed = await loadDistributedBook(entry, 'https://example.test/', async () => new Response(bytes) as Response);
+  assert.equal(distributed.presentation!.status, 'valid'); assert.equal(distributed.presentation!.expectedUnits, report.expectedUnits);
+  assert.equal(distributed.presentation!.estimatedUnits, report.expectedUnits);
+  assert.equal(audioSegments(distributed).flatMap(segment => segment.displayCues!).map(cue => cue.units[0].text).join(''), document.blocks.map(block => block.text).join(''));
+  const client = join(root, 'client'); await mkdir(client); await writeFile(join(client, '_shell.html'), '<html><script src="/assets/reader.js"></script></html>');
+  const output = join(root, 'output'); await buildDistribution({ profile: 'worker', client, output, staging: stage }); await auditDistribution(output);
+  const mediaPath = join(output, distributed.chunks[0].audioUrl.split('https://example.test/')[1]);
+  await rename(mediaPath, mediaPath + '.missing'); await assert.rejects(auditDistribution(output), /ENOENT|missing/); await rename(mediaPath + '.missing', mediaPath);
+  await writeFile(join(output, 'library/unselected.json'), '{"text":"unselected"}'); await assert.rejects(auditDistribution(output), /Unselected/); await rm(join(output, 'library/unselected.json'));
+  const catalogPath = join(output, 'library/index.json'); const catalogBytes = await readFile(catalogPath); await rm(catalogPath);
+  await assert.rejects(auditDistribution(output), /catalog is missing/); await writeFile(catalogPath, catalogBytes);
+  for (const [key, hash] of wavHashes) assert.equal(contentHash(await readFile(join(config.libraryDir, 'audio', `${key}.wav`))), hash);
+  assert.equal(sends, 2);
+  // A report cannot be forged by changing only its success/count fields, even with an updated catalog hash.
+  const tampered = JSON.parse(bytes.toString()); tampered.presentation.displayedUnits = 999;
+  const badBytes = Buffer.from(JSON.stringify(tampered)); await writeFile(join(stage, entry.manifestUrl), badBytes);
+  index.books[0].manifestSha256 = contentHash(badBytes); index.books[0].manifestBytes = badBytes.length;
+  await writeFile(join(stage, 'library/index.json'), JSON.stringify(index));
+  await assert.rejects(buildDistribution({ profile: 'worker', client, output: join(root, 'bad-output'), staging: stage }), /検査記録/);
+  await assert.rejects(loadDistributedBook(index.books[0], 'https://example.test/', async () => new Response(badBytes) as Response), /検査記録/);
+  stored.document.units = []; await writeFile(path, JSON.stringify(stored));
+  await assert.rejects(restart.getBook(saved.id, saved.revision), /検査に失敗/);
+  await assert.rejects(stageLibrary(allowlist, { output: join(root, 'bad-stage') }), /検査に失敗/);
+  await writeFile(path, originalManifest); assert.equal(sends, 2);
+});

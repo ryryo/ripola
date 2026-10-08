@@ -1,0 +1,41 @@
+{
+  "retrievedOn": "2026-10-08",
+  "scope": "Supplement to incomplete npm/Vite notices, not a change of third-party licenses",
+  "notices": [
+    {
+      "package": "format",
+      "version": "0.2.2",
+      "declaredLicense": "MIT",
+      "registrySource": "https://registry.npmjs.org/format/0.2.2",
+      "npmGitHead": "4f898096759776b7c84fa7a25b13c923dadfe46e",
+      "sourceCommit": "0094c51372790ca342da4b90c519edd3380deee1",
+      "source": "https://github.com/samsonjs/format/blob/0094c51372790ca342da4b90c519edd3380deee1/License.md",
+      "path": "docs/licenses/upstream/format-0.2.2-LICENSE",
+      "bytes": 1132,
+      "sha256": "0b2c94863590ca2aed327e89642b7e74b1608ec423bfec1d8f1beba2945fc4ba",
+      "note": "No license file was available at the npm gitHead URL (HTTP 404); unchanged full MIT notice archived from a pinned current upstream revision. Release metadata and copyright notices are retained separately.",
+      "releaseCopyrightNotice": {
+        "path": "docs/licenses/upstream/format-0.2.2-NOTICE",
+        "bytes": 346,
+        "sha256": "75f6641eaec960eb1e95db0ee5afb8e2441a6859845318c0b5ee88271051c8cf",
+        "sources": [
+          "format@0.2.2/format.js header",
+          "format@0.2.2/Readme.md license section"
+        ]
+      }
+    },
+    {
+      "package": "react-remove-scroll-bar",
+      "version": "2.3.8",
+      "declaredLicense": "MIT",
+      "registrySource": "https://registry.npmjs.org/react-remove-scroll-bar/2.3.8",
+      "npmGitHead": "b3b1287aad81def2e2ae707274b74531b61ddbaf",
+      "sourceCommit": "8ca9ba5ea52de03308fe8ced94f7b159a44d28ff",
+      "source": "https://github.com/theKashey/react-remove-scroll-bar/blob/8ca9ba5ea52de03308fe8ced94f7b159a44d28ff/LICENSE",
+      "path": "docs/licenses/upstream/react-remove-scroll-bar-2.3.8-LICENSE",
+      "bytes": 1093,
+      "sha256": "a79aae0c0f21990d9d963bb3c5a79cdcea9a46f8523ba55c58d7fe776b6ebc84",
+      "note": "No license file was available at the npm gitHead URL (HTTP 404); unchanged full MIT notice archived from a pinned current upstream revision. Release metadata and copyright notices are retained separately."
+    }
+  ]
+}

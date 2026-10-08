@@ -1,0 +1,47 @@
+{
+  "name": "ripola",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "author": "ryryo",
+  "packageManager": "pnpm@12.3.4",
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "scripts": {
+    "setup:audio": "node scripts/setup-alignment.mjs",
+    "dev": "node scripts/prepare-pdf-assets.mjs && pnpm --filter @ripola/web dev",
+    "build": "node scripts/prepare-pdf-assets.mjs && pnpm --filter @ripola/web build",
+    "preview": "RSVP_LOCAL_ORIGIN=http://127.0.0.1:4174 pnpm --filter @ripola/web preview",
+    "generate": "node --import tsx scripts/generate-audio.ts",
+    "stage": "node --import tsx scripts/stage-library.ts",
+    "compress:audio": "node --import tsx scripts/compress-library.ts",
+    "build:pages": "node scripts/build-distribution.mjs --profile pages",
+    "build:worker": "node scripts/build-distribution.mjs --profile worker",
+    "typecheck": "pnpm --filter @ripola/web typecheck",
+    "lint": "eslint apps/web/src apps/web/tests scripts playwright.config.ts",
+    "test": "node --import tsx --test apps/web/tests/*.test.ts",
+    "test:e2e": "playwright test",
+    "check": "pnpm typecheck && pnpm lint && pnpm test && pnpm build",
+    "audit:audio": "node --import tsx scripts/audit-audio-presentation.ts"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@playwright/test": "1.63.0",
+    "@types/node": "26.4.0",
+    "eslint": "10.9.1",
+    "fake-indexeddb": "6.2.4",
+    "pdf-lib": "1.17.1",
+    "tsx": "4.21.0",
+    "typescript-eslint": "8.69.0"
+  },
+  "description": "日本語対応のRSVPリーダー",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ryryo/ripola.git"
+  },
+  "homepage": "https://github.com/ryryo/ripola#readme",
+  "bugs": {
+    "url": "https://github.com/ryryo/ripola/issues"
+  }
+}

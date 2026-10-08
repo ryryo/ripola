@@ -1,0 +1,128 @@
+{
+  "status": "design-expectations-not-library-output",
+  "authorship": "original examples created for this research; no book or private document text",
+  "offsetConvention": "UTF-16 code unit half-open ranges for JS source mapping; grapheme count separately for display",
+  "cases": [
+    {
+      "id": "particles-and-auxiliary",
+      "input": "私は朝の電車で本を読んでいます。",
+      "displayText": "私は朝の電車で本を読んでいます。",
+      "preferredChunks": [
+        "私は",
+        "朝の",
+        "電車で",
+        "本を",
+        "読んでいます。"
+      ],
+      "acceptedAlternatives": [
+        [
+          "私は",
+          "朝の電車で",
+          "本を",
+          "読んでいます。"
+        ]
+      ],
+      "focus": "助詞と補助動詞。preferredは実行結果ではない"
+    },
+    {
+      "id": "negative-polite-past",
+      "input": "彼女は資料を読みませんでした。",
+      "displayText": "彼女は資料を読みませんでした。",
+      "preferredChunks": [
+        "彼女は",
+        "資料を",
+        "読みませんでした。"
+      ],
+      "focus": "否定・丁寧・過去の連鎖"
+    },
+    {
+      "id": "date-and-number",
+      "input": "今日は2026年10月5日で、料金は1,200円です。",
+      "displayText": "今日は2026年10月5日で、料金は1,200円です。",
+      "preferredChunks": [
+        "今日は",
+        "2026年10月5日で、",
+        "料金は",
+        "1,200円です。"
+      ],
+      "focus": "日付と桁区切りを保護"
+    },
+    {
+      "id": "quoted-speech",
+      "input": "彼は「明日は晴れる」と言いました。",
+      "displayText": "彼は「明日は晴れる」と言いました。",
+      "preferredChunks": [
+        "彼は",
+        "「明日は",
+        "晴れる」と",
+        "言いました。"
+      ],
+      "focus": "引用内部は分割し、閉じ括弧と引用助詞を左へ"
+    },
+    {
+      "id": "latin-and-version",
+      "input": "TypeScriptでPDFを開き、v2.1の結果を比べる。",
+      "displayText": "TypeScriptでPDFを開き、v2.1の結果を比べる。",
+      "preferredChunks": [
+        "TypeScriptで",
+        "PDFを",
+        "開き、",
+        "v2.1の",
+        "結果を",
+        "比べる。"
+      ],
+      "focus": "英字identifierとversion保護"
+    },
+    {
+      "id": "html-ruby",
+      "input": "<ruby>東京<rt>とうきょう</rt></ruby>へ行った。",
+      "displayText": "東京へ行った。",
+      "preferredChunks": [
+        "東京へ",
+        "行った。"
+      ],
+      "rubyAnnotations": [
+        {
+          "base": "東京",
+          "reading": "とうきょう",
+          "displayStartUtf16": 0,
+          "displayEndUtf16": 2
+        }
+      ],
+      "focus": "本文とルビを分離。元HTMLへのsource mapが必要"
+    },
+    {
+      "id": "ambiguous-coordination",
+      "input": "小さな犬と猫を見た。",
+      "displayText": "小さな犬と猫を見た。",
+      "preferredChunks": [
+        "小さな",
+        "犬と",
+        "猫を",
+        "見た。"
+      ],
+      "acceptedAlternatives": [
+        [
+          "小さな",
+          "犬と猫を",
+          "見た。"
+        ]
+      ],
+      "focus": "意味曖昧性は境界だけで解決しない"
+    },
+    {
+      "id": "grapheme-preservation",
+      "input": "👩‍💻が書いたが、まだ終わっていない。",
+      "displayText": "👩‍💻が書いたが、まだ終わっていない。",
+      "preferredChunks": [
+        "👩‍💻が",
+        "書いたが、",
+        "まだ",
+        "終わっていない。"
+      ],
+      "focus": "ZWJ emojiとU+304B U+3099を分割・置換しない"
+    }
+  ],
+  "initialSegmenter": "BudouX Japanese model; preferredChunks are reading examples, not required exact output",
+  "validationPolicy": "content reconstruction, grapheme preservation, small protected spans and source mapping; no comparative selection gate"
+}

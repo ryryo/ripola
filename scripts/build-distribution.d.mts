@@ -1,0 +1,2 @@
+export interface BuildDistributionOptions { profile: 'pages' | 'worker'; audience?: 'demo' | 'personal'; client?: string; output?: string; staging?: string; maxFiles?: number; replaceExisting?: boolean }
+export function buildDistribution(options: BuildDistributionOptions): Promise<{ output: string; profile: string; audience: string; fileCount: number; totalBytes: number; localGenerationApi: boolean }>;

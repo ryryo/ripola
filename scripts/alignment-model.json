@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "modelId": "reazon-research/japanese-wav2vec2-base-rs35kh",
+  "revision": "46afc596052b612293c8db256b3a69447a2f57dc",
+  "alignerVersion": "reazon-rs35kh-46afc596-ctc-v2",
+  "license": "Apache-2.0",
+  "samplingRate": 16000,
+  "architecture": "Wav2Vec2ForCTC",
+  "downloadBytes": 386888750,
+  "files": [
+    {
+      "filename": "added_tokens.json",
+      "bytes": 51,
+      "sha256": "4de0ae97b4959a8d86c933b0ec9afaf72a917ebf02d1693c1ccba1d34c575599"
+    },
+    {
+      "filename": "config.json",
+      "bytes": 2041,
+      "sha256": "ce1cf984403e369ba3d9757e48850be2e6f3b931f72d54b9b725e5ba5621c6af"
+    },
+    {
+      "filename": "preprocessor_config.json",
+      "bytes": 214,
+      "sha256": "60ca5a31e13f69ee2fbf147504c8676db5f6398fd7a6b12294341dff838edfcf"
+    },
+    {
+      "filename": "special_tokens_map.json",
+      "bytes": 550,
+      "sha256": "fe941423230c28a1b96e319effd1cb23982cadf1d27e2a62f6054313b6d3fc3f"
+    },
+    {
+      "filename": "tokenizer_config.json",
+      "bytes": 89531,
+      "sha256": "5ecf666fb5c77cb12d8ee420ae1c7321b4fc28d0f377baaff0d135529aad6822"
+    },
+    {
+      "filename": "vocab.json",
+      "bytes": 46399,
+      "sha256": "223300c979885b08b6a44f18b6b76cae49099c6de1a0bc2d5694a32827b3a7ab"
+    },
+    {
+      "filename": "model.safetensors",
+      "bytes": 386749964,
+      "sha256": "f7e05abd4c9f98e7d311ab0c4904dac8cdde49290f6ac015e96d40e02df0312f"
+    }
+  ]
+}

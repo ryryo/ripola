@@ -1,0 +1,142 @@
+import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { test } from 'node:test';
+import type { GenerationJob } from '../src/generation/contracts';
+import { compressedAudioRecord, validateCompressedAudio } from '../src/generation/core/audio-cache';
+import { GenerationService } from '../src/generation/core/service';
+import { audioResponse } from '../src/server/audio-response';
+import { requireAudioPresentation } from '../src/reader/audio-presentation';
+import { compressLibrary } from '../../../scripts/compress-library';
+import { stageLibrary } from '../../../scripts/stage-library';
+import { buildDistribution } from '../../../scripts/build-distribution.mjs';
+import { loadDistributedBook } from '../src/distribution/library';
+import { createMp3Fixture } from './helpers/mp3-fixture';
+
+const available = ['ffmpeg', 'ffprobe'].every(c => spawnSync(c, ['-version'], { stdio: 'ignore' }).status === 0);
+async function fixture(t: { after(fn: () => Promise<void>): void }) {
+  const root = await mkdtemp(join(tmpdir(), 'rsvp-mp3-test-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  return { ...await createMp3Fixture(join(root, 'library')), root };
+}
+test('verified gapless MP3 preserves source hash/cues, survives WAV archival and reuses generation/alignment offline', { skip: !available }, async t => {
+  const f = await fixture(t), originalCalls = f.calls(), bookPath = join(f.config.libraryDir, 'books', `${f.book.id}_${f.book.revision}.json`);
+  const originalBook = await readFile(bookPath), caches = await Promise.all(f.book.chunks.map(c => readFile(join(f.config.libraryDir, 'cache', `${c.speechKey}.json`))));
+  const converted = await compressLibrary(f.selection, { action: 'convert', apply: true });
+  assert.equal(converted.files.filter(r => r.status === 'converted').length, 2);
+  assert.ok(converted.mp3Bytes < converted.originalWavBytes / 3);
+  assert.deepEqual(await readFile(bookPath), originalBook);
+  assert.deepEqual(await Promise.all(f.book.chunks.map(c => readFile(join(f.config.libraryDir, 'cache', `${c.speechKey}.json`)))), caches);
+  const view = await f.service.getBook(f.book.id, f.book.revision);
+  assert.ok(view.chunks.every(c => c.mimeType === 'audio/mpeg' && c.audioUrl.endsWith('.mp3')));
+  assert.deepEqual(view.chunks.map(c => c.alignment), f.book.chunks.map(c => c.alignment));
+  for (const c of view.chunks) {
+    const record = (await compressedAudioRecord(f.disk, c.speechKey))!;
+    assert.notEqual(record.hash, record.sourceAudioHash);
+    assert.equal(record.verification.sourceFrames, record.verification.decodedFrames);
+    assert.ok(Math.abs(record.verification.containerDurationSeconds - record.durationSeconds) < .2);
+    assert.ok(record.verification.encoderSkipSamples > 0);
+    const audio = await f.service.getAudio(c.speechKey);
+    const response = audioResponse(audio.bytes, new Request('http://127.0.0.1/audio.mp3', { headers: { Range: 'bytes=0-127' } }), audio.mimeType);
+    assert.equal(response.status, 206); assert.equal(response.headers.get('content-type'), 'audio/mpeg'); assert.equal((await response.arrayBuffer()).byteLength, 128);
+  }
+  const archived = await compressLibrary(f.selection, { action: 'archive-wav', operation: 'fixture-archive', writersStopped: true, apply: true });
+  assert.equal(archived.files.filter(r => r.status === 'archived').length, 2);
+  assert.equal(archived.actualSpaceReclaimedBytes, 0); assert.equal(archived.irreversibleDeletionPerformed, false);
+  assert.ok(archived.archivedBytes > 0);
+  assert.deepEqual(await readFile(bookPath), originalBook);
+  const offlineVoice = { ...f.voice, async synthesize() { throw new Error('Must not synthesize after migration'); } };
+  const offlineAligner = { ...f.alignment, async available() { return false; }, async align() { throw new Error('Must not align lossy PCM'); } };
+  const service = new GenerationService(f.config, { voicevox: offlineVoice, alignment: offlineAligner });
+  for (const c of view.chunks) assert.equal((await service.getAudio(c.speechKey, 'wav')).mimeType, 'audio/mpeg'); // legacy URL redirect signal
+  const planned = await service.prepareGeneration({ document: f.document, options: f.options });
+  assert.ok(planned.chunks.every(c => c.cacheHit)); assert.equal(planned.sendingText, '');
+  const pending = { ...await f.disk.read<GenerationJob>(['jobs', `${f.job.id}.json`]), status: 'cancelled' as const, chunks: f.job.chunks.map((c, i) => ({ ...c, status: i ? 'pending' as const : 'completed' as const })), completedChunks: 1 } as GenerationJob;
+  await f.disk.write(['jobs', `${pending.id}.json`], pending);
+  await service.resumeJob(pending.id);
+  assert.equal((await service.waitForJob(pending.id)).status, 'completed');
+  const correction = await service.startAlignment({ bookId: f.book.id, revision: f.book.revision, operationId: 'fixture-compressed-reuse' });
+  const corrected = await service.waitForAlignmentJob(correction.id);
+  assert.equal(corrected.status, 'completed'); assert.equal(corrected.reusedChunks, 2);
+  const replay = await service.getBook(f.book.id, f.book.revision);
+  assert.deepEqual(replay.chunks.map(c => c.alignment), f.book.chunks.map(c => c.alignment));
+  assert.equal(requireAudioPresentation(replay).status, 'valid'); assert.deepEqual(f.calls(), originalCalls);
+  const staged = await stageLibrary({ target: 'worker', audience: 'personal', mediaFormat: 'aac', libraryDir: f.config.libraryDir, books: [{ ...f.selection.books[0], rightsConfirmed: true, publicDemo: false, attribution: '自作検証。' }] }, { output: join(f.root, 'staged') });
+  assert.equal(staged.books, 1);
+  const catalog = JSON.parse(await readFile(join(staged.output, 'library/index.json'), 'utf8'));
+  const publicBook = JSON.parse(await readFile(join(staged.output, catalog.books[0].manifestUrl), 'utf8'));
+  assert.equal(publicBook.presentation.status, 'valid'); assert.ok(publicBook.chunks.every((c: { mimeType: string }) => c.mimeType === 'audio/mp4'));
+  const mp3Stage = await stageLibrary({ target: 'worker', audience: 'personal', libraryDir: f.config.libraryDir, books: [{ ...f.selection.books[0], rightsConfirmed: true, publicDemo: false, attribution: '自作検証。' }] }, { output: join(f.root, 'mp3-staged') });
+  const mp3Catalog = JSON.parse(await readFile(join(mp3Stage.output, 'library/index.json'), 'utf8'));
+  const mp3Book = JSON.parse(await readFile(join(mp3Stage.output, mp3Catalog.books[0].manifestUrl), 'utf8'));
+  assert.equal(mp3Book.presentation.status, 'valid');
+  assert.ok(mp3Book.chunks.every((c: { mimeType: string; audioUrl: string }) => c.mimeType === 'audio/mpeg' && c.audioUrl.endsWith('.mp3')));
+  for (const c of mp3Book.chunks) assert.deepEqual(await readFile(join(mp3Stage.output, c.audioUrl)), (await service.getAudio(f.book.chunks[0].speechKey)).bytes);
+  const client = join(f.root, 'client'); await mkdir(join(client, 'assets'), { recursive: true });
+  await writeFile(join(client, '_shell.html'), '<html><script src="/assets/reader.js"></script></html>');
+  await writeFile(join(client, 'assets/reader.js'), 'console.log("fixture reader")');
+  const worker = await buildDistribution({ profile: 'worker', audience: 'personal', client, staging: mp3Stage.output, output: join(f.root, 'worker') });
+  const sizes = JSON.parse(await readFile(join(worker.output, 'library/audio-sizes.json'), 'utf8'));
+  assert.equal(sizes[mp3Book.chunks[0].audioUrl], mp3Book.chunks[0].bytes);
+  const loaded = await loadDistributedBook(mp3Catalog.books[0], 'http://127.0.0.1/', async () => new Response(await readFile(join(worker.output, mp3Catalog.books[0].manifestUrl))));
+  assert.ok(loaded.chunks.every(c => c.mimeType === 'audio/mpeg'));
+  const restored = await compressLibrary(f.selection, { action: 'restore-wav', operation: 'fixture-archive', writersStopped: true, apply: true });
+  assert.equal(restored.files.filter(r => r.status === 'restored').length, 2);
+  assert.ok((await service.getBook(f.book.id, f.book.revision)).chunks.every(c => c.mimeType === 'audio/wav'));
+});
+test('uncorrected/active/shared books keep WAV; metadata/delay/hash corruption never triggers speech regeneration', { skip: !available }, async t => {
+  const f = await fixture(t);
+  const fakeJob = { ...f.job, id: 'job-active-fixture', status: 'running' as const };
+  await f.disk.write(['jobs', `${fakeJob.id}.json`], fakeJob);
+  await assert.rejects(compressLibrary(f.selection, { action: 'archive-wav', operation: 'test', apply: true, writersStopped: true }), /Active generation/);
+  await f.disk.write(['jobs', `${fakeJob.id}.json`], { ...fakeJob, status: 'completed' });
+  await assert.rejects(compressLibrary(f.selection, { action: 'archive-wav', operation: 'test', apply: true }), /writers-stopped/);
+  const sourceBook = await readFile(join(f.config.libraryDir, 'books', `${f.book.id}_${f.book.revision}.json`));
+  await f.disk.write(['books', `${f.book.id}_${f.book.revision}.json`], { ...f.book, chunks: f.book.chunks.map(c => ({ ...c, alignment: undefined })) });
+  await assert.rejects(compressLibrary(f.selection, { action: 'convert', apply: true }), /Finish and save synchronization/);
+  await writeFile(join(f.config.libraryDir, 'books', `${f.book.id}_${f.book.revision}.json`), sourceBook);
+  await compressLibrary(f.selection, { action: 'convert', apply: true });
+  const c = f.book.chunks[0], media = (await compressedAudioRecord(f.disk, c.speechKey))!, cache = (await f.disk.read<import('../src/generation/core/audio-cache').AudioCacheRecord>(['cache', `${c.speechKey}.json`]))!;
+  assert.throws(() => validateCompressedAudio({ ...media, verification: { ...media.verification, timing: { ...media.verification.timing, offsetSeconds: .03 } } }, c.speechKey, cache), /gapless/);
+  await compressLibrary(f.selection, { action: 'archive-wav', operation: 'test-archive', writersStopped: true, apply: true });
+  await writeFile(join(f.config.libraryDir, 'audio', `${c.speechKey}.mp3`), Buffer.from('corrupt MP3'));
+  await assert.rejects(f.service.prepareGeneration({ document: f.document, options: f.options }), /整合性/);
+  assert.deepEqual(await f.disk.read(['cache', `${c.speechKey}.json`]), cache);
+  await f.disk.write(['jobs', `${f.job.id}.json`], { ...f.job, status: 'cancelled', completedChunks: 1, chunks: f.job.chunks.map((chunk, i) => ({ ...chunk, status: i === 0 ? 'pending' : 'completed' })) });
+  await f.service.resumeJob(f.job.id);
+  assert.equal((await f.service.waitForJob(f.job.id)).status, 'failed');
+  assert.deepEqual(await f.disk.read(['cache', `${c.speechKey}.json`]), cache);
+  assert.equal(f.calls().synthesisCalls, 2);
+  // A source used by an unselected book is not converted/archived indirectly.
+  const second = await fixture(t);
+  await mkdir(join(second.config.libraryDir, 'books'), { recursive: true });
+  await second.disk.write(['books', `book-other_${second.book.revision}.json`], { ...second.book, id: 'book-other' });
+  const shared = await compressLibrary(second.selection, { action: 'convert', apply: true });
+  assert.equal(shared.retainedWavFiles, 2); assert.equal(shared.verifiedMp3Files, 0);
+});
+
+test('subsecond speech converts to gapless MP3 with independent short windows and unchanged synchronization', { skip: !available }, async t => {
+  const root = await mkdtemp(join(tmpdir(), 'rsvp-short-mp3-test-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const f = await createMp3Fixture(join(root, 'library'), .75);
+  const before = f.calls();
+  const result = await compressLibrary(f.selection, { action: 'convert', apply: true });
+  assert.equal(result.retainedWavFiles, 0);
+  assert.equal(result.verifiedMp3Files, 2);
+  for (const chunk of f.book.chunks) {
+    const media = (await compressedAudioRecord(f.disk, chunk.speechKey))!;
+    assert.equal(media.verification.timing.windowSeconds, .08);
+    assert.equal(media.verification.sourceFrames, media.verification.decodedFrames);
+    assert.ok(media.verification.timing.anchors.length >= 3);
+    assert.equal(media.verification.timing.offsetSeconds, 0);
+    assert.equal(media.verification.timing.scale, 1);
+    const cache = (await f.disk.read<import('../src/generation/core/audio-cache').AudioCacheRecord>(['cache', `${chunk.speechKey}.json`]))!;
+    assert.throws(() => validateCompressedAudio({ ...media, verification: { ...media.verification, timing: { ...media.verification.timing, offsetSeconds: .003 } } }, chunk.speechKey, cache), /gapless/);
+  }
+  const replay = await f.service.getBook(f.book.id, f.book.revision);
+  assert.ok(replay.chunks.every(c => c.mimeType === 'audio/mpeg'));
+  assert.deepEqual(replay.chunks.map(c => c.alignment), f.book.chunks.map(c => c.alignment));
+  assert.deepEqual(f.calls(), before);
+});

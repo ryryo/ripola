@@ -1,0 +1,51 @@
+{
+  "brand": "Ripola",
+  "baseUrl": "Prefix each url with import.meta.env.BASE_URL",
+  "assets": {
+    "mark": {
+      "file": "mark.webp",
+      "url": "brand/ripola/mark.webp",
+      "width": 800,
+      "height": 845,
+      "bytes": 199864,
+      "sha256": "c9a843241c344eeea903eea6738ea28530524f4cc2da601dd369eb44854759fa",
+      "format": "image/webp",
+      "alpha": true
+    },
+    "wordmark": {
+      "file": "wordmark.webp",
+      "url": "brand/ripola/wordmark.webp",
+      "width": 1557,
+      "height": 559,
+      "bytes": 210630,
+      "sha256": "a0cd10d7ece6775f91bec6e8ace4c9845f82875d1f0a839ec1577f2f9ea69674",
+      "format": "image/webp",
+      "alpha": true
+    },
+    "logo": {
+      "file": "logo.webp",
+      "url": "brand/ripola/logo.webp",
+      "width": 1614,
+      "height": 468,
+      "bytes": 202132,
+      "sha256": "36090e37d048ecc1a8f7036a8d021fbff3975977af8c175426f9428e6ae25e54",
+      "format": "image/webp",
+      "alpha": true
+    },
+    "character": {
+      "file": "character.webp",
+      "url": "brand/ripola/character.webp",
+      "width": 904,
+      "height": 1202,
+      "bytes": 616426,
+      "sha256": "7196d9ad1d07a3c610e431fbee57109d2c0083d3b29244ccce92eb3852ee7715",
+      "format": "image/webp",
+      "alpha": true
+    }
+  },
+  "themeStyles": {
+    "url": "brand/ripola/brand.css",
+    "lightBackground": "墨色の文字",
+    "darkBackground": "CSSのlightクラスで白文字。水色マークを保持。"
+  }
+}

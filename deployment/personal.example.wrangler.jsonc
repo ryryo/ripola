@@ -1,0 +1,16 @@
+// Owner's personal static reader. No AI, provider secret, R2, or generation API.
+// Personal purpose does not authenticate HTTP requests. Configure optional Access separately.
+{
+  "name": "ripola-your-personal-reader",
+  "compatibility_date": "2026-10-07",
+  "workers_dev": true,
+  "preview_urls": false,
+  "main": "../scripts/public-audio-worker.mjs",
+  "assets": {
+    "directory": "../dist/personal-worker",
+    "binding": "ASSETS",
+    "html_handling": "auto-trailing-slash",
+    "not_found_handling": "none",
+    "run_worker_first": ["/library/books/*", "/samples/audio/library/books/*", "/_serverFn/*", "/api/local-*", "/generate", "/generate/*"]
+  }
+}

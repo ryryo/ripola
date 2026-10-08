@@ -1,0 +1,12 @@
+# Source package inspection must not collect previous local or deployment builds.
+dist/
+node_modules/
+.tanstack/
+.wrangler/
+.env
+.env.*
+.dev.vars*
+*.log
+public/pdfjs/
+src/routeTree.pages.gen.ts
+src/routeTree.worker.gen.ts

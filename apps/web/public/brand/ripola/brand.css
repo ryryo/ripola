@@ -1,0 +1,27 @@
+/* Theme variants reuse the alpha and contours of the adopted WebP assets. */
+.ripola-wordmark--light {
+  filter: brightness(0) invert(1);
+}
+.ripola-logo {
+  display: inline-block;
+  position: relative;
+  vertical-align: middle;
+  line-height: 0;
+}
+.ripola-logo > img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.ripola-logo > .ripola-logo__light {
+  display: none;
+  position: absolute;
+  inset: 0;
+  filter: brightness(0) invert(1);
+  /* The gap between the mark and R is at 28% of logo.webp's canvas. */
+  clip-path: inset(0 0 0 28%);
+  pointer-events: none;
+}
+.ripola-logo--light > .ripola-logo__light {
+  display: block;
+}

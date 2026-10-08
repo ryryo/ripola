@@ -1,0 +1,86 @@
+%PDF-1.7
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> /Contents 8 0 R >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type0 /BaseFont /HeiseiKakuGo-W5 /Encoding /UniJIS-UCS2-H /DescendantFonts [5 0 R] /ToUnicode 7 0 R >>
+endobj
+5 0 obj
+<< /Type /Font /Subtype /CIDFontType0 /BaseFont /HeiseiKakuGo-W5 /CIDSystemInfo << /Registry (Adobe) /Ordering (Japan1) /Supplement 5 >> /FontDescriptor 6 0 R /DW 1000 >>
+endobj
+6 0 obj
+<< /Type /FontDescriptor /FontName /HeiseiKakuGo-W5 /Flags 4 /FontBBox [-100 -200 1200 1000] /ItalicAngle 0 /Ascent 880 /Descent -120 /CapHeight 880 /StemV 80 >>
+endobj
+7 0 obj
+<< /Length 668 >>
+stream
+/CIDInit /ProcSet findresource begin
+12 dict begin
+begincmap
+/CIDSystemInfo << /Registry (Adobe) /Ordering (UCS) /Supplement 0 >> def
+/CMapName /SelfAuthored def
+/CMapType 2 def
+1 begincodespacerange
+<0000> <FFFF>
+endcodespacerange
+25 beginbfchar
+<79c1> <79c1>
+<306f> <306f>
+<671d> <671d>
+<306e> <306e>
+<56f3> <56f3>
+<66f8> <66f8>
+<9928> <9928>
+<3067> <3067>
+<672c> <672c>
+<3092> <3092>
+<8aad> <8aad>
+<3080> <3080>
+<3002> <3002>
+<4e00> <4e00>
+<5ea6> <5ea6>
+<6b62> <6b62>
+<307e> <307e>
+<308a> <308a>
+<3001> <3001>
+<539f> <539f>
+<6587> <6587>
+<78ba> <78ba>
+<304b> <304b>
+<3081> <3081>
+<308b> <308b>
+endbfchar
+endcmap
+CMapName currentdict /CMap defineresource pop
+end
+end
+endstream
+endobj
+8 0 obj
+<< /Length 154 >>
+stream
+BT /F1 18 Tf 48 720 Td <79c1306f671d306e56f366f899283067672c30928aad30803002> Tj 0 -28 Td <4e005ea66b62307e308a3001539f6587309278ba304b3081308b3002> Tj ET
+endstream
+endobj
+xref
+0 9
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000241 00000 n 
+0000000384 00000 n 
+0000000570 00000 n 
+0000000747 00000 n 
+0000001466 00000 n 
+trailer
+<< /Size 9 /Root 1 0 R >>
+startxref
+1671
+%%EOF

@@ -1,0 +1,9 @@
+// Local Node generation only. Copy to local-ai.wrangler.jsonc and select your existing Gateway.
+// Keep account_id (if needed) and all personal choices in that ignored local copy.
+{
+  "$schema": "../apps/web/node_modules/wrangler/config-schema.json",
+  "name": "ripola-local-ai",
+  "compatibility_date": "2026-10-08",
+  "ai": { "binding": "AI", "remote": true },
+  "vars": { "RSVP_AI_GATEWAY_ID": "" }
+}

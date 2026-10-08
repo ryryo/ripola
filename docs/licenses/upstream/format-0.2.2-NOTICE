@@ -1,0 +1,19 @@
+//
+// format - printf-like string formatting for JavaScript
+// github.com/samsonjs/format
+// @_sjs
+//
+// Copyright 2010 - 2013 Sami Samhuri <sami@samhuri.net>
+//
+// MIT License
+// http://sjs.mit-license.org
+//
+
+
+Original Readme.md license section:
+
+
+Copyright 2010 - 2014 Sami Samhuri sami@samhuri.net
+
+[MIT license](http://sjs.mit-license.org)
+

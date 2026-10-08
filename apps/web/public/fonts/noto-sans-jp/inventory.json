@@ -1,0 +1,636 @@
+{
+  "family": "noto-sans-jp",
+  "package": "@fontsource/noto-sans-jp",
+  "version": "5.3.0",
+  "weight": 400,
+  "style": "normal",
+  "license": "OFL-1.1",
+  "upstreamNoticeUrl": "https://raw.githubusercontent.com/google/fonts/main/ofl/notosansjp/OFL.txt",
+  "upstreamNoticeCheckedAt": "2026-10-06",
+  "packageLicenseSha256": "18aabf190848725e2576eefb5c29ba06aac1029d02132252a7f312eac2e50cf3",
+  "upstreamLicenseSha256": "1c05c68c34f9708415aada51f17e1b0092d2cea709bf4a94cd38114f9e73d7d9",
+  "woff2Count": 124,
+  "woff2Bytes": 2793024,
+  "assets": [
+    {
+      "name": "noto-sans-jp-0-400-normal.woff2",
+      "bytes": 43840,
+      "sha256": "d05a2579b7f2a0851fdd5bcb7f6ecfbdb40195bfe1553a665de33ef26441a3d3"
+    },
+    {
+      "name": "noto-sans-jp-1-400-normal.woff2",
+      "bytes": 37156,
+      "sha256": "a1f36d79ed3d7f91cf451e80476b2c3c64ba18e8f324033c8373e6422e5b4f59"
+    },
+    {
+      "name": "noto-sans-jp-2-400-normal.woff2",
+      "bytes": 16992,
+      "sha256": "0a75ea6cb9db08e95224576e062036c44064cb6291cfc9255d4ea39c9ff5d72b"
+    },
+    {
+      "name": "noto-sans-jp-3-400-normal.woff2",
+      "bytes": 23160,
+      "sha256": "2f0060b9adc6062fa64997e723920165c94981807f857625f8374dcaf8ede295"
+    },
+    {
+      "name": "noto-sans-jp-4-400-normal.woff2",
+      "bytes": 40432,
+      "sha256": "55e99fa53e19bcd902babd40936f7dbaedd0f0afdd9c5f4089367cd02f1411e6"
+    },
+    {
+      "name": "noto-sans-jp-5-400-normal.woff2",
+      "bytes": 45864,
+      "sha256": "23cabe14c7aa60a3527c669c3aad8cfe1fce38c716b995d022f494075afe89f1"
+    },
+    {
+      "name": "noto-sans-jp-6-400-normal.woff2",
+      "bytes": 47484,
+      "sha256": "63e6b71edf0e9420e5fe517c7ab5807e9d5463b64a82ef5353caddd7e505b338"
+    },
+    {
+      "name": "noto-sans-jp-7-400-normal.woff2",
+      "bytes": 44504,
+      "sha256": "5168f5242a1a7199a12cd54225e1183b510eddf8d0d073e13f3e11b16e18dcd4"
+    },
+    {
+      "name": "noto-sans-jp-8-400-normal.woff2",
+      "bytes": 41852,
+      "sha256": "8d8c0682862f5a9bcc73151884b5e231cbb6a960779a8e995da704eb56265b16"
+    },
+    {
+      "name": "noto-sans-jp-9-400-normal.woff2",
+      "bytes": 40472,
+      "sha256": "32fc1eab75cdafe7b182a181d29280773108b7d08a735ced0772b315dd547ab9"
+    },
+    {
+      "name": "noto-sans-jp-10-400-normal.woff2",
+      "bytes": 40000,
+      "sha256": "e45deda61f9f16a7954fc53d42f12c11da420b7f4cc548f2c17694e610a63fa1"
+    },
+    {
+      "name": "noto-sans-jp-11-400-normal.woff2",
+      "bytes": 39804,
+      "sha256": "f35d71df854e85ce2addd01c6f32fa5e08408a47ee5e15a53599e4a190ad5a52"
+    },
+    {
+      "name": "noto-sans-jp-12-400-normal.woff2",
+      "bytes": 35364,
+      "sha256": "04f52da319d26ac0bea8a9bd2d1fbee322f31588be18db82b1f4341f59e3071f"
+    },
+    {
+      "name": "noto-sans-jp-13-400-normal.woff2",
+      "bytes": 38540,
+      "sha256": "f1ff3a68f60a31ff9cc1e94d2db1b5b76c5481eb9411eab45846b4b7a87f3090"
+    },
+    {
+      "name": "noto-sans-jp-14-400-normal.woff2",
+      "bytes": 38528,
+      "sha256": "482690057acaaa94dc10245fed2838cbf8efecc45a02ac2ea0856c39f6491f02"
+    },
+    {
+      "name": "noto-sans-jp-15-400-normal.woff2",
+      "bytes": 42832,
+      "sha256": "4ff4ce17809454ea143b1abd75158055000ed481900f6b4a8c8a467a12a10b67"
+    },
+    {
+      "name": "noto-sans-jp-16-400-normal.woff2",
+      "bytes": 36992,
+      "sha256": "26fd2b998635508a32581641c31954b9017ad756c7e20b1232b1b404e2506c96"
+    },
+    {
+      "name": "noto-sans-jp-17-400-normal.woff2",
+      "bytes": 42680,
+      "sha256": "0a56d1a0d3f04cb5330fda62a1ccb119f3b22547837572f7ef14db8c7706c4f1"
+    },
+    {
+      "name": "noto-sans-jp-18-400-normal.woff2",
+      "bytes": 41068,
+      "sha256": "eeb0c9105a932462685a47ff62653633dbb393e2bcf58161f5a0bda2c3959207"
+    },
+    {
+      "name": "noto-sans-jp-19-400-normal.woff2",
+      "bytes": 46212,
+      "sha256": "f651add2dbc76d8c360ce060287766084c8e6e30e4c17cea09190202f3d76d29"
+    },
+    {
+      "name": "noto-sans-jp-20-400-normal.woff2",
+      "bytes": 32636,
+      "sha256": "580e750a0fb8e8f2aa59f51e1bc30adc8c79ccf7adac03e27700e321b9d95d14"
+    },
+    {
+      "name": "noto-sans-jp-21-400-normal.woff2",
+      "bytes": 38132,
+      "sha256": "965f9f53bad146d04b0c31ba8e9c05506551d7f3c401789dd8bb0e3d3a517ea2"
+    },
+    {
+      "name": "noto-sans-jp-22-400-normal.woff2",
+      "bytes": 39096,
+      "sha256": "d0463d819c3f0caff76bbb0da53b9f0d945b33e677ee2df04bac42f2cc652eb2"
+    },
+    {
+      "name": "noto-sans-jp-23-400-normal.woff2",
+      "bytes": 39816,
+      "sha256": "d5d7a1c5f6e67853b26a343af0594cd1c889cda0097aa7afafe54176e7f8efb9"
+    },
+    {
+      "name": "noto-sans-jp-24-400-normal.woff2",
+      "bytes": 44492,
+      "sha256": "3ca3547bdd351c773385b93ce7818cbc1f8c3195228d98b6232910c718a7d9af"
+    },
+    {
+      "name": "noto-sans-jp-25-400-normal.woff2",
+      "bytes": 42376,
+      "sha256": "e4295c304215739eace2de4284c6c43338d1e8783e308b1e6f7a0408d0397183"
+    },
+    {
+      "name": "noto-sans-jp-26-400-normal.woff2",
+      "bytes": 35740,
+      "sha256": "ac4b7deb61e2e1f52fd1145e8cf9186b8ff9d856177b4ec590774580acfc0d9e"
+    },
+    {
+      "name": "noto-sans-jp-27-400-normal.woff2",
+      "bytes": 34296,
+      "sha256": "5a87b1ba815e915a042a2917f4f172d5e2eb8b4733c47c78f1c34e03142c65ca"
+    },
+    {
+      "name": "noto-sans-jp-28-400-normal.woff2",
+      "bytes": 37248,
+      "sha256": "f97a6e53ef9b30b3e49781931cbeaede2bd1a3eefaf9422ee3292bb230aee43b"
+    },
+    {
+      "name": "noto-sans-jp-29-400-normal.woff2",
+      "bytes": 40508,
+      "sha256": "c89d396c380dcf3698c243a57fe25171ee06edcc04c56c8defe5af9b02c57c40"
+    },
+    {
+      "name": "noto-sans-jp-30-400-normal.woff2",
+      "bytes": 42220,
+      "sha256": "1aba68a4e36c482a85183cc25e81abb1e3ea723917419681cc204dc969834958"
+    },
+    {
+      "name": "noto-sans-jp-31-400-normal.woff2",
+      "bytes": 45760,
+      "sha256": "3eb415a95d0719799f3e4d63693caf6c84045ef9479c4fb691d6648a2f22bef1"
+    },
+    {
+      "name": "noto-sans-jp-32-400-normal.woff2",
+      "bytes": 38684,
+      "sha256": "3f42688bb352e7840483da24688ae1ec08ab28c8e318c7a20e237eba859184ac"
+    },
+    {
+      "name": "noto-sans-jp-33-400-normal.woff2",
+      "bytes": 34812,
+      "sha256": "61de20a04251d881ed347a1b4da1b4de097bb91844cd628f9760f9e77e286c1f"
+    },
+    {
+      "name": "noto-sans-jp-34-400-normal.woff2",
+      "bytes": 44512,
+      "sha256": "49f87be0444ac3d32c12832c89a358ba8a58d8e9d4c7634bfe24347cce57e81e"
+    },
+    {
+      "name": "noto-sans-jp-35-400-normal.woff2",
+      "bytes": 36444,
+      "sha256": "22620e99996d6414730a70b96efe4403bc49af6714934fb9471b1a8fb3dac211"
+    },
+    {
+      "name": "noto-sans-jp-36-400-normal.woff2",
+      "bytes": 33068,
+      "sha256": "b2f23004443222180dddb75521749da3c884ce9c2f95ad535b4eec4ae28980f9"
+    },
+    {
+      "name": "noto-sans-jp-37-400-normal.woff2",
+      "bytes": 38712,
+      "sha256": "65c9410af5ac58f05928b6e2f171b11ba2ff2e773ec5e2b321d813552ccd220d"
+    },
+    {
+      "name": "noto-sans-jp-38-400-normal.woff2",
+      "bytes": 36436,
+      "sha256": "d7bb820bfd858c7113ae96e923f761b5112a1c2c7f191e8918607c6530b3b295"
+    },
+    {
+      "name": "noto-sans-jp-39-400-normal.woff2",
+      "bytes": 39576,
+      "sha256": "59ef7f70f75ddab02107d9b25708869841b11844f0ce79304f90369ef1928740"
+    },
+    {
+      "name": "noto-sans-jp-40-400-normal.woff2",
+      "bytes": 33584,
+      "sha256": "057f017f4c7835d3d6bd88f08916e9926234b38da107c21509d0e93d9b3834bb"
+    },
+    {
+      "name": "noto-sans-jp-41-400-normal.woff2",
+      "bytes": 40000,
+      "sha256": "133c6e2bb4b42618b3894ec861667bf9024b429dd2302ccb38da3a8276432806"
+    },
+    {
+      "name": "noto-sans-jp-42-400-normal.woff2",
+      "bytes": 34148,
+      "sha256": "a4bf515f87c6fea0d95f959be338deca4868cc79be5c9acf1a24964a8d846b49"
+    },
+    {
+      "name": "noto-sans-jp-43-400-normal.woff2",
+      "bytes": 37080,
+      "sha256": "a4526cc1ff36498c8c1386f3f940d962fe9bd899a1c5b0dbb6d86042b245723c"
+    },
+    {
+      "name": "noto-sans-jp-44-400-normal.woff2",
+      "bytes": 38316,
+      "sha256": "c20d7fc728280537ed3d28a1d3aca49194df7731a9a04c964a92cb7c9d0d0bbe"
+    },
+    {
+      "name": "noto-sans-jp-45-400-normal.woff2",
+      "bytes": 35412,
+      "sha256": "7517edda10bf3be80f6fb07a49b1888cfeee73ee355914f2044d82814fb6de18"
+    },
+    {
+      "name": "noto-sans-jp-46-400-normal.woff2",
+      "bytes": 30580,
+      "sha256": "3b1105073506187e79b3c5080bea34691116a1ee138fe212f710e1fc3f899f96"
+    },
+    {
+      "name": "noto-sans-jp-47-400-normal.woff2",
+      "bytes": 35740,
+      "sha256": "2b3f11e2f1719c1aed8c6162bba6c2a540bb36151749378f681f139989af2491"
+    },
+    {
+      "name": "noto-sans-jp-48-400-normal.woff2",
+      "bytes": 37412,
+      "sha256": "04054978ceb671f01f8da282c23bfd5af9747a1340ff55a7997722780f76fd65"
+    },
+    {
+      "name": "noto-sans-jp-49-400-normal.woff2",
+      "bytes": 32172,
+      "sha256": "ad222ec80a237c86c0f4273eb07ae169584ba755d313657d897dd4d910eb3504"
+    },
+    {
+      "name": "noto-sans-jp-50-400-normal.woff2",
+      "bytes": 32300,
+      "sha256": "5f66387e34af97759029ae42eb10441000ceb34a284b23232d1af901ee21031f"
+    },
+    {
+      "name": "noto-sans-jp-51-400-normal.woff2",
+      "bytes": 30224,
+      "sha256": "28850edecb2be15b6ed7ba98c584770cd66ab0743625c09761dc32e0b794631b"
+    },
+    {
+      "name": "noto-sans-jp-52-400-normal.woff2",
+      "bytes": 38012,
+      "sha256": "c5a65808d6dd2d73786fb1dfb1ad0884b309312daa2090839c3ee3230556aad4"
+    },
+    {
+      "name": "noto-sans-jp-53-400-normal.woff2",
+      "bytes": 20056,
+      "sha256": "7650e8f9fac4314e19859bc64f69d19d8379c6f0685dfcda9780528e55d1568f"
+    },
+    {
+      "name": "noto-sans-jp-54-400-normal.woff2",
+      "bytes": 16772,
+      "sha256": "896942657c79c88ae830a9d49813d88bcbe82e18c03584d9b851d3005a67ba6c"
+    },
+    {
+      "name": "noto-sans-jp-55-400-normal.woff2",
+      "bytes": 22984,
+      "sha256": "1ea797cf0aebdb4b3c412eeca4d7087fc3472112dc8d63340655b94ca6a36ab7"
+    },
+    {
+      "name": "noto-sans-jp-56-400-normal.woff2",
+      "bytes": 22656,
+      "sha256": "d7b7dcb8b3f92d4d074b9bb02907c1a2552629678abebac0f485fbbb467529fc"
+    },
+    {
+      "name": "noto-sans-jp-57-400-normal.woff2",
+      "bytes": 6504,
+      "sha256": "ff04eb189644d0a84b1b0683bb3777c7bd5974b0c02c1d512c567ce4d1decf2e"
+    },
+    {
+      "name": "noto-sans-jp-58-400-normal.woff2",
+      "bytes": 13588,
+      "sha256": "48ef191a30bb378e04557813b4f7be683fb2f684d8de0097114e31f8d334eeda"
+    },
+    {
+      "name": "noto-sans-jp-59-400-normal.woff2",
+      "bytes": 10260,
+      "sha256": "88fff7bfdba1e85a3a693bfb8e9c285efa0624b2ca4925d70b6436bcd4fb68bc"
+    },
+    {
+      "name": "noto-sans-jp-60-400-normal.woff2",
+      "bytes": 12832,
+      "sha256": "871c22f1da70f61293e49be48fce4363f68da99a210ba59ff8524fb04d9874c6"
+    },
+    {
+      "name": "noto-sans-jp-61-400-normal.woff2",
+      "bytes": 11640,
+      "sha256": "d157f242809b9f638294fdf4c29ac6b1b9a6fef55d575e61d585356696742e96"
+    },
+    {
+      "name": "noto-sans-jp-62-400-normal.woff2",
+      "bytes": 10988,
+      "sha256": "637194827f41e065cd5402bcb26e353c3d514a2594349533fdb36faaef060423"
+    },
+    {
+      "name": "noto-sans-jp-63-400-normal.woff2",
+      "bytes": 10320,
+      "sha256": "bafa891c1607b42c52ebc3ce145c0f323d23ce0746f05b3e0b1bdc16d8d7dbfc"
+    },
+    {
+      "name": "noto-sans-jp-64-400-normal.woff2",
+      "bytes": 12364,
+      "sha256": "6b253497d7d8c53143d81045e61425da125c63138b9a0ba037344fd192fab593"
+    },
+    {
+      "name": "noto-sans-jp-65-400-normal.woff2",
+      "bytes": 11340,
+      "sha256": "4dd7082575926732d787fdd823ceb1ab5ebab909a79fde503537798a6d8c11d1"
+    },
+    {
+      "name": "noto-sans-jp-66-400-normal.woff2",
+      "bytes": 10172,
+      "sha256": "40c33d0adc5dc123edc305e530a0af317c18e5467f44b224a06db9dd523637fe"
+    },
+    {
+      "name": "noto-sans-jp-67-400-normal.woff2",
+      "bytes": 10316,
+      "sha256": "26eb863685a0e160ae8b867fab1d1dff46c9d291482037b144aa5e4d5ee5a2ec"
+    },
+    {
+      "name": "noto-sans-jp-68-400-normal.woff2",
+      "bytes": 12028,
+      "sha256": "acfc00a97e87db511883ab0bbb7b4c4c170521b5763bb4aa2c30d20ee9efd383"
+    },
+    {
+      "name": "noto-sans-jp-69-400-normal.woff2",
+      "bytes": 10896,
+      "sha256": "fcc2800cb1a6c71838d5968dbf906b71db2aa2cce7493d6f215311b4c6e8e7aa"
+    },
+    {
+      "name": "noto-sans-jp-70-400-normal.woff2",
+      "bytes": 11048,
+      "sha256": "1bcfeea2a0a2fb600cdaedf46dc352ce900ed7d67962482aed1b8cf129f8d105"
+    },
+    {
+      "name": "noto-sans-jp-71-400-normal.woff2",
+      "bytes": 11148,
+      "sha256": "6e56daa47ff43575a5c8b4d01c660d59eb6e2ba9f571f7910c64bde0c9410b23"
+    },
+    {
+      "name": "noto-sans-jp-72-400-normal.woff2",
+      "bytes": 11720,
+      "sha256": "96d5fa1ad2d5faf85347128f2f495863ab52489fae3c8fd4382e98e2e8e15b42"
+    },
+    {
+      "name": "noto-sans-jp-73-400-normal.woff2",
+      "bytes": 10816,
+      "sha256": "5f4853bbd65a08529d4de95e7e08ba6a25a319a99a21b3fa795add9b547293e3"
+    },
+    {
+      "name": "noto-sans-jp-74-400-normal.woff2",
+      "bytes": 9980,
+      "sha256": "5828c49be7f2e3054e27f52d28e3442fd4b32d1193632beb51e2121706dbc4ac"
+    },
+    {
+      "name": "noto-sans-jp-75-400-normal.woff2",
+      "bytes": 10448,
+      "sha256": "4a79073330c506280ff3d667ccd62eaa936be86c2fc0c53396464e26231c0401"
+    },
+    {
+      "name": "noto-sans-jp-76-400-normal.woff2",
+      "bytes": 9912,
+      "sha256": "98d3e93012a9aa40f662701323cd399bccc82e3c6b78b2efbe98099419b43693"
+    },
+    {
+      "name": "noto-sans-jp-77-400-normal.woff2",
+      "bytes": 10480,
+      "sha256": "30a22afd1744622e84b821098b86815129bb10aa33f239c724f0e437d79bda8f"
+    },
+    {
+      "name": "noto-sans-jp-78-400-normal.woff2",
+      "bytes": 11112,
+      "sha256": "edbd7ef87e8268704244f4fc2bb775abf7e2a0e586e1de2121e0bf65981a366a"
+    },
+    {
+      "name": "noto-sans-jp-79-400-normal.woff2",
+      "bytes": 10872,
+      "sha256": "48f1e7de68a920688f99f41ae261fe598550110429f8c7596cf1b87bfa57ecc7"
+    },
+    {
+      "name": "noto-sans-jp-80-400-normal.woff2",
+      "bytes": 10212,
+      "sha256": "db11fc6eb2fc3b1358c0fce0d01587367c4f2042657adc2ebfc8d81f98e9c59e"
+    },
+    {
+      "name": "noto-sans-jp-81-400-normal.woff2",
+      "bytes": 9744,
+      "sha256": "d288c9ad551cf55c5e7ca6975cd09fa8c18446a8fe8c77adecf519d6c65648c2"
+    },
+    {
+      "name": "noto-sans-jp-82-400-normal.woff2",
+      "bytes": 10460,
+      "sha256": "4ede445f6e8b5dc5c22d661e92489fd885b1c0cdfcdd8b889ca716c3760b6743"
+    },
+    {
+      "name": "noto-sans-jp-83-400-normal.woff2",
+      "bytes": 10132,
+      "sha256": "ae3fb07499d0ffbabe23e701c41ae9a1fe88b2971e0b1a27d9d8ef0f35cea201"
+    },
+    {
+      "name": "noto-sans-jp-84-400-normal.woff2",
+      "bytes": 10468,
+      "sha256": "be59d340b45320ec708eb8fff1ba39f7980e5c9171db9143b18e58029fbd8531"
+    },
+    {
+      "name": "noto-sans-jp-85-400-normal.woff2",
+      "bytes": 9708,
+      "sha256": "2ddc2694bdc28d3514d42bdd6a431e22624c8edfc2234e26e9579d70e5fd3e9e"
+    },
+    {
+      "name": "noto-sans-jp-86-400-normal.woff2",
+      "bytes": 9488,
+      "sha256": "8b8e2f9cc286b2a34e0fe89eeb05081390aecdef42f2674a69eaabb195aef431"
+    },
+    {
+      "name": "noto-sans-jp-87-400-normal.woff2",
+      "bytes": 10636,
+      "sha256": "4373e4a3cf4b70efde26d82d2f9872c531724b996d4aa4e39708272f9f32e09c"
+    },
+    {
+      "name": "noto-sans-jp-88-400-normal.woff2",
+      "bytes": 9728,
+      "sha256": "fa5e42f668a622145a66de95779bd3769ea8296ac4e5a301817be8631fbd20d6"
+    },
+    {
+      "name": "noto-sans-jp-89-400-normal.woff2",
+      "bytes": 9964,
+      "sha256": "a60b8a0106cff7662ea92a680bc7d44669780866239a64bad38f1c6bb04a13d9"
+    },
+    {
+      "name": "noto-sans-jp-90-400-normal.woff2",
+      "bytes": 10484,
+      "sha256": "a37ce2a891f6cb52b668a1bb87cdce2dd510b28d37cf1547326012391f5d1db3"
+    },
+    {
+      "name": "noto-sans-jp-91-400-normal.woff2",
+      "bytes": 10396,
+      "sha256": "7bcc2c1caf2b6e02b39848505bf64f618e732eb372548ec7d937460fd8ce5565"
+    },
+    {
+      "name": "noto-sans-jp-92-400-normal.woff2",
+      "bytes": 10392,
+      "sha256": "122523171e8bd7af93960d1fba8831582f8c781618314f606a8669195d188812"
+    },
+    {
+      "name": "noto-sans-jp-93-400-normal.woff2",
+      "bytes": 9616,
+      "sha256": "cb44ecb3ccdab8df99a4f7f635b0615402e4f4c573f839b8671b196f82ad4bc3"
+    },
+    {
+      "name": "noto-sans-jp-94-400-normal.woff2",
+      "bytes": 10096,
+      "sha256": "e008eb8d3f251179d32223962c00fe06355985dff7bb3c8727c66f912aab2ff8"
+    },
+    {
+      "name": "noto-sans-jp-95-400-normal.woff2",
+      "bytes": 9616,
+      "sha256": "851de3e29db2a5c22ddb9525f34340a27abb330ba7b16063ab14680d62ebe368"
+    },
+    {
+      "name": "noto-sans-jp-96-400-normal.woff2",
+      "bytes": 9416,
+      "sha256": "6a346480d3aeab865cf4d5c2d512b1f97a018edd96e95eafc2b3aae2454ccfc0"
+    },
+    {
+      "name": "noto-sans-jp-97-400-normal.woff2",
+      "bytes": 9684,
+      "sha256": "8bc1f29ea2e6a58e7ba5da8f2e83ee7cbc5d2a912da44884df2962c6538b1b49"
+    },
+    {
+      "name": "noto-sans-jp-98-400-normal.woff2",
+      "bytes": 10312,
+      "sha256": "af198d2cf5826e2ed61142953c0b49ff4de6b418a5ce8b6c4351514530173d3f"
+    },
+    {
+      "name": "noto-sans-jp-99-400-normal.woff2",
+      "bytes": 10492,
+      "sha256": "930991015254ff684c9120655d2bd04e12fedc782d68901affc2f5ce070e74c5"
+    },
+    {
+      "name": "noto-sans-jp-100-400-normal.woff2",
+      "bytes": 11088,
+      "sha256": "1f952f25420a0f179ea67afd0a6598bc9582bf960624d25c343580355e5510df"
+    },
+    {
+      "name": "noto-sans-jp-101-400-normal.woff2",
+      "bytes": 8820,
+      "sha256": "6868522f98a716c05a8ab801c9544e6d1cc9379d68bb10e7357c162b79107d77"
+    },
+    {
+      "name": "noto-sans-jp-102-400-normal.woff2",
+      "bytes": 9688,
+      "sha256": "5611d49f081433d0d37c4b1feb9b478fadfd97dbafa606db7ff4db9ccdbab44b"
+    },
+    {
+      "name": "noto-sans-jp-103-400-normal.woff2",
+      "bytes": 9312,
+      "sha256": "ee1b4b470218bbc67901d3a62037be0d235516105cb3abdb3d1e8182097a8daf"
+    },
+    {
+      "name": "noto-sans-jp-104-400-normal.woff2",
+      "bytes": 9832,
+      "sha256": "0110124db0d18b024840ae646687397f3b07bc98b3cdb709cc3427199c28a715"
+    },
+    {
+      "name": "noto-sans-jp-105-400-normal.woff2",
+      "bytes": 9756,
+      "sha256": "2aa3b207724f56b8bee3e9205a64bcf402d93a344aca6b7c626071d9bb498702"
+    },
+    {
+      "name": "noto-sans-jp-106-400-normal.woff2",
+      "bytes": 10636,
+      "sha256": "6ec4291517abe6aaa893183b6fba07f3a408934449aea2d4d5b0311a7155de80"
+    },
+    {
+      "name": "noto-sans-jp-107-400-normal.woff2",
+      "bytes": 9180,
+      "sha256": "eb28bd4d1ecb408c4a05ac4724c082fc35609ce535b7f56043b82f30a8ae894c"
+    },
+    {
+      "name": "noto-sans-jp-108-400-normal.woff2",
+      "bytes": 10252,
+      "sha256": "15839c05192599cd30bac62d36717e5c244878db6465a3557c34571121508190"
+    },
+    {
+      "name": "noto-sans-jp-109-400-normal.woff2",
+      "bytes": 8504,
+      "sha256": "c0d93d2e120e44bfb2ec865b6805e0fb1303950bf2544490948b64e65d6e93d7"
+    },
+    {
+      "name": "noto-sans-jp-110-400-normal.woff2",
+      "bytes": 8868,
+      "sha256": "f418cc09b2f7b07be75b9e2cdf1455a308eb9fae182f0161a9eae95662142f0f"
+    },
+    {
+      "name": "noto-sans-jp-111-400-normal.woff2",
+      "bytes": 9464,
+      "sha256": "d6ec3ce26bc44b00385508c86c830a63e91a63f14702401130f2994705a5e583"
+    },
+    {
+      "name": "noto-sans-jp-112-400-normal.woff2",
+      "bytes": 8808,
+      "sha256": "646b81c6c4af9eb06be16cf238dbfa5b117283824d65fead616bc9131ada4c07"
+    },
+    {
+      "name": "noto-sans-jp-113-400-normal.woff2",
+      "bytes": 8256,
+      "sha256": "329c7390208a6522086fad7f375dd7548f03ead69398bcb79dfbc5b673406899"
+    },
+    {
+      "name": "noto-sans-jp-114-400-normal.woff2",
+      "bytes": 8076,
+      "sha256": "6c37c334ed20bac6065131b8b6543da69385265d1449483135e772c678e122c9"
+    },
+    {
+      "name": "noto-sans-jp-115-400-normal.woff2",
+      "bytes": 8932,
+      "sha256": "f53c67aa7fc37679cdc804892dced634ff8d06ef190575f9ff9ee85fad3c4ab7"
+    },
+    {
+      "name": "noto-sans-jp-116-400-normal.woff2",
+      "bytes": 9248,
+      "sha256": "30e1bc8ac196f3b9d3dab7110e3c9826dac23ecf4be252460e1a676769d75d25"
+    },
+    {
+      "name": "noto-sans-jp-117-400-normal.woff2",
+      "bytes": 6752,
+      "sha256": "8c12b7a096e199e2a85975bc677c369d0baf4c15957b2cfa68431b9525993087"
+    },
+    {
+      "name": "noto-sans-jp-118-400-normal.woff2",
+      "bytes": 9728,
+      "sha256": "f0c01a3ca9370b120b6da9860e899a3f4221b81328e9381c349f192f2966c8aa"
+    },
+    {
+      "name": "noto-sans-jp-119-400-normal.woff2",
+      "bytes": 42684,
+      "sha256": "2258b057683e7040e5149a9469077fd8ed47e73ca656f84fc3c4f9bc86976a1e"
+    },
+    {
+      "name": "noto-sans-jp-cyrillic-400-normal.woff2",
+      "bytes": 5304,
+      "sha256": "77c9eeb9dd31f63901f8a014593649a976e6c4f8afdcd5b69567eb37a11ce5c0"
+    },
+    {
+      "name": "noto-sans-jp-vietnamese-400-normal.woff2",
+      "bytes": 4688,
+      "sha256": "92661db21cf734f8f3b95671d974b827c64117a5709367f6968c377fce6bff37"
+    },
+    {
+      "name": "noto-sans-jp-latin-ext-400-normal.woff2",
+      "bytes": 4460,
+      "sha256": "5aafbe3b69144fd30ce8debc3b82a82c67ff49de014e2949998ef9642798ddde"
+    },
+    {
+      "name": "noto-sans-jp-latin-400-normal.woff2",
+      "bytes": 13072,
+      "sha256": "c3ca2d64070bf809fad5aec44a65f65ea88082e1a13faab4ef903f46a8c6f024"
+    }
+  ]
+}
