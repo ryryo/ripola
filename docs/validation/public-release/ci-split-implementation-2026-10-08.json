@@ -1,0 +1,88 @@
+{
+  "date": "2026-10-08",
+  "repository": "https://github.com/ryryo/ripola",
+  "implementationCommit": "55d9f3890ac6700fb434b3de8ed2baa414d5aa75",
+  "run": 37752882901,
+  "runUrl": "https://github.com/ryryo/ripola/actions/runs/37752882901",
+  "conclusion": "success",
+  "selection": {
+    "mode": "normal",
+    "domains": [
+      "import",
+      "audio",
+      "generation",
+      "layout",
+      "distribution",
+      "setup"
+    ],
+    "cases": 88,
+    "passed": 88,
+    "fullOriginalCasesPreserved": 132,
+    "fullCasesWithPages": 134,
+    "normalWithoutDomains": 14
+  },
+  "seconds": {
+    "checkJob": 504.0,
+    "browserStep": 393.0,
+    "steps": {
+      "Set up job": 1.0,
+      "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1": 1.0,
+      "Classify all changed paths": 0.0,
+      "Run actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38": 5.0,
+      "Run pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320": 3.0,
+      "Media tools": 23.0,
+      "Run pnpm install --frozen-lockfile": 6.0,
+      "Run pnpm check": 47.0,
+      "Python calculation tests": 7.0,
+      "Run pnpm build:worker": 4.0,
+      "Run pnpm build:pages": 4.0,
+      "Run pnpm audit:audio --distribution dist/distribution/worker": 1.0,
+      "Run pnpm audit:audio --distribution dist/distribution/pages": 1.0,
+      "Source package": 2.0,
+      "Browser smoke and related coverage (manual dispatch runs full)": 393.0,
+      "Configure Pages": 0.0,
+      "Upload audited public demo from this checked SHA": 3.0,
+      "Post Run pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320": 0.0,
+      "Post Run actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38": 0.0,
+      "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1": 0.0,
+      "Complete job": 0.0
+    }
+  },
+  "baseline": {
+    "run": 37744337416,
+    "commit": "28ddb922854b6adb2399ab10c26ef475d2d03406",
+    "checkJobSeconds": 587,
+    "browserStepSeconds": 451
+  },
+  "savedSeconds": {
+    "checkJob": 83.0,
+    "browserStep": 58.0
+  },
+  "local": {
+    "unitPassed": 242,
+    "normalBrowserPassed": 14,
+    "normalBrowserSeconds": 27.4,
+    "typecheck": "passed",
+    "lint": "passed",
+    "localBuild": "passed",
+    "workerBuild": "passed",
+    "pagesBuild": "passed",
+    "distributionAudits": "passed",
+    "packageDryRun": "passed",
+    "fullOriginalCaseIdentityComparison": "passed"
+  },
+  "notRun": [
+    "Full browser rerun: original132 plus Pages2",
+    "GitHub normal with no related domains (14 cases)",
+    "Native opt-in4 invocations",
+    "Windows11/mirrored VOICEVOX generation-save-reader real-device E2E"
+  ],
+  "pages": {
+    "deployJob": "success",
+    "url": "https://ryryo.github.io/ripola/",
+    "sameCheckedArtifactSha": "55d9f3890ac6700fb434b3de8ed2baa414d5aa75"
+  },
+  "privateInputsUsed": false,
+  "paidGeneration": false,
+  "billingSettingsChanged": false
+}

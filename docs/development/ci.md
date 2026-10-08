@@ -26,7 +26,7 @@ mode未指定はfullです。Windows PowerShellでは同じ変数を `$env:RIPOL
 
 [登録表](../../scripts/ci-browser-cases.json)にproject、file、正確なtitle、lane、対応domainを記録します。既存12ケースとPages2ケースはnormal、変更領域に対応するケースはrelated、主にmobileの反復はmanual_full、native環境の任意検査はlocal_opt_inです。fullではlaneに関係なくすべて実行します。
 
-CIはまず実際のPlaywright全件一覧と登録表を照合し、次に選別一覧を照合します。新規・改名・欠落・重複があると失敗します。登録表の削除だけで検査が黙ってなくなることもありません。新たなbrowserファイルはPlaywright projectのtestMatchにも登録してください。
+CIはまず実際のPlaywright全件一覧と登録表を照合し、次に選別一覧を照合します。新規・改名・欠落・重複があると失敗します。登録表の削除だけで検査が黙ってなくなることもありません。新たなbrowserファイルはPlaywright projectのtestMatchにも登録してください。サブディレクトリーや別のtest拡張子も登録確認の対象です。
 
 ## fullと公開
 
