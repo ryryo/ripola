@@ -19,7 +19,7 @@ jobs:
       RSVP_AI_GATEWAY_ACCOUNT_ID: ''
       RSVP_AI_GATEWAY_TOKEN: ''
       RSVP_AI_GATEWAY_ID: ''
-      RSVP_LIBRARY_DIR: ${{ runner.temp }}/ripola-fixture-library
+      RSVP_LIBRARY_DIR: ${{ github.workspace }}/.rsvp-data/qa-fixture-library
       PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH: /usr/bin/google-chrome
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
