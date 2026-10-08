@@ -13,3 +13,5 @@ Ripolaの利用・実装・第三者条件を確認するための資料です�
 - [公開版の検査結果](validation/public-release/README.md)
 
 Windows/Linuxの初期音声セットアップQAは未検証です。公開Worker/Pagesは端末内の取り込み・RSVP生成と保存済み音声再生を提供し、音声生成APIを含めません。
+
+公開デモの配布は[GitHub Pages](guides/github-pages.md)を参照してください。

@@ -2,7 +2,7 @@
 
 日本語の文章を、区切りを順に読むRSVPリーダーです。Markdown・TXT・青空文庫形式・テキスト層付きPDFを取り込み、読む速度を変えたり、止まって原文に戻ったりできます。
 
-**[ブラウザでデモを試す](https://ripola-preview-20261006.ryomini13.workers.dev/)** · [読書ガイド](docs/guides/reading.md) · [セットアップ](docs/guides/setup.md) · [資料一覧](docs/README.md)
+**[ブラウザでデモを試す](https://ryryo.github.io/ripola/)** · [読書ガイド](docs/guides/reading.md) · [セットアップ](docs/guides/setup.md) · [資料一覧](docs/README.md)
 
 ## できること
 
@@ -12,7 +12,7 @@
 - 文章・読書位置の端末内への明示保存、任意タイトルと後からの名前変更。
 - ローカルPCでの音声生成・保存・同期補正、生成済み音声の再利用。
 
-同梱サンプルには青空文庫『吾輩は猫である』全文の黙読と、冒頭の3音声（VOICEVOX／Gemini Puck／Kore）があります。保存済み音声の再生にはキー・Engine・Pythonは不要です。**VOICEVOX:ずんだもん**。[サンプルの出典・利用条件](apps/web/public/samples/audio/NOTICE.md)を参照してください。公開デモは以前の配布版のため、最新コードの3音声選択は未反映です。
+同梱サンプルには青空文庫『吾輩は猫である』全文の黙読と、冒頭の3音声（VOICEVOX／Gemini Puck／Kore）があります。保存済み音声の再生にはキー・Engine・Pythonは不要です。**VOICEVOX:ずんだもん**。[サンプルの出典・利用条件](apps/web/public/samples/audio/NOTICE.md)を参照してください。公開デモでも3音声を選択できます。
 
 分割は表示用の推定です。PDFは**横書き1段・テキスト層あり**が対象で、OCR・段組・縦書き・PDFルビの復元は未対応です。端末間同期・PWA・クラウド側の音声生成は未実装です。読む速度や理解度の向上を保証しません。
 
@@ -55,7 +55,7 @@ pnpm build:worker
 
 個人libraryを読まず、同梱サンプル付きの閲覧用配布物を準備します。**ビルドだけではデプロイしません。** Worker／Pagesは端末内の取り込み・RSVP生成と保存音声の再生に対応し、生成API・秘密キー・Python環境を含めません。
 
-公開デモと、各利用者が自分のアカウントに配布する個人用Workerは分離します。音声付きの本は配布できるものを明示選択します。配布した本文JSON・音声は取得可能です。閲覧認証は任意で、制限したい場合は本文・音声を含めAccess等を設定します。[Cloudflare配布](docs/guides/cloudflare-deployment.md)・[個人用Worker](docs/guides/personal-worker.md)へ。
+公開デモと、各利用者が自分のアカウントに配布する個人用Workerは分離します。音声付きの本は配布できるものを明示選択します。配布した本文JSON・音声は取得可能です。閲覧認証は任意で、制限したい場合は本文・音声を含めAccess等を設定します。[GitHub Pagesデモ](docs/guides/github-pages.md)・[Cloudflare配布](docs/guides/cloudflare-deployment.md)・[個人用Worker](docs/guides/personal-worker.md)へ。
 
 ## 開発・ライセンス
 
