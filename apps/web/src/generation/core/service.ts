@@ -141,7 +141,7 @@ export class GenerationService {
     await this.ready();
     let voices: Awaited<ReturnType<SpeechAdapter['voices']>> = [];
     let message: string | undefined;
-    try { voices = await this.adapters.voicevox.voices(); } catch { message = '同じMacのVOICEVOXアプリを開き、Engineの起動を確認してください。'; }
+    try { voices = await this.adapters.voicevox.voices(); } catch { message = '同じPCのVOICEVOXアプリを開き、Engineの起動を確認してください。'; }
     const gatewayStatus = this.adapters.gemini.availability?.() ?? { available: Boolean(this.config.gateway) };
     return {
       voicevox: { available: voices.length > 0, endpoint: VOICEVOX_ENDPOINT, voices, ...(message ? { message } : {}) },
@@ -215,7 +215,7 @@ export class GenerationService {
       ...(opts.transport === 'gateway' && this.config.gateway ? { routeIdentity: gatewayRouteIdentity(this.config.gateway) } : {}),
       available: !unavailableReason, ...(unavailableReason ? { unavailableReason } : {}), estimatedSeconds,
       estimatedOutputUsd: opts.provider === 'gemini' ? estimate.estimatedOutputUsd : 0,
-      estimateNote: opts.provider === 'gemini' ? geminiEstimateNote(opts.transport, estimate) : '同じMacのVOICEVOX Engineを使用します。Googleへの本文送信・API利用料はありません。',
+      estimateNote: opts.provider === 'gemini' ? geminiEstimateNote(opts.transport, estimate) : '同じPCのVOICEVOX Engineを使用します。Googleへの本文送信・API利用料はありません。',
       warnings: ['原稿の区切りを一つずつ表示します。発話境界の時刻がない部分は表示用推定です。人手で測った時刻精度は未検証です。', '声・キャラクターごとの利用規約とクレジットを確認してください。'],
     };
     const hash = digest(JSON.stringify(base));

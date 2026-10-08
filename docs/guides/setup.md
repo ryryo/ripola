@@ -1,6 +1,6 @@
 # ローカルセットアップ
 
-macOS Apple Siliconでは、最初に `pnpm setup:audio` を実行すると新規音声の保存後に自動補正を使えます。通常読書と同梱の3音声サンプルは、補正環境や音声サービスがなくても使えます。
+macOS Apple SiliconとLinux x64（WSL2 Ubuntuを含む）では、最初に `pnpm setup:audio` を実行すると新規音声の保存後に自動補正を使えます。通常読書と同梱の3音声サンプルは、補正環境や音声サービスがなくても使えます。
 
 ## 最初の起動
 
@@ -15,13 +15,66 @@ pnpm setup:audio
 pnpm dev
 ```
 
-clone後、http://127.0.0.1:4173/ を開きます。`setup:audio` はpnpm自身の組み込み `setup` と別のコマンドです。現在の自動導入対象は **macOS ARM64／CPython 3.13** です。Windows／Linuxの初期セットアップQAは後回しで未検証です。Intel Macも未検証です。
+clone後、http://127.0.0.1:4173/ を開きます。`setup:audio` はpnpm自身の組み込み `setup` と別のコマンドです。自動導入対象は **macOS ARM64／Linux x64・CPython 3.13** です。Linux wheelにはglibc 2.28以上が必要です。Windows native・Linux ARM64・Intel Macは依存導入前に拒否します。
+
+## WSL2 Ubuntu / Linux x64の前提準備
+
+WindowsではNode/pnpm/Pythonを**実WSL2のLinux filesystem**（例: `~/ripola`）に置きます。Windows native Python/NodeやGit Bashを代用しません。Node 22.13.0以上（検証26.8.1）とpnpm 12.3.4もWSL内で用意します。
+
+Ubuntu 24.04の標準Pythonは3.12であり、このruntimeには使えません。`python3.13`として起動できるCPython 3.13とvenv/ensurepipが必要です。信頼できるPython管理ツール、または[Python公式source](https://www.python.org/downloads/source/)で準備します。以下は公式3.13.13を専用prefixへbuildする例です。Ubuntu package導入は利用者が実行する前提準備で、`setup:audio`がOSへ自動導入する処理ではありません。
+
+```sh
+sudo apt-get update
+sudo apt-get install build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev libffi-dev liblzma-dev ffmpeg
+mkdir -p "$HOME/python-build"
+cd "$HOME/python-build"
+curl --fail --location -O https://www.python.org/ftp/python/3.13.13/Python-3.13.13.tar.xz
+tar -xf Python-3.13.13.tar.xz
+cd Python-3.13.13
+./configure --prefix="$HOME/.local/cpython-3.13" --with-ensurepip=install
+make -j2
+make install
+export PATH="$HOME/.local/cpython-3.13/bin:$PATH"
+python3.13 -c 'import sys,platform,ssl;print(sys.version);print(platform.machine());print(ssl.OPENSSL_VERSION)'
+ffmpeg -version
+ffprobe -version
+cd "$HOME/ripola"
+pnpm install --frozen-lockfile
+pnpm setup:audio
+```
+
+以後も専用PythonのbinをPATHへ置きます。`/usr/bin/python3`の置換やOSのPython変更は不要です。セットアップはCPython 3.13と`Linux/x86_64`を確認し、別version/architectureの既存venvには依存を追加しません。
+
+## WindowsのVOICEVOX接続条件（補正セットアップとは別）
+
+公式Windows VOICEVOXデスクトップアプリをWindowsで起動し、CPUモードと既定`127.0.0.1:50021`のまま使います。ブラウザではなくWSL側Nodeがこの固定URLへfetchします。接続envは追加しません。
+
+Windows 11 22H2以降で[Microsoftのmirrored networking条件](https://learn.microsoft.com/en-us/windows/wsl/networking#mirrored-mode-networking)を確認します。PowerShellで `wsl --version` / `wsl --list --verbose` を確認し、`notepad "$env:USERPROFILE\.wslconfig"` で既存設定を保ち、`[wsl2]`に以下を設定します。
+
+```ini
+[wsl2]
+networkingMode=mirrored
+```
+
+Windows側のVOICEVOXを維持し、PowerShellで `wsl --shutdown` 後にUbuntuを起動します。WSL内で実modeと両APIを確認します。fallback/NAT警告を無視して成功と扱いません。
+
+```sh
+wslinfo --networking-mode  # mirroredを確認
+curl --fail http://127.0.0.1:50021/version
+curl --fail http://127.0.0.1:50021/speakers
+node --input-type=module -e 'for (const p of ["version","speakers"]) { const r=await fetch(`http://127.0.0.1:50021/${p}`,{signal:AbortSignal.timeout(3000)}); if(!r.ok) throw Error(String(r.status)); console.log(p,r.status,await r.json()); }'
+pnpm dev
+```
+
+Windowsブラウザで http://127.0.0.1:4173/ を開き、声認識・明示生成・保存・Reader再生を確認します。`hostAddressLoopback`は127.0.0.1に不要です。公開bind・portproxy・firewall全無効化・remote URL追加で回避しません。
+
+実測したWindows Server 2022 21H2/WSL2 NATではWindows APIはHTTP 200でしたが、WSLのcurlはexit 7、Node fetchは`ECONNREFUSED`でした。ServerをWindows 11適合済みと扱いません。**Windows 11/mirroredでの音声生成・保存・Reader再生E2Eは未検証**です。Linux CPUセットアップ／保存音声の補正検証は、この接続経路の成功とは別です。
 
 ## 音声補正の準備
 
 専用venv、25種類の固定wheel、7ファイルの固定モデルを検証し、`alignment-runtime/setup.json` に設定を保存します。venvは[Pythonの独立環境](https://docs.python.org/3.13/library/venv.html)を新規作成し、既存のグローバルPythonへ依存を追加しません。設定フォルダーはGit除外です。`.env.local` の作成・手編集は不要です。
 
-取得前にモデル約386.9 MB、依存約110 MB、導入後約1 GBを表示します。pip cacheは別です。公式PyPIの固定wheelをhash検査し、モデルは固定Hugging Face revisionと全ファイルのsize／SHA-256を検査します。既存環境・cacheを検証して再利用し、不足ファイルだけ取得します。中断した場合は同じコマンドを再実行します。並行セットアップは拒否し、異常終了で残ったlockは回復します。
+取得前にモデル約386.9 MB、依存Mac約110.0 MB／Linux約234.1 MBを表示します。専用環境・モデル・一時cache用にMac 1 GB以上／Linux 2 GB以上の空きを見込み、展開やcacheのため余裕を用意してください。公式PyPIの固定wheelと、LinuxのtorchのみPyTorch公式CPU wheelの固定URL/hashを検査します。無制限extra indexや未固定fallbackは使いません。モデルは固定Hugging Face revisionと全ファイルのsize／SHA-256を検査します。既存環境・cacheを検証して再利用し、不足ファイルだけ取得します。中断した場合は同じコマンドを再実行します。並行セットアップは拒否し、異常終了で残ったlockは回復します。
 
 不足したPython／ffmpeg、依存導入やモデル検証の失敗では理由と再試行方法を表示します。無補正の成功として完了しません。起動後に音声生成を開くと「音声補正：利用可能／セットアップが必要／準備の確認に失敗」を表示します。起動中にセットアップした場合は `pnpm dev` を再起動してください。
 

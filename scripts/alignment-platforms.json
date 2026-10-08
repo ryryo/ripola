@@ -1,0 +1,18 @@
+{
+  "darwin-arm64": {
+    "system": "Darwin",
+    "machine": "arm64",
+    "requirements": "alignment-requirements.txt",
+    "dependencyDownloadBytes": 110048507,
+    "minimumFreeGB": 1,
+    "guidance": "Python 3.13とffmpegが必要です。Homebrew等で準備（例: brew install python@3.13 ffmpeg）してから、pnpm setup:audio を再実行してください。https://www.python.org/downloads/macos/ ・ https://ffmpeg.org/download.html"
+  },
+  "linux-x64": {
+    "system": "Linux",
+    "machine": "x86_64",
+    "requirements": "alignment-requirements-linux-x64.txt",
+    "dependencyDownloadBytes": 234122748,
+    "minimumFreeGB": 2,
+    "guidance": "CPython 3.13（python3.13、venv/ensurepip対応）とffmpeg/ffprobeが必要です。Ubuntu 24.04標準Pythonは3.12です。OSへ自動導入しません。docs/guides/setup.md のWSL2/Linux手順で準備し、pnpm setup:audio を再実行してください。"
+  }
+}

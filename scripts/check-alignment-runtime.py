@@ -8,17 +8,43 @@ from pathlib import Path
 import re
 import shutil
 import sys
+from urllib.parse import unquote, urlparse
+
+def runtime_platform():
+    profiles = json.loads(Path(__file__).with_name('alignment-platforms.json').read_text())
+    if sys.version_info[:2] != (3, 13) or sys.implementation.name != 'cpython':
+        raise ValueError('unsupported-runtime')
+    for profile in profiles.values():
+        if profile['system'] == platform.system() and profile['machine'] == platform.machine():
+            return profile
+    raise ValueError('unsupported-runtime')
+
+def locked_dependencies(requirements):
+    for line in requirements.splitlines():
+        if not line.strip() or line.startswith('#'):
+            continue
+        match = re.match(r'^([a-zA-Z0-9_-]+)==([^\s]+)', line)
+        if match:
+            yield match.groups()
+            continue
+        direct = re.match(r'^torch @ (https://download\.pytorch\.org/whl/cpu/torch-[^\s]+)', line)
+        if direct:
+            wheel = unquote(urlparse(direct[1]).path.rsplit('/', 1)[-1])
+            yield 'torch', wheel.split('-')[1]
+            continue
+        raise ValueError('invalid-dependency-lock')
 
 def dependencies():
-    if sys.version_info[:2] != (3, 13) or platform.system() != 'Darwin' or platform.machine() != 'arm64':
-        raise ValueError('unsupported-runtime')
-    for line in Path(__file__).with_name('alignment-requirements.txt').read_text().splitlines():
-        match = re.match(r'^([a-zA-Z0-9_-]+)==([^\s]+)', line)
-        if match and importlib.metadata.version(match[1]) != match[2]:
+    profile = runtime_platform()
+    lock = Path(__file__).with_name(profile['requirements']).read_text()
+    for name, version in locked_dependencies(lock):
+        if importlib.metadata.version(name) != version:
             raise ValueError('dependency-version-mismatch')
     import numpy
     import safetensors
     import torch
+    if profile['system'] == 'Linux' and (torch.__version__ != '2.8.0+cpu' or torch.version.cuda is not None):
+        raise ValueError('cpu-runtime-required')
     from transformers import Wav2Vec2CTCTokenizer, Wav2Vec2FeatureExtractor, Wav2Vec2ForCTC
     assert all([numpy, safetensors, torch, Wav2Vec2CTCTokenizer, Wav2Vec2FeatureExtractor, Wav2Vec2ForCTC])
 
