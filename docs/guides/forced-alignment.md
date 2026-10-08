@@ -10,7 +10,7 @@ VOICEVOX Engine 0.25.2の保存音声には、CTCに加えて音素フレーム�
 
 ## 任意のローカルセットアップ
 
-固定lockは**macOS ARM64・CPython 3.13**用です。別OS/architecture/Python版へそのまま使う保証はありません。依存の入力は[alignment-requirements.in](../../scripts/alignment-requirements.in)、25依存のwheel hash lockは[alignment-requirements.txt](../../scripts/alignment-requirements.txt)です。公式配布wheelだけを使い、source buildや別モデルの自動取得は行いません。
+固定lockは**macOS ARM64／Linux x64・CPython 3.13**用です。別OS/architecture/Python版へそのまま使う保証はありません。依存の入力は[alignment-requirements.in](../../scripts/alignment-requirements.in)、25依存のwheel hash lockは[Mac用](../../scripts/alignment-requirements.txt)と[Linux用](../../scripts/alignment-requirements-linux-x64.txt)です。[共通platform設定](../../scripts/alignment-platforms.json)でNode setupとPython readinessが同じlockを選びます。Linuxはtorch **2.8.0+cpu**の公式CPU wheel URLを固定し、CUDA/NVIDIA・torchaudio・librosaを追加しません。公式配布wheelだけを使い、依存のsource buildや別モデルの自動取得は行いません。Linuxはglibc 2.28以上が必要です。
 
 repo rootから `pnpm setup:audio` を実行します。Python 3.13とffmpeg／ffprobeが不足していれば導入方法を表示して停止し、OS全体へ自動インストールしません。
 
@@ -27,6 +27,7 @@ pnpm dev
 | `model.safetensors` | 386,749,964 |
 | 設定・tokenizer等のJSONを含むモデル合計 | 386,888,750（約386.9 MB） |
 | Mac用25依存wheel合計 | 110,048,507（約110.0 MB） |
+| Linux x64用25依存wheel合計 | 234,122,748（約234.1 MB、torch CPU wheel 183,917,315 bytesを含む） |
 
 上のbyteは配布ファイルの値です。検証Macでは、初回import前のvenv約487 MiBとモデル約369 MiBに加え、Python bytecode cacheの生成後はruntime全体で約902 MiB（約946 MB）になりました。resolverの一時metadata約15 MiBは別で、pip cache等はこの合計に含めません。RAMや実行速度の値ではありません。モデルdownloadは不足ファイル分に加えて512 MiBの空き領域を要求し、size/SHA-256一致済みファイルを再取得しません。モデルをGitや公開assetへ入れません。[ライセンス記録](../licenses/README.md#任意の日本語ctc整列runtimeとモデル)を参照してください。
 

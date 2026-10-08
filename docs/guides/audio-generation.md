@@ -14,11 +14,15 @@
 
 Nodeサーバーは固定の`http://127.0.0.1:50021`へ接続します。ブラウザ、スマホ、配布先WorkerからEngineを直接呼びません。起動中の仕様は`http://127.0.0.1:50021/docs`で確認できます。[公式Engine案内](https://github.com/VOICEVOX/voicevox_engine/blob/master/README.md#api-ドキュメント)を参照してください。起動していなければアプリ起動を案内し、クラウドへfallbackしません。
 
+Windowsでは公式WindowsアプリとWSL2内のNodeを組み合わせます。既定loopbackへの接続にはWindows 11 22H2以降のmirrored networkingが必要です。[WSL2の前提・実mode・curl/Node確認](setup.md#windowsのvoicevox接続条件補正セットアップとは別)を参照してください。Windows Server 2022/NATでは現在URLへの接続は失敗し、Windows 11/mirroredの生成E2Eは未検証です。音声補正セットアップのLinux対応だけで接続が可能になるわけではありません。
+
 無料選択にGoogle keyは不要です。音声と対応表を保存した後はVOICEVOXを閉じて構いません。再生では保存済み音声を使います。選択する声・キャラクターごとの[音声利用規約](https://voicevox.hiroshiba.jp/term/)とクレジットを確認してください。Engine単体のnative配布も利用できますが、同じHTTP APIへの接続として扱います。
 
 ## PC側の設定
 
 通常読書・VOICEVOX・音声補正にはenvの設定が不要です。補正環境は `pnpm setup:audio` が自動準備します。Directだけ `.env.local` に `GEMINI_API_KEY`、Cloudflareは既存Wrangler認証とプロジェクトのGateway選択を使います。VOICEVOXの標準URL・ずんだもん、Gemini Liteモデルを既定とします。
+
+補正セットアップはmacOS ARM64とLinux x64・CPython 3.13が対象です。Ubuntu 24.04標準Python 3.12は使わず、Python 3.13とffmpeg/ffprobeを先に準備します。Windows native・Linux ARM64・Intel Macは対象外です。
 
 NodeとCLIが同じ設定を読み、既存envを保持してprocess環境を優先します。秘密はbrowser、manifest、QR、ログ、staging、Gitへ返しません。通常例は [.env.example](../../.env.example) の1項目、特殊な保存先と既存互換は[設定設計](configuration.md)を参照してください。
 ## 有料Geminiの開始前に確認する

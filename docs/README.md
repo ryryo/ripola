@@ -12,6 +12,6 @@ Ripolaの利用・実装・第三者条件を確認するための資料です�
 - [日本語フォント](research/japanese-fonts.md)・[依存ライセンス](licenses/README.md)・[製品MIT](licenses/product-license.md)
 - [公開版の検査結果](validation/public-release/README.md)
 
-Windows/Linuxの初期音声セットアップQAは未検証です。公開Worker/Pagesは端末内の取り込み・RSVP生成と保存済み音声再生を提供し、音声生成APIを含めません。
+音声補正セットアップはmacOS ARM64とLinux x64・CPython 3.13が対象です。実WSL2 Ubuntu 24.04で初回・再利用・CPU runtimeを検証しました。[WSL2のPython準備とWindowsの接続条件](guides/setup.md)を参照してください。Windows 11/mirroredの音声生成E2Eは未検証で、Windows Server 2022/NATでは固定loopback接続に失敗しました。公開Worker/Pagesは端末内の取り込み・RSVP生成と保存済み音声再生を提供し、音声生成APIを含めません。
 
 公開デモの配布は[GitHub Pages](guides/github-pages.md)を参照してください。

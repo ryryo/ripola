@@ -10,7 +10,6 @@ import { parseEnv } from 'node:util';
 import { setTimeout, clearTimeout } from 'node:timers';
 
 const digest = value => createHash('sha256').update(value).digest('hex');
-const guidance = 'Python 3.13とffmpegが必要です。Homebrew導入済みなら brew install python@3.13 ffmpeg を自分で実行し、pnpm setup:audio を再実行してください。https://www.python.org/downloads/macos/ · https://ffmpeg.org/download.html';
 
 export async function runCommand(binary, args, { cwd, env, onOutput = () => {}, signal, timeout = 20 * 60 * 1000 } = {}) {
   return new Promise((resolve, reject) => {
@@ -69,13 +68,17 @@ export async function setupAlignment({
   root = resolve(dirname(fileURLToPath(import.meta.url)), '..'), platform = process.platform,
   arch = process.arch, environment = process.env, run = runCommand, log = console.log, signal,
 } = {}) {
-  if (platform !== 'darwin' || arch !== 'arm64') throw Error('pnpm setup:audioの検証済み対象はmacOS Apple Siliconです。Windows/Linux/Intel Macの自動導入はまだ対応していません。');
+  const platforms = JSON.parse(await readFile(join(root, 'scripts/alignment-platforms.json'), 'utf8'));
+  const target = platforms[`${platform}-${arch}`];
+  if (!target) throw Error('pnpm setup:audioの対象はmacOS Apple SiliconとLinux x64（WSL2 Ubuntuを含む）です。Windows native・Linux ARM64・Intel Macの自動導入は対応していません。');
+  const { guidance } = target;
   const runtime = join(root, 'alignment-runtime');
   const configuration = join(runtime, 'setup.json'), state = join(runtime, 'setup-state.json');
   const manifestBytes = await readFile(join(root, 'scripts/alignment-model.json'));
   const manifest = JSON.parse(manifestBytes);
-  const requirements = await readFile(join(root, 'scripts/alignment-requirements.txt'));
-  log(`音声補正を準備します。初回モデル約${(manifest.downloadBytes / 1e6).toFixed(1)} MB、Python依存約110 MB、導入後の専用環境＋モデルは約1 GBです。既存環境・検証済みcacheは再利用します。`);
+  const requirementsPath = join(root, 'scripts', target.requirements);
+  const requirements = await readFile(requirementsPath);
+  log(`音声補正を準備します。初回モデル約${(manifest.downloadBytes / 1e6).toFixed(1)} MB、Python依存約${(target.dependencyDownloadBytes / 1e6).toFixed(1)} MB、専用環境・モデル・一時cache用に${target.minimumFreeGB} GB以上の空き領域を見込んでください。既存環境・検証済みcacheは再利用します。`);
   let fileEnv = {};
   try {
     const contents = await readFile(join(root, '.env.local'), 'utf8');
@@ -96,6 +99,12 @@ export async function setupAlignment({
   for (const key of ['PATH', 'HOME', 'TMPDIR', 'LANG', 'LC_ALL']) if (environment[key]) childEnv[key] = environment[key];
   Object.assign(childEnv, { HF_HUB_OFFLINE: '1', TRANSFORMERS_OFFLINE: '1', TOKENIZERS_PARALLELISM: 'false', PIP_CONFIG_FILE: '/dev/null', PYTHONDONTWRITEBYTECODE: '1' });
   const command = (binary, args, options = {}) => run(binary, args, { cwd: root, env: childEnv, signal, ...options });
+  const verifyPython = async binary => {
+    let version;
+    try { version = JSON.parse(await command(binary, ['-c', 'import json,sys,platform;print(json.dumps({"version":list(sys.version_info[:2]),"machine":platform.machine(),"system":platform.system(),"implementation":sys.implementation.name}))'], { timeout: 15_000 })); }
+    catch { throw Error(guidance); }
+    if (version.version?.join('.') !== '3.13' || version.machine !== target.machine || version.system !== target.system || version.implementation !== 'cpython') throw Error(`Pythonのversion/OS/architectureが対象と一致しません。既存環境を変更せず停止します。${guidance}`);
+  };
   const lock = join(runtime, 'setup.lock');
   await mkdir(runtime, { recursive: true });
   await acquireLock(lock);
@@ -109,21 +118,19 @@ export async function setupAlignment({
     try { await access(python); } catch { present = false; }
     if (!present) {
       if (explicitPython && python !== managedPython) throw Error('既存指定のPythonを起動できません。設定を変更せず停止しました。指定pathを確認してください。');
-      let version;
-      try { version = JSON.parse(await command('python3.13', ['-c', 'import json,sys,platform;print(json.dumps({"version":list(sys.version_info[:2]),"machine":platform.machine()}))'], { timeout: 15_000 })); }
-      catch { throw Error(guidance); }
-      if (version.version?.join('.') !== '3.13' || version.machine !== 'arm64') throw Error(guidance);
+      await verifyPython('python3.13');
       stage = 'venv'; log('専用Python環境を作成しています。');
       await command('python3.13', ['-m', 'venv', join(runtime, '.venv')]);
     }
     stage = 'dependencies';
+    await verifyPython(python);
     let packagesReady = false;
     try { await command(python, [join(root, 'scripts/check-alignment-runtime.py'), '--dependencies-only'], { timeout: 60_000 }); packagesReady = true; } catch { /* 未導入なら専用venvだけ修復する。 */ }
     if (!packagesReady) {
       if (explicitPython && python !== managedPython) throw Error('既存の解析Pythonの依存/versionが一致しません。既存環境を変更せず停止しました。専用環境の設定を確認してください。');
-      log('固定されたPython依存を導入しています（PyPI公式wheel、hash検証）。');
+      log('固定されたPython依存を導入しています（PyPI公式wheel、LinuxのtorchはPyTorch公式CPU wheel、hash検証）。');
       await command(python, ['-m', 'ensurepip', '--upgrade']);
-      await command(python, ['-m', 'pip', '--isolated', 'install', '--index-url', 'https://pypi.org/simple', '--only-binary=:all:', '--require-hashes', '--disable-pip-version-check', '--cache-dir', join(runtime, 'pip-cache'), '-r', join(root, 'scripts/alignment-requirements.txt')], { onOutput: part => { if (/Successfully installed|Requirement already satisfied/.test(part)) log(part.trim()); } });
+      await command(python, ['-m', 'pip', '--isolated', 'install', '--index-url', 'https://pypi.org/simple', '--only-binary=:all:', '--require-hashes', '--disable-pip-version-check', '--cache-dir', join(runtime, 'pip-cache'), '-r', requirementsPath], { onOutput: part => { if (/Successfully installed|Requirement already satisfied/.test(part)) log(part.trim()); } });
       dependenciesInstalled = true;
     } else log('固定Python依存を再利用します。');
     stage = 'model';

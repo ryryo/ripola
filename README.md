@@ -30,7 +30,9 @@ pnpm dev
 
 http://127.0.0.1:4173/ を開きます。通常読書とサンプル再生に `.env.local` は不要です。ビルド確認は `pnpm build` → `pnpm preview`（http://127.0.0.1:4174/）。
 
-音声生成後の同期補正を使う場合は、Python **3.13**とffmpeg／ffprobeを用意し、**`pnpm setup:audio`** を実行します。専用Python環境・固定依存・固定モデル・設定を準備し、既存ファイルは検証して再利用します。初回はモデル約387 MB＋依存約110 MB、導入後約1 GBです。自動セットアップの対象はmacOS Apple Siliconです。**Windows／Linuxの初期セットアップQAは後回しで未検証**、Intel Macも未検証です。[要件と対処](docs/guides/setup.md)を参照してください。
+音声生成後の同期補正を使う場合は、CPython **3.13**とffmpeg／ffprobeを用意し、**`pnpm setup:audio`** を実行します。対象はmacOS Apple Siliconと**Linux x64（WSL2 Ubuntuを含む、glibc 2.28以上）**です。専用Python環境・固定依存・固定モデル・設定を準備し、既存ファイルは検証して再利用します。初回はモデル約387 MB＋依存Mac約110 MB／Linux約234 MBです。Windows native・Linux ARM64・Intel Macは対象外です。[要件・容量・Windowsの接続条件](docs/guides/setup.md)を参照してください。
+
+Windowsでは公式VOICEVOXアプリをWindows側、Node/PythonをWSL2側で動かします。固定loopback URLへの接続にはWindows 11 22H2以降のmirrored networkingが必要です。実WSL2 Ubuntu 24.04でCPU補正セットアップを検証していますが、**Windows 11/mirroredでの音声生成E2Eは未検証**です。Windows Server 2022/NATは同じ接続経路として扱えません。
 
 ## 自分の文章に音声を付ける
 
