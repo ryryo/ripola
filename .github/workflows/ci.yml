@@ -38,7 +38,11 @@ jobs:
           sudo apt-get install -y ffmpeg
       - run: pnpm install --frozen-lockfile
       - run: pnpm check
-      - run: python3 scripts/test_align_audio.py
+      - name: Python calculation tests
+        run: |
+          python3 -m venv "$RUNNER_TEMP/ripola-python-test"
+          "$RUNNER_TEMP/ripola-python-test/bin/python" -m pip install numpy==2.3.5
+          "$RUNNER_TEMP/ripola-python-test/bin/python" scripts/test_align_audio.py
       - run: pnpm build:worker
       - run: pnpm build:pages
       - run: pnpm audit:audio --distribution dist/distribution/worker
