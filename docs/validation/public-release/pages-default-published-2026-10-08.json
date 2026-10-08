@@ -1,0 +1,713 @@
+{
+  "checkedAt": "2026-10-08T03:42:36.204Z",
+  "sourceRevision": "2d8788ff69a1289c7aad2f972881f0097bcfac14",
+  "remoteMainRevision": "2d8788ff69a1289c7aad2f972881f0097bcfac14",
+  "publishedUrl": "https://ryryo.github.io/ripola/",
+  "publishedSiteHasNewDefault": true,
+  "publication": {
+    "status": "completed",
+    "ciRun": {
+      "id": 37722846037,
+      "url": "https://github.com/ryryo/ripola/actions/runs/37722846037",
+      "conclusion": "success",
+      "jobs": [
+        {
+          "name": "check",
+          "conclusion": "success",
+          "startedAt": "2026-10-08T03:28:02Z",
+          "completedAt": "2026-10-08T03:38:13Z"
+        },
+        {
+          "name": "deploy-pages",
+          "conclusion": "success",
+          "startedAt": "2026-10-08T03:38:21Z",
+          "completedAt": "2026-10-08T03:38:32Z"
+        }
+      ]
+    },
+    "deployment": {
+      "created_at": "2026-10-08T03:38:13Z",
+      "environment": "github-pages",
+      "id": 6926619261,
+      "ref": "main",
+      "sha": "2d8788ff69a1289c7aad2f972881f0097bcfac14",
+      "statuses_url": "https://api.github.com/repos/ryryo/ripola/deployments/6926619261/statuses",
+      "statuses": [
+        {
+          "created_at": "2026-10-08T03:38:32Z",
+          "environment_url": "https://ryryo.github.io/ripola/",
+          "log_url": "https://github.com/ryryo/ripola/actions/runs/37722846037/job/113136801340",
+          "state": "success"
+        },
+        {
+          "created_at": "2026-10-08T03:38:22Z",
+          "environment_url": "",
+          "log_url": "https://github.com/ryryo/ripola/actions/runs/37722846037/job/113136801340",
+          "state": "in_progress"
+        },
+        {
+          "created_at": "2026-10-08T03:38:15Z",
+          "environment_url": "",
+          "log_url": "https://github.com/ryryo/ripola/actions/runs/37722846037/job/113136801340",
+          "state": "queued"
+        },
+        {
+          "created_at": "2026-10-08T03:38:15Z",
+          "environment_url": "",
+          "log_url": "https://github.com/ryryo/ripola/actions/runs/37722846037/job/113136801340",
+          "state": "queued"
+        },
+        {
+          "created_at": "2026-10-08T03:38:14Z",
+          "environment_url": "",
+          "log_url": "https://github.com/ryryo/ripola/actions/runs/37722846037/job/113136801340",
+          "state": "waiting"
+        }
+      ]
+    },
+    "pagesSettings": {
+      "build_type": "workflow",
+      "html_url": "https://ryryo.github.io/ripola/",
+      "public": true,
+      "status": null
+    }
+  },
+  "ciTests": {
+    "typecheck": "passed",
+    "lint": "passed",
+    "unit": {
+      "passed": 227,
+      "failed": 0
+    },
+    "pythonCalculationUnit": {
+      "passed": 6,
+      "failed": 0
+    },
+    "browser": {
+      "passed": 128,
+      "skipped": 4,
+      "failed": 0,
+      "duration": "8.7m"
+    },
+    "localBuild": "passed",
+    "pagesBuild": {
+      "status": "passed",
+      "profile": "pages",
+      "audience": "demo",
+      "fileCount": 1029,
+      "totalBytes": 44037448,
+      "localGenerationApi": false
+    },
+    "workerBuild": {
+      "status": "passed",
+      "profile": "worker",
+      "audience": "demo",
+      "fileCount": 1030,
+      "totalBytes": 44039665,
+      "localGenerationApi": false
+    },
+    "audioAudits": {
+      "pages": "valid (3 public samples)",
+      "worker": "valid (3 public samples)"
+    },
+    "sourcePackage": {
+      "status": "passed",
+      "files": 223,
+      "unpackedSizeDisplay": "16.7 MB",
+      "publishedToNpm": false
+    }
+  },
+  "publishedBrowserTests": {
+    "origin": "https://ryryo.github.io/ripola/",
+    "browser": "154.0.8037.99",
+    "results": [
+      {
+        "name": "default-submit-play-no-autosave",
+        "status": "passed",
+        "fontsLoaded": 0
+      },
+      {
+        "name": "clear-custom-title-and-return-preserve-draft",
+        "status": "passed",
+        "fontsLoaded": 0
+      },
+      {
+        "name": "browser-back-preserves-user-input",
+        "status": "passed",
+        "fontsLoaded": 0
+      },
+      {
+        "name": "home-links-and-full-aozora-sample",
+        "status": "passed",
+        "fontsLoaded": 0
+      },
+      {
+        "name": "text-ruby-all-fonts",
+        "status": "passed",
+        "fontsLoaded": 27
+      },
+      {
+        "name": "TXT-import",
+        "status": "passed",
+        "fontsLoaded": 0
+      },
+      {
+        "name": "MD-import",
+        "status": "passed",
+        "fontsLoaded": 0
+      },
+      {
+        "name": "PDF-japanese-text-and-canvas",
+        "status": "passed",
+        "fontsLoaded": 0
+      },
+      {
+        "name": "audio-direct-reload-play-seek-voicevox",
+        "status": "passed",
+        "fontsLoaded": 0
+      },
+      {
+        "name": "audio-direct-reload-play-seek-gemini-male",
+        "status": "passed",
+        "fontsLoaded": 0
+      },
+      {
+        "name": "audio-direct-reload-play-seek-gemini-female",
+        "status": "passed",
+        "fontsLoaded": 0
+      }
+    ],
+    "privateInputsUsed": false,
+    "paidGeneration": false,
+    "endpoints": [
+      {
+        "path": "",
+        "status": 200,
+        "contentType": "text/html; charset=utf-8"
+      },
+      {
+        "path": "demo/",
+        "status": 200,
+        "contentType": "text/html; charset=utf-8"
+      },
+      {
+        "path": "distribution.json",
+        "status": 200,
+        "contentType": "application/json; charset=utf-8"
+      },
+      {
+        "path": "library/index.json",
+        "status": 200,
+        "contentType": "application/json; charset=utf-8"
+      },
+      {
+        "path": "samples/audio/library/index.json",
+        "status": 200,
+        "contentType": "application/json; charset=utf-8"
+      },
+      {
+        "path": "fonts/NOTICE.md",
+        "status": 200,
+        "contentType": "text/markdown; charset=utf-8"
+      },
+      {
+        "path": "api/local-generation/config",
+        "status": 404,
+        "contentType": "text/html; charset=utf-8"
+      },
+      {
+        "path": "generate/",
+        "status": 404,
+        "contentType": "text/html; charset=utf-8"
+      },
+      {
+        "path": "missing-audio.m4a",
+        "status": 404,
+        "contentType": "text/html; charset=utf-8"
+      }
+    ],
+    "passed": 11,
+    "failed": 0,
+    "requestChecks": "Every case asserted zero page errors, HTTP >=400 responses and external-origin HTTP requests.",
+    "browserBackCoverage": [
+      "custom text and title",
+      "deliberately empty text and title"
+    ],
+    "visualHomeInspection": "passed"
+  },
+  "publishedHttpAudit": {
+    "base": "https://ryryo.github.io/ripola/",
+    "privateInputsUsed": false,
+    "paidGeneration": false,
+    "sampleBooks": 3,
+    "audioFiles": 39,
+    "manifestHashMatches": 3,
+    "audioHashMatches": 39,
+    "responseLog": [
+      {
+        "path": "distribution.json",
+        "status": 200,
+        "contentType": "application/json; charset=utf-8",
+        "bytes": 142,
+        "range": null,
+        "acceptRanges": "bytes"
+      },
+      {
+        "path": "library/index.json",
+        "status": 200,
+        "contentType": "application/json; charset=utf-8",
+        "bytes": 105,
+        "range": null,
+        "acceptRanges": "bytes"
+      },
+      {
+        "path": "samples/audio/library/index.json",
+        "status": 200,
+        "contentType": "application/json; charset=utf-8",
+        "bytes": 2006,
+        "range": null,
+        "acceptRanges": "bytes"
+      },
+      {
+        "path": "samples/audio/library/books/book-6487aedc3f6da54d169317f3/742654591d3b1f08f6a6b42eb93b69f67a69415058c1dd567919179cb06199b9/manifest.json",
+        "status": 200,
+        "contentType": "application/json; charset=utf-8",
+        "bytes": 1719172,
+        "range": null,
+        "acceptRanges": "bytes"
+      },
+      {
+        "path": "samples/audio/library/books/book-6487aedc3f6da54d169317f3/742654591d3b1f08f6a6b42eb93b69f67a69415058c1dd567919179cb06199b9/media/fe1b21f4cad3dac39a31995e982a4c1a465ec547e6ffef3a35df8c4edd705a05.m4a",
+        "status": 200,
+        "contentType": "audio/mp4",
+        "bytes": 26482,
+        "range": null,
+        "acceptRanges": "bytes"
+      },
+      {
+        "path": "samples/audio/library/books/book-6487aedc3f6da54d169317f3/742654591d3b1f08f6a6b42eb93b69f67a69415058c1dd567919179cb06199b9/media/6f5e7a0f99b261b790e10e7bd0fed65a0a818a6b95cbbe126001c4003b9af650.m4a",
+        "status": 200,
+        "contentType": "audio/mp4",
+        "bytes": 16779,
+        "range": null,
+        "acceptRanges": "bytes"
+      },
+      {
+        "path": "samples/audio/library/books/book-6487aedc3f6da54d169317f3/742654591d3b1f08f6a6b42eb93b69f67a69415058c1dd567919179cb06199b9/media/fdee23058b70adda7f582f053099df0cd6baff5adfa22e7949e8451503ba4415.m4a",
+        "status": 200,
+        "contentType": "audio/mp4",
+        "bytes": 49157,
+        "range": null,
+        "acceptRanges": "bytes"
+      },
+      {
+        "path": "samples/audio/library/books/book-6487aedc3f6da54d169317f3/742654591d3b1f08f6a6b42eb93b69f67a69415058c1dd567919179cb06199b9/media/9b4573f76b55302ad6d3de2afdee6922c6fce26adfdc91e54cc759dda1fb2e7a.m4a",
+        "status": 200,
+        "contentType": "audio/mp4",
+        "bytes": 12452,
+        "range": null,
+        "acceptRanges": "bytes"
+      },
+      {
+        "path": "samples/audio/library/books/book-6487aedc3f6da54d169317f3/742654591d3b1f08f6a6b42eb93b69f67a69415058c1dd567919179cb06199b9/media/30b9c13180d0c3e15651359aa76d7a0f262d340375842585d89fb591ea9e1d41.m4a",
+        "status": 200,
+        "contentType": "audio/mp4",
+        "bytes": 32489,
+        "range": null,
+        "acceptRanges": "bytes"
+      },
+      {
+        "path": "samples/audio/library/books/book-6487aedc3f6da54d169317f3/742654591d3b1f08f6a6b42eb93b69f67a69415058c1dd567919179cb06199b9/media/624aafb2685f854ed4855cab1c028a00cb3ebd130d3f9490b14acfa0e4d79bb0.m4a",
+        "status": 200,
+        "contentType": "audio/mp4",
+        "bytes": 55661,
+        "range": null,
+        "acceptRanges": "bytes"
+      },
+      {
+        "path": "samples/audio/library/books/book-6487aedc3f6da54d169317f3/742654591d3b1f08f6a6b42eb93b69f67a69415058c1dd567919179cb06199b9/media/a7fd12215678ef701818c5408e5509f56f911fadc09e2e513b465f1de76b4d31.m4a",
+        "status": 200,
+        "contentType": "audio/mp4",
+        "bytes": 47381,
+        "range": null,
+        "acceptRanges": "bytes"
+      },
+      {
+        "path": "samples/audio/library/books/book-6487aedc3f6da54d169317f3/742654591d3b1f08f6a6b42eb93b69f67a69415058c1dd567919179cb06199b9/media/02281f7656f2eaa97a8253ae04c34c0d5b30f130297504ad198767a4a4bf7416.m4a",
+        "status": 200,
+        "contentType": "audio/mp4",
+        "bytes": 51037,
+        "range": null,
+        "acceptRanges": "bytes"
+      },
+      {
+        "path": "samples/audio/library/books/book-6487aedc3f6da54d169317f3/742654591d3b1f08f6a6b42eb93b69f67a69415058c1dd567919179cb06199b9/media/4fc1fe74e6ff68ca13fb12e618d2640353784caa995674556da9ea8df1f3c05b.m4a",
+        "status": 200,
+        "contentType": "audio/mp4",
+        "bytes": 59909,
+        "range": null,
+        "acceptRanges": "bytes"
+      },
+      {
+        "path": "samples/audio/library/books/book-6487aedc3f6da54d169317f3/742654591d3b1f08f6a6b42eb93b69f67a69415058c1dd567919179cb06199b9/media/e11fbea4f719ac5c698559aedddabfce0910ec60b344a2f5aeeb368cabd21c11.m4a",
+        "status": 200,
+        "contentType": "audio/mp4",
+        "bytes": 63704,
+        "range": null,
+        "acceptRanges": "bytes"
+      },
+      {
+        "path": "samples/audio/library/books/book-6487aedc3f6da54d169317f3/742654591d3b1f08f6a6b42eb93b69f67a69415058c1dd567919179cb06199b9/media/ddb2e9c9e4d7d50fc3c9305a91feeac116c3ae0c7740644a24a2d9afb1d9a95b.m4a",
+        "status": 200,
+        "contentType": "audio/mp4",
+        "bytes": 37656,
+        "range": null,
+        "acceptRanges": "bytes"
+      },
+      {
+        "path": "samples/audio/library/books/book-6487aedc3f6da54d169317f3/742654591d3b1f08f6a6b42eb93b69f67a69415058c1dd567919179cb06199b9/media/09882b870138a27c65c1c87beb9865d55e18548bdd05747d96ee918b5ac4b4e4.m4a",
+        "status": 200,
+        "contentType": "audio/mp4",
+        "bytes": 47029,
+        "range": null,
+        "acceptRanges": "bytes"
+      },
+      {
+        "path": "samples/audio/library/books/book-6487aedc3f6da54d169317f3/742654591d3b1f08f6a6b42eb93b69f67a69415058c1dd567919179cb06199b9/media/e7264ad952af557ca46b7e03f609c9416b8469b9df5bd4ed284d5d3607c00e8e.m4a",
+        "status": 200,
+        "contentType": "audio/mp4",
+        "bytes": 46609,
+        "range": null,
+        "acceptRanges": "bytes"
+      },
+      {
+        "path": "samples/audio/library/books/book-6487aedc3f6da54d169317f3/742654591d3b1f08f6a6b42eb93b69f67a69415058c1dd567919179cb06199b9/media/6f5e7a0f99b261b790e10e7bd0fed65a0a818a6b95cbbe126001c4003b9af650.m4a",
+        "method": "HEAD",
+        "status": 200,
+        "contentType": "audio/mp4",
+        "contentLength": "16779",
+        "acceptRanges": "bytes"
+      },
+      {
+        "path": "samples/audio/library/books/book-6487aedc3f6da54d169317f3/742654591d3b1f08f6a6b42eb93b69f67a69415058c1dd567919179cb06199b9/media/6f5e7a0f99b261b790e10e7bd0fed65a0a818a6b95cbbe126001c4003b9af650.m4a",
+        "status": 206,
+        "contentType": "audio/mp4",
+        "bytes": 32,
+        "range": "bytes 0-31/16779",
+        "acceptRanges": "bytes"
+      },
+      {
+        "path": "samples/audio/library/books/book-edc889c2c4bed6b4c94ce9ab/49fcdf803d0d20b96b048ee25f3f013a5e5c7f316c6a1c30b594d9dfe96c0ddd/manifest.json",
+        "status": 200,
+        "contentType": "application/json; charset=utf-8",
+        "bytes": 1718765,
+        "range": null,
+        "acceptRanges": "bytes"
+      },
+      {
+        "path": "samples/audio/library/books/book-edc889c2c4bed6b4c94ce9ab/49fcdf803d0d20b96b048ee25f3f013a5e5c7f316c6a1c30b594d9dfe96c0ddd/media/72e7fd13c54b61f2b3fb1c22ce7eaafaae858a2c13398ba93b87c4cae0390d38.m4a",
+        "status": 200,
+        "contentType": "audio/mp4",
+        "bytes": 27781,
+        "range": null,
+        "acceptRanges": "bytes"
+      },
+      {
+        "path": "samples/audio/library/books/book-edc889c2c4bed6b4c94ce9ab/49fcdf803d0d20b96b048ee25f3f013a5e5c7f316c6a1c30b594d9dfe96c0ddd/media/55755978a1b8de35380c2ab54f86edec782557659e319f1e6666150aca7b2a8d.m4a",
+        "status": 200,
+        "contentType": "audio/mp4",
+        "bytes": 58518,
+        "range": null,
+        "acceptRanges": "bytes"
+      },
+      {
+        "path": "samples/audio/library/books/book-edc889c2c4bed6b4c94ce9ab/49fcdf803d0d20b96b048ee25f3f013a5e5c7f316c6a1c30b594d9dfe96c0ddd/media/6d8e482fc9bb0623abc2c8e1f58321c2f9ce4f2a8b45a2e71cc57091e16d0d9b.m4a",
+        "status": 200,
+        "contentType": "audio/mp4",
+        "bytes": 17460,
+        "range": null,
+        "acceptRanges": "bytes"
+      },
+      {
+        "path": "samples/audio/library/books/book-edc889c2c4bed6b4c94ce9ab/49fcdf803d0d20b96b048ee25f3f013a5e5c7f316c6a1c30b594d9dfe96c0ddd/media/14cecc4f3ed84503cc764118bfe19089d83c0b192902cfeaace4cc044c774cc7.m4a",
+        "status": 200,
+        "contentType": "audio/mp4",
+        "bytes": 20107,
+        "range": null,
+        "acceptRanges": "bytes"
+      },
+      {
+        "path": "samples/audio/library/books/book-edc889c2c4bed6b4c94ce9ab/49fcdf803d0d20b96b048ee25f3f013a5e5c7f316c6a1c30b594d9dfe96c0ddd/media/0ee432b4ee869cd055e4a5f202b7fb028cdee8cbb5a49346b73dc01cfabc2bbc.m4a",
+        "status": 200,
+        "contentType": "audio/mp4",
+        "bytes": 37000,
+        "range": null,
+        "acceptRanges": "bytes"
+      },
+      {
+        "path": "samples/audio/library/books/book-edc889c2c4bed6b4c94ce9ab/49fcdf803d0d20b96b048ee25f3f013a5e5c7f316c6a1c30b594d9dfe96c0ddd/media/613a6d398b5074b90653f09cc6b00a6b5dfbb3bbaee224cc4c802738f1315cab.m4a",
+        "status": 200,
+        "contentType": "audio/mp4",
+        "bytes": 58008,
+        "range": null,
+        "acceptRanges": "bytes"
+      },
+      {
+        "path": "samples/audio/library/books/book-edc889c2c4bed6b4c94ce9ab/49fcdf803d0d20b96b048ee25f3f013a5e5c7f316c6a1c30b594d9dfe96c0ddd/media/793946007d6a0045bfd6e68532640d35e9b084e2a360acf43c3ef9f296250d6c.m4a",
+        "status": 200,
+        "contentType": "audio/mp4",
+        "bytes": 61645,
+        "range": null,
+        "acceptRanges": "bytes"
+      },
+      {
+        "path": "samples/audio/library/books/book-edc889c2c4bed6b4c94ce9ab/49fcdf803d0d20b96b048ee25f3f013a5e5c7f316c6a1c30b594d9dfe96c0ddd/media/63b2cfaae06ab59ca22107eed91ed1526d01aafce829e21a0f71dc03105dc61e.m4a",
+        "status": 200,
+        "contentType": "audio/mp4",
+        "bytes": 52462,
+        "range": null,
+        "acceptRanges": "bytes"
+      },
+      {
+        "path": "samples/audio/library/books/book-edc889c2c4bed6b4c94ce9ab/49fcdf803d0d20b96b048ee25f3f013a5e5c7f316c6a1c30b594d9dfe96c0ddd/media/09c1606b06b745fee4d778f0c21fb38ce2156107e1930e98a9a835dc41133e41.m4a",
+        "status": 200,
+        "contentType": "audio/mp4",
+        "bytes": 79005,
+        "range": null,
+        "acceptRanges": "bytes"
+      },
+      {
+        "path": "samples/audio/library/books/book-edc889c2c4bed6b4c94ce9ab/49fcdf803d0d20b96b048ee25f3f013a5e5c7f316c6a1c30b594d9dfe96c0ddd/media/85fed73b890cb27aa0c40ddc59d9880205e5f28badb6f3a8714cf24280d13834.m4a",
+        "status": 200,
+        "contentType": "audio/mp4",
+        "bytes": 71346,
+        "range": null,
+        "acceptRanges": "bytes"
+      },
+      {
+        "path": "samples/audio/library/books/book-edc889c2c4bed6b4c94ce9ab/49fcdf803d0d20b96b048ee25f3f013a5e5c7f316c6a1c30b594d9dfe96c0ddd/media/2c93e084ca5129e7ca0e6519da32f5cc23878b5df24206fe80bacdd411a233ad.m4a",
+        "status": 200,
+        "contentType": "audio/mp4",
+        "bytes": 41670,
+        "range": null,
+        "acceptRanges": "bytes"
+      },
+      {
+        "path": "samples/audio/library/books/book-edc889c2c4bed6b4c94ce9ab/49fcdf803d0d20b96b048ee25f3f013a5e5c7f316c6a1c30b594d9dfe96c0ddd/media/c11edac80c4c19d720804a0c0535a0b23ef2ebb1f69c1d95990b4fbfc1439f8b.m4a",
+        "status": 200,
+        "contentType": "audio/mp4",
+        "bytes": 50218,
+        "range": null,
+        "acceptRanges": "bytes"
+      },
+      {
+        "path": "samples/audio/library/books/book-edc889c2c4bed6b4c94ce9ab/49fcdf803d0d20b96b048ee25f3f013a5e5c7f316c6a1c30b594d9dfe96c0ddd/media/3c220c4e8956c2be8293f5a662987104b59ae66e0b9c1492251af5a0c0af261a.m4a",
+        "status": 200,
+        "contentType": "audio/mp4",
+        "bytes": 50721,
+        "range": null,
+        "acceptRanges": "bytes"
+      },
+      {
+        "path": "samples/audio/library/books/book-edc889c2c4bed6b4c94ce9ab/49fcdf803d0d20b96b048ee25f3f013a5e5c7f316c6a1c30b594d9dfe96c0ddd/media/14cecc4f3ed84503cc764118bfe19089d83c0b192902cfeaace4cc044c774cc7.m4a",
+        "method": "HEAD",
+        "status": 200,
+        "contentType": "audio/mp4",
+        "contentLength": "20107",
+        "acceptRanges": "bytes"
+      },
+      {
+        "path": "samples/audio/library/books/book-edc889c2c4bed6b4c94ce9ab/49fcdf803d0d20b96b048ee25f3f013a5e5c7f316c6a1c30b594d9dfe96c0ddd/media/14cecc4f3ed84503cc764118bfe19089d83c0b192902cfeaace4cc044c774cc7.m4a",
+        "status": 206,
+        "contentType": "audio/mp4",
+        "bytes": 32,
+        "range": "bytes 0-31/20107",
+        "acceptRanges": "bytes"
+      },
+      {
+        "path": "samples/audio/library/books/book-46e680913b8fbb69271ea04c/a1f947a8834612b5f214e2b93e0bad65672f1f1885268be8070b22e8bcf3d393/manifest.json",
+        "status": 200,
+        "contentType": "application/json; charset=utf-8",
+        "bytes": 1718827,
+        "range": null,
+        "acceptRanges": "bytes"
+      },
+      {
+        "path": "samples/audio/library/books/book-46e680913b8fbb69271ea04c/a1f947a8834612b5f214e2b93e0bad65672f1f1885268be8070b22e8bcf3d393/media/7b18337540b3a70710d096988f9da8675fba3803c02a324e4b0e4d3976a5bb91.m4a",
+        "status": 200,
+        "contentType": "audio/mp4",
+        "bytes": 57456,
+        "range": null,
+        "acceptRanges": "bytes"
+      },
+      {
+        "path": "samples/audio/library/books/book-46e680913b8fbb69271ea04c/a1f947a8834612b5f214e2b93e0bad65672f1f1885268be8070b22e8bcf3d393/media/f66ffdf204ea52ef46094829443758a005bbe129e59c47bf4ff082eeef248663.m4a",
+        "status": 200,
+        "contentType": "audio/mp4",
+        "bytes": 30079,
+        "range": null,
+        "acceptRanges": "bytes"
+      },
+      {
+        "path": "samples/audio/library/books/book-46e680913b8fbb69271ea04c/a1f947a8834612b5f214e2b93e0bad65672f1f1885268be8070b22e8bcf3d393/media/2c85872fbc7243cc778c95db29749a687acaa889f5bf75e5596930ec760a38ee.m4a",
+        "status": 200,
+        "contentType": "audio/mp4",
+        "bytes": 18652,
+        "range": null,
+        "acceptRanges": "bytes"
+      },
+      {
+        "path": "samples/audio/library/books/book-46e680913b8fbb69271ea04c/a1f947a8834612b5f214e2b93e0bad65672f1f1885268be8070b22e8bcf3d393/media/6fe6a13fc0cc2c4b75b8e08d9df24f7cb5934aa1fbebf406a7bf4da9c2363c6a.m4a",
+        "status": 200,
+        "contentType": "audio/mp4",
+        "bytes": 17389,
+        "range": null,
+        "acceptRanges": "bytes"
+      },
+      {
+        "path": "samples/audio/library/books/book-46e680913b8fbb69271ea04c/a1f947a8834612b5f214e2b93e0bad65672f1f1885268be8070b22e8bcf3d393/media/fdee9ac30908a1038dad5616eb860568a88894fb4b8b5b5f0fa9d62f86711ecf.m4a",
+        "status": 200,
+        "contentType": "audio/mp4",
+        "bytes": 68181,
+        "range": null,
+        "acceptRanges": "bytes"
+      },
+      {
+        "path": "samples/audio/library/books/book-46e680913b8fbb69271ea04c/a1f947a8834612b5f214e2b93e0bad65672f1f1885268be8070b22e8bcf3d393/media/72bab74f8904e49775b8b21f1be2b5c8e57931e406e1cf0abd11dc08c3aba2ef.m4a",
+        "status": 200,
+        "contentType": "audio/mp4",
+        "bytes": 31147,
+        "range": null,
+        "acceptRanges": "bytes"
+      },
+      {
+        "path": "samples/audio/library/books/book-46e680913b8fbb69271ea04c/a1f947a8834612b5f214e2b93e0bad65672f1f1885268be8070b22e8bcf3d393/media/cd13d8e5b1aaa6f757f48024610de73f3704b38f9504131f4dbc2f4223c90587.m4a",
+        "status": 200,
+        "contentType": "audio/mp4",
+        "bytes": 56801,
+        "range": null,
+        "acceptRanges": "bytes"
+      },
+      {
+        "path": "samples/audio/library/books/book-46e680913b8fbb69271ea04c/a1f947a8834612b5f214e2b93e0bad65672f1f1885268be8070b22e8bcf3d393/media/47b33bf6f4e6e5951925b0e57de91b6a65b416794eac1035faa9d1129c0ded4b.m4a",
+        "status": 200,
+        "contentType": "audio/mp4",
+        "bytes": 56574,
+        "range": null,
+        "acceptRanges": "bytes"
+      },
+      {
+        "path": "samples/audio/library/books/book-46e680913b8fbb69271ea04c/a1f947a8834612b5f214e2b93e0bad65672f1f1885268be8070b22e8bcf3d393/media/5200d5f143535382be94697c62487049460a917b8b9f281bc52c72ccb5a09d7f.m4a",
+        "status": 200,
+        "contentType": "audio/mp4",
+        "bytes": 75975,
+        "range": null,
+        "acceptRanges": "bytes"
+      },
+      {
+        "path": "samples/audio/library/books/book-46e680913b8fbb69271ea04c/a1f947a8834612b5f214e2b93e0bad65672f1f1885268be8070b22e8bcf3d393/media/bd224b61e1b63fd5b55083c72786ccc629485d851dfe6d2551f2c2a536b91aa6.m4a",
+        "status": 200,
+        "contentType": "audio/mp4",
+        "bytes": 81551,
+        "range": null,
+        "acceptRanges": "bytes"
+      },
+      {
+        "path": "samples/audio/library/books/book-46e680913b8fbb69271ea04c/a1f947a8834612b5f214e2b93e0bad65672f1f1885268be8070b22e8bcf3d393/media/5c7dd75fcea520e81f7f9c029528daa69e9b7731490e514b08ca69b4cb5517f4.m4a",
+        "status": 200,
+        "contentType": "audio/mp4",
+        "bytes": 47539,
+        "range": null,
+        "acceptRanges": "bytes"
+      },
+      {
+        "path": "samples/audio/library/books/book-46e680913b8fbb69271ea04c/a1f947a8834612b5f214e2b93e0bad65672f1f1885268be8070b22e8bcf3d393/media/68f3dc188471be3081bb94eb6b41f10b3a8337b659259f490e2a4c912d01a44b.m4a",
+        "status": 200,
+        "contentType": "audio/mp4",
+        "bytes": 60928,
+        "range": null,
+        "acceptRanges": "bytes"
+      },
+      {
+        "path": "samples/audio/library/books/book-46e680913b8fbb69271ea04c/a1f947a8834612b5f214e2b93e0bad65672f1f1885268be8070b22e8bcf3d393/media/49b3e307115e6c4bcf1d39036dfe0cd66423bf81379178cf8845ce4c095a269e.m4a",
+        "status": 200,
+        "contentType": "audio/mp4",
+        "bytes": 54827,
+        "range": null,
+        "acceptRanges": "bytes"
+      },
+      {
+        "path": "samples/audio/library/books/book-46e680913b8fbb69271ea04c/a1f947a8834612b5f214e2b93e0bad65672f1f1885268be8070b22e8bcf3d393/media/2c85872fbc7243cc778c95db29749a687acaa889f5bf75e5596930ec760a38ee.m4a",
+        "method": "HEAD",
+        "status": 200,
+        "contentType": "audio/mp4",
+        "contentLength": "18652",
+        "acceptRanges": "bytes"
+      },
+      {
+        "path": "samples/audio/library/books/book-46e680913b8fbb69271ea04c/a1f947a8834612b5f214e2b93e0bad65672f1f1885268be8070b22e8bcf3d393/media/2c85872fbc7243cc778c95db29749a687acaa889f5bf75e5596930ec760a38ee.m4a",
+        "status": 206,
+        "contentType": "audio/mp4",
+        "bytes": 32,
+        "range": "bytes 0-31/18652",
+        "acceptRanges": "bytes"
+      },
+      {
+        "path": "api/local-generation/config",
+        "status": 404,
+        "contentType": "text/html; charset=utf-8"
+      },
+      {
+        "path": "api/local-audio/file.wav",
+        "status": 404,
+        "contentType": "text/html; charset=utf-8"
+      },
+      {
+        "path": "_serverFn/invalid",
+        "status": 404,
+        "contentType": "text/html; charset=utf-8"
+      },
+      {
+        "path": "generate/",
+        "status": 404,
+        "contentType": "text/html; charset=utf-8"
+      },
+      {
+        "path": "missing-audio.m4a",
+        "status": 404,
+        "contentType": "text/html; charset=utf-8"
+      }
+    ],
+    "status": "passed"
+  },
+  "distributionBoundary": {
+    "uploadedDirectory": "dist/distribution/pages",
+    "auditedUploadTree": "passed; the build rejects hidden/private/server/runtime directories, credentials, local generation code, symlinks and unreferenced audio files",
+    "additionalLibraryBooks": 0,
+    "publicSampleBooks": 3,
+    "localGenerationApi": false,
+    "publicNegativeEndpoints": [
+      "api/local-generation/config",
+      "api/local-audio/file.wav",
+      "_serverFn/invalid",
+      "generate/",
+      "missing-audio.m4a"
+    ],
+    "negativeEndpointStatus": 404
+  },
+  "warnings": [
+    "GitHub emitted a Node 20 action deprecation annotation; those actions ran with Node 24 and both jobs succeeded."
+  ],
+  "notRun": [
+    "Windows/Linux/Intel Mac audio initial setup QA (deferred)",
+    "Exhaustive physical-device coverage (outside scope)",
+    "Paid audio generation (outside scope)",
+    "Private text/audio/library transfer (outside scope)"
+  ],
+  "blockers": [],
+  "pendingDecisions": [],
+  "privateInputsUsed": false,
+  "paidGeneration": false,
+  "verificationScope": "Snapshot at checkedAt for sourceRevision. Later revisions and OS-specific audio setup are outside this record.",
+  "earlierCandidateRecord": "pages-default-draft-2026-10-08.md/json record the earlier local validation before publication."
+}
