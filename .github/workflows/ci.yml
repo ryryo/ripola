@@ -47,6 +47,7 @@ jobs:
           python3 -m venv "$RUNNER_TEMP/ripola-python-test"
           "$RUNNER_TEMP/ripola-python-test/bin/python" -m pip install numpy==2.3.5
           "$RUNNER_TEMP/ripola-python-test/bin/python" scripts/test_align_audio.py
+          "$RUNNER_TEMP/ripola-python-test/bin/python" scripts/test_check_alignment_runtime.py
       - run: pnpm build:worker
       - run: pnpm build:pages
       - run: pnpm audit:audio --distribution dist/distribution/worker
