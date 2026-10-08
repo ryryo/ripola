@@ -10,15 +10,15 @@ test('public Pages draft is opt-in and does not prefill local or personal Worker
   for (const profile of ['local', 'worker', undefined]) assert.deepEqual(initialReadingDraft(profile), { title: '', text: '', format: 'auto' });
 });
 
-test('prefilled Pages excerpt preserves bundled Aozora text and ruby through auto format detection', async () => {
+test('prefilled Pages excerpt matches bundled Aozora text without ruby notation', async () => {
   const sample = JSON.parse(await readFile(new URL('../public/samples/wagahai.json', import.meta.url), 'utf8'));
-  const imported = importText(PAGES_DEMO.text, resolveInputFormat(PAGES_DEMO.text, 'auto'), PAGES_DEMO.title);
+  const format = resolveInputFormat(PAGES_DEMO.text, 'auto');
+  assert.equal(format, 'txt');
+  const imported = importText(PAGES_DEMO.text, format, PAGES_DEMO.title);
   const paragraphs = sample.draft.blocks.filter((block: { kind: string }) => block.kind === 'paragraph');
   assert.equal(imported.blocks[0].text, paragraphs[0].text);
   assert.ok(paragraphs[1].text.startsWith(imported.blocks[1].text));
-  assert.deepEqual(imported.blocks[0].ruby.map(span => ({ start: span.start, end: span.end, reading: span.reading })),
-    paragraphs[0].ruby.map((span: { start: number; end: number; reading: string }) => ({ start: span.start, end: span.end, reading: span.reading })));
-  assert.equal(imported.blocks[1].ruby[0].reading, 'けんとう');
+  for (const block of imported.blocks) assert.deepEqual(block.ruby, []);
 });
 
 test('edited Pages history retains empty input and manual format without touching other profiles', () => {

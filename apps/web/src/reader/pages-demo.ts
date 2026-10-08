@@ -5,7 +5,7 @@ import type { InputFormat } from './input-format';
 /** Public-domain excerpt already present in the bundled Aozora sample. Never saved automatically. */
 export const PAGES_DEMO = {
   title: '吾輩は猫である・冒頭',
-  text: '<ruby>吾輩<rt>わがはい</rt></ruby>は猫である。名前はまだ無い。\n\nどこで生れたかとんと<ruby>見当<rt>けんとう</rt></ruby>がつかぬ。何でも薄暗いじめじめした所でニャーニャー泣いていた事だけは記憶している。',
+  text: '吾輩は猫である。名前はまだ無い。\n\nどこで生れたかとんと見当がつかぬ。何でも薄暗いじめじめした所でニャーニャー泣いていた事だけは記憶している。',
   sourceUrl: 'https://www.aozora.gr.jp/cards/000148/files/789_14547.html',
 } as const;
 
