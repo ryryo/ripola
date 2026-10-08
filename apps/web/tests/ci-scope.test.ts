@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { assertCaseInventory, browserCases, classifyChanges, DOMAINS, selectedCases } from '../../../scripts/ci-scope.mjs';
+import { assertBrowserFiles, assertCaseInventory, browserCases, classifyChanges, DOMAINS, selectedCases } from '../../../scripts/ci-scope.mjs';
 
 test('only allowlisted documentation bypasses shipping and browser checks', () => {
   assert.equal(classifyChanges(['README.md', 'docs/development/ci.md']).code, false);
@@ -30,6 +30,10 @@ test('full preserves all original 132 cases and adds two Pages smoke cases; sele
   assert.equal(selectedCases('normal').length, 14);
   assert.equal(selectedCases('normal', DOMAINS).length, 88);
   assertCaseInventory(browserCases);
+  const files = [...new Set(browserCases.map(item => item.file))];
+  assertBrowserFiles(files);
+  assert.throws(() => assertBrowserFiles([...files, 'unregistered.spec.ts']), /file registry mismatch/);
+  assert.throws(() => assertBrowserFiles(files.slice(1)), /file registry mismatch/);
   assert.throws(() => assertCaseInventory(browserCases.slice(1)), /registry mismatch/);
   assert.throws(() => assertCaseInventory([...browserCases, { ...browserCases[0], title: 'new unregistered case' }]), /unknown=/);
   assert.throws(() => assertCaseInventory([...browserCases, browserCases[0]]), /registry mismatch/);

@@ -6,3 +6,4 @@ export function selectedCases(mode?: string, domains?: string[]): BrowserCase[];
 export function projectGrep(project: string, mode: string, domains: string[]): RegExp | undefined;
 export function caseKey(item: BrowserCase): string;
 export function assertCaseInventory(actual: BrowserCase[], expected?: BrowserCase[]): void;
+export function assertBrowserFiles(files: string[]): void;

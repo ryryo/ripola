@@ -1,7 +1,9 @@
+import { readdirSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { basename } from 'node:path';
-import { assertCaseInventory, selectedCases } from './ci-scope.mjs';
+import { assertBrowserFiles, assertCaseInventory, selectedCases } from './ci-scope.mjs';
 
+assertBrowserFiles(readdirSync(new URL('../apps/web/tests/browser/', import.meta.url)).filter(file => file.endsWith('.spec.ts')));
 const mode = process.env.RIPOLA_CI_MODE ?? 'full';
 const domains = (process.env.RIPOLA_CI_DOMAINS ?? '').split(',').filter(Boolean);
 function listing(listMode, listDomains) {

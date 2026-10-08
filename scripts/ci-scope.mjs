@@ -56,3 +56,8 @@ export function assertCaseInventory(actual, expected = browserCases) {
     throw new Error(`CI case registry mismatch: missing=${JSON.stringify(missing)} unknown=${JSON.stringify(unknown)}. Update scripts/ci-browser-cases.json; never silently omit new tests.`);
   }
 }
+
+export function assertBrowserFiles(files) {
+  const registered = new Set(browserCases.map(item => item.file));
+  if (files.some(file => !registered.has(file)) || [...registered].some(file => !files.includes(file))) throw new Error('Browser file registry mismatch: register every new .spec.ts file and its Playwright project before running CI');
+}
