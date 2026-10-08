@@ -1,0 +1,2325 @@
+{
+  "date": "2026-10-08",
+  "timezone": "Asia/Tokyo",
+  "auditedCommit": "28ddb922854b6adb2399ab10c26ef475d2d03406",
+  "repository": "https://github.com/ryryo/ripola",
+  "sourceRun": 37744337416,
+  "workflowChanged": false,
+  "newCiRuns": 0,
+  "measuredBrowserSeconds": 451,
+  "measuredCheckJobSeconds": 587,
+  "measuredUnitSeconds": 44.351,
+  "normalExistingSmokeCases": 12,
+  "normalExistingSmokeIndividualSecondsSum": 54.1,
+  "proposedNewStaticPagesSmokeCases": 2,
+  "proposedNormalEstimatedMinutes": [
+    2.5,
+    3.5
+  ],
+  "estimateMeasured": false,
+  "classificationCounts": {
+    "normal": 12,
+    "related": 74,
+    "local_opt_in": 4,
+    "manual_full": 42
+  },
+  "fullCurrentCases": 132,
+  "fullPass": 128,
+  "fullSkip": 4,
+  "sameSourceCasesInBothProjects": 49,
+  "uniqueSourceCases": 83,
+  "layoutCombinations": 72,
+  "mainCurrentlyProtected": false,
+  "cases": [
+    {
+      "result": "passed",
+      "index": 1,
+      "project": "desktop-chromium",
+      "file": "apps/web/tests/browser/audio-alignment.spec.ts",
+      "line": 61,
+      "title": "同一音声内のフレーズ・ruby・seek・速度・chunk越え・背景停止・位置復元",
+      "seconds": 8.2,
+      "proposedPrimaryLane": "normal",
+      "reason": "主要経路smoke",
+      "relatedDomains": [
+        "audio",
+        "layout"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 3,
+      "project": "desktop-chromium",
+      "file": "apps/web/tests/browser/audio-alignment.spec.ts",
+      "line": 103,
+      "title": "low-score でも全区切りを表示し推定時刻を明示する",
+      "seconds": 2.9,
+      "proposedPrimaryLane": "related",
+      "reason": "関連機能を変えた場合の詳細検査",
+      "relatedDomains": [
+        "audio",
+        "layout"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 2,
+      "project": "desktop-chromium",
+      "file": "apps/web/tests/browser/aozora.spec.ts",
+      "line": 3,
+      "title": "青空文庫全文のルビ・仮想文一覧・章移動・保存設定",
+      "seconds": 14.1,
+      "proposedPrimaryLane": "related",
+      "reason": "関連機能を変えた場合の詳細検査",
+      "relatedDomains": [
+        "import",
+        "navigation"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "skipped",
+      "index": 5,
+      "project": "desktop-chromium",
+      "file": "apps/web/tests/browser/aozora.spec.ts",
+      "line": 56,
+      "title": "実保存ずんだもん冒頭3文は9フレーズ・ルビ・2.5倍で読み、文移動で止まる",
+      "seconds": null,
+      "proposedPrimaryLane": "local_opt_in",
+      "reason": "明示的なVOICEVOXまたは保存済み音声条件が必要",
+      "relatedDomains": [
+        "import",
+        "navigation"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 4,
+      "project": "desktop-chromium",
+      "file": "apps/web/tests/browser/audio-alignment.spec.ts",
+      "line": 103,
+      "title": "silence でも全区切りを表示し推定時刻を明示する",
+      "seconds": 3.4,
+      "proposedPrimaryLane": "related",
+      "reason": "関連機能を変えた場合の詳細検査",
+      "relatedDomains": [
+        "audio",
+        "layout"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 7,
+      "project": "desktop-chromium",
+      "file": "apps/web/tests/browser/audio-alignment.spec.ts",
+      "line": 103,
+      "title": "reading-mismatch でも全区切りを表示し推定時刻を明示する",
+      "seconds": 3.1,
+      "proposedPrimaryLane": "related",
+      "reason": "関連機能を変えた場合の詳細検査",
+      "relatedDomains": [
+        "audio",
+        "layout"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 6,
+      "project": "desktop-chromium",
+      "file": "apps/web/tests/browser/aozora.spec.ts",
+      "line": 101,
+      "title": "文一覧は初期状態で閉じ、開閉と文移動を保ち、別の読書は閉じて開始する",
+      "seconds": 4.9,
+      "proposedPrimaryLane": "related",
+      "reason": "関連機能を変えた場合の詳細検査",
+      "relatedDomains": [
+        "import",
+        "navigation"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 8,
+      "project": "desktop-chromium",
+      "file": "apps/web/tests/browser/audio-alignment.spec.ts",
+      "line": 121,
+      "title": "音声の自然終了で次の文へ連続再生し、最後まで完了する",
+      "seconds": 6.9,
+      "proposedPrimaryLane": "related",
+      "reason": "関連機能を変えた場合の詳細検査",
+      "relatedDomains": [
+        "audio",
+        "layout"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 10,
+      "project": "desktop-chromium",
+      "file": "apps/web/tests/browser/audio-alignment.spec.ts",
+      "line": 131,
+      "title": "音声再生中は本文だけが切り替わり、番号・説明・時間・文一覧を動かさない",
+      "seconds": 5.2,
+      "proposedPrimaryLane": "related",
+      "reason": "関連機能を変えた場合の詳細検査",
+      "relatedDomains": [
+        "audio",
+        "layout"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 11,
+      "project": "desktop-chromium",
+      "file": "apps/web/tests/browser/audio-alignment.spec.ts",
+      "line": 148,
+      "title": "音声の上下ガイドはrubyと大きな文字にも重ならず、音声切替中も本文領域を避ける",
+      "seconds": 4.0,
+      "proposedPrimaryLane": "related",
+      "reason": "関連機能を変えた場合の詳細検査",
+      "relatedDomains": [
+        "audio",
+        "layout"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 12,
+      "project": "desktop-chromium",
+      "file": "apps/web/tests/browser/audio-alignment.spec.ts",
+      "line": 169,
+      "title": "切替commit直後の古いframeも新しい音声の時計を使い、進捗が逆行しない",
+      "seconds": 7.4,
+      "proposedPrimaryLane": "related",
+      "reason": "関連機能を変えた場合の詳細検査",
+      "relatedDomains": [
+        "audio",
+        "layout"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 13,
+      "project": "desktop-chromium",
+      "file": "apps/web/tests/browser/creation-options.spec.ts",
+      "line": 3,
+      "title": "A samples are three visible rows below the form with direct silent entry and 44px controls",
+      "seconds": 2.8,
+      "proposedPrimaryLane": "related",
+      "reason": "関連機能を変えた場合の詳細検査",
+      "relatedDomains": [
+        "input",
+        "samples",
+        "layout"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 9,
+      "project": "desktop-chromium",
+      "file": "apps/web/tests/browser/audio-presentation.spec.ts",
+      "line": 31,
+      "title": "新規保存を実local APIで再開・seek・有音再生し、AAC静的配布でも全区切りを検査する",
+      "seconds": 25.4,
+      "proposedPrimaryLane": "related",
+      "reason": "関連機能を変えた場合の詳細検査",
+      "relatedDomains": [
+        "generation",
+        "audio",
+        "distribution"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "skipped",
+      "index": 15,
+      "project": "desktop-chromium",
+      "file": "apps/web/tests/browser/generation.spec.ts",
+      "line": 5,
+      "title": "無料生成の確認・停止再開・保存再利用と音声時計による同期",
+      "seconds": null,
+      "proposedPrimaryLane": "local_opt_in",
+      "reason": "明示的なVOICEVOXまたは保存済み音声条件が必要",
+      "relatedDomains": [
+        "generation",
+        "configuration",
+        "input"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 16,
+      "project": "desktop-chromium",
+      "file": "apps/web/tests/browser/generation.spec.ts",
+      "line": 84,
+      "title": "有料モデルはLite既定・Flashだけ、Gatewayはサーバー未設定なら無効",
+      "seconds": 2.7,
+      "proposedPrimaryLane": "normal",
+      "reason": "主要経路smoke",
+      "relatedDomains": [
+        "generation",
+        "configuration",
+        "input"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 14,
+      "project": "desktop-chromium",
+      "file": "apps/web/tests/browser/creation-options.spec.ts",
+      "line": 17,
+      "title": "auto result and manual override preserve raw input across audio toggle and failed import",
+      "seconds": 3.9,
+      "proposedPrimaryLane": "related",
+      "reason": "関連機能を変えた場合の詳細検査",
+      "relatedDomains": [
+        "input",
+        "samples",
+        "layout"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 17,
+      "project": "desktop-chromium",
+      "file": "apps/web/tests/browser/generation.spec.ts",
+      "line": 147,
+      "title": "トップの展開を往復しても原稿・形式・読みを保持し、テキストのみでは音声生成しない",
+      "seconds": 4.5,
+      "proposedPrimaryLane": "related",
+      "reason": "関連機能を変えた場合の詳細検査",
+      "relatedDomains": [
+        "generation",
+        "configuration",
+        "input"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 18,
+      "project": "desktop-chromium",
+      "file": "apps/web/tests/browser/creation-options.spec.ts",
+      "line": 26,
+      "title": "file extensions control text/Markdown and dedicated PDF survives generation toggles",
+      "seconds": 5.9,
+      "proposedPrimaryLane": "related",
+      "reason": "関連機能を変えた場合の詳細検査",
+      "relatedDomains": [
+        "input",
+        "samples",
+        "layout"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 19,
+      "project": "desktop-chromium",
+      "file": "apps/web/tests/browser/generation.spec.ts",
+      "line": 179,
+      "title": "トップの有料生成は送信内容・費用の確認を要求し、原稿変更で古い計画を破棄",
+      "seconds": 5.9,
+      "proposedPrimaryLane": "normal",
+      "reason": "主要経路smoke",
+      "relatedDomains": [
+        "generation",
+        "configuration",
+        "input"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 21,
+      "project": "desktop-chromium",
+      "file": "apps/web/tests/browser/generation.spec.ts",
+      "line": 208,
+      "title": "音声接続を取得できなくてもトップでテキストのみを生成できる",
+      "seconds": 3.3,
+      "proposedPrimaryLane": "related",
+      "reason": "関連機能を変えた場合の詳細検査",
+      "relatedDomains": [
+        "generation",
+        "configuration",
+        "input"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 20,
+      "project": "desktop-chromium",
+      "file": "apps/web/tests/browser/creation-options.spec.ts",
+      "line": 37,
+      "title": "音声サンプル voicevox は1クリックで開き、戻る・連打でも生成しない",
+      "seconds": 8.1,
+      "proposedPrimaryLane": "related",
+      "reason": "関連機能を変えた場合の詳細検査",
+      "relatedDomains": [
+        "input",
+        "samples",
+        "layout"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 22,
+      "project": "desktop-chromium",
+      "file": "apps/web/tests/browser/generation.spec.ts",
+      "line": 218,
+      "title": "音声用に取り込んだPDFはスイッチOFF後も同じ本文と元ページで読める",
+      "seconds": 4.7,
+      "proposedPrimaryLane": "related",
+      "reason": "関連機能を変えた場合の詳細検査",
+      "relatedDomains": [
+        "generation",
+        "configuration",
+        "input"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 24,
+      "project": "desktop-chromium",
+      "file": "apps/web/tests/browser/generation.spec.ts",
+      "line": 230,
+      "title": "初期OFFで取り込んだファイルから、同じ原稿のまま音声確認へ進める",
+      "seconds": 4.0,
+      "proposedPrimaryLane": "related",
+      "reason": "関連機能を変えた場合の詳細検査",
+      "relatedDomains": [
+        "generation",
+        "configuration",
+        "input"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 23,
+      "project": "desktop-chromium",
+      "file": "apps/web/tests/browser/creation-options.spec.ts",
+      "line": 37,
+      "title": "音声サンプル gemini-male は1クリックで開き、戻る・連打でも生成しない",
+      "seconds": 9.1,
+      "proposedPrimaryLane": "related",
+      "reason": "関連機能を変えた場合の詳細検査",
+      "relatedDomains": [
+        "input",
+        "samples",
+        "layout"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 25,
+      "project": "desktop-chromium",
+      "file": "apps/web/tests/browser/generation.spec.ts",
+      "line": 249,
+      "title": "設定されたGatewayは明示選択し、接続先と本文を確認しても課金を開始しない",
+      "seconds": 3.2,
+      "proposedPrimaryLane": "related",
+      "reason": "関連機能を変えた場合の詳細検査",
+      "relatedDomains": [
+        "generation",
+        "configuration",
+        "input"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 27,
+      "project": "desktop-chromium",
+      "file": "apps/web/tests/browser/generation.spec.ts",
+      "line": 273,
+      "title": "C shows checked time, unavailable and recheck without generating or switching paid",
+      "seconds": 2.8,
+      "proposedPrimaryLane": "related",
+      "reason": "関連機能を変えた場合の詳細検査",
+      "relatedDomains": [
+        "generation",
+        "configuration",
+        "input"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 26,
+      "project": "desktop-chromium",
+      "file": "apps/web/tests/browser/creation-options.spec.ts",
+      "line": 37,
+      "title": "音声サンプル gemini-female は1クリックで開き、戻る・連打でも生成しない",
+      "seconds": 8.0,
+      "proposedPrimaryLane": "related",
+      "reason": "関連機能を変えた場合の詳細検査",
+      "relatedDomains": [
+        "input",
+        "samples",
+        "layout"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 28,
+      "project": "desktop-chromium",
+      "file": "apps/web/tests/browser/generation.spec.ts",
+      "line": 283,
+      "title": "C ignores an older delayed configuration after closing and reopening audio settings",
+      "seconds": 3.1,
+      "proposedPrimaryLane": "related",
+      "reason": "関連機能を変えた場合の詳細検査",
+      "relatedDomains": [
+        "generation",
+        "configuration",
+        "input"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 30,
+      "project": "desktop-chromium",
+      "file": "apps/web/tests/browser/generation.spec.ts",
+      "line": 293,
+      "title": "mock Cloudflare availability enables explicit credit selection and requires paid review",
+      "seconds": 4.8,
+      "proposedPrimaryLane": "related",
+      "reason": "関連機能を変えた場合の詳細検査",
+      "relatedDomains": [
+        "generation",
+        "configuration",
+        "input"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 31,
+      "project": "desktop-chromium",
+      "file": "apps/web/tests/browser/generation.spec.ts",
+      "line": 320,
+      "title": "Direct style is retained across Cloudflare selection and excluded from its plan",
+      "seconds": 3.3,
+      "proposedPrimaryLane": "related",
+      "reason": "関連機能を変えた場合の詳細検査",
+      "relatedDomains": [
+        "generation",
+        "configuration",
+        "input"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 29,
+      "project": "desktop-chromium",
+      "file": "apps/web/tests/browser/creation-options.spec.ts",
+      "line": 67,
+      "title": "音声サンプルはTab・Shift+TabとEnterで3種類を直接開ける",
+      "seconds": 10.2,
+      "proposedPrimaryLane": "related",
+      "reason": "関連機能を変えた場合の詳細検査",
+      "relatedDomains": [
+        "input",
+        "samples",
+        "layout"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 32,
+      "project": "desktop-chromium",
+      "file": "apps/web/tests/browser/generation.spec.ts",
+      "line": 341,
+      "title": "real Cloudflare state explains a missing Gateway without requesting a manual token",
+      "seconds": 2.5,
+      "proposedPrimaryLane": "related",
+      "reason": "関連機能を変えた場合の詳細検査",
+      "relatedDomains": [
+        "generation",
+        "configuration",
+        "input"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 34,
+      "project": "desktop-chromium",
+      "file": "apps/web/tests/browser/generation.spec.ts",
+      "line": 359,
+      "title": "音声補正の準備状態 ready を表示し、確認だけでは生成しない",
+      "seconds": 2.5,
+      "proposedPrimaryLane": "related",
+      "reason": "関連機能を変えた場合の詳細検査",
+      "relatedDomains": [
+        "generation",
+        "configuration",
+        "input"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 33,
+      "project": "desktop-chromium",
+      "file": "apps/web/tests/browser/creation-options.spec.ts",
+      "line": 83,
+      "title": "音声サンプル取得失敗から再確認でき、320pxでも1枠のまま直接開く",
+      "seconds": 4.4,
+      "proposedPrimaryLane": "related",
+      "reason": "関連機能を変えた場合の詳細検査",
+      "relatedDomains": [
+        "input",
+        "samples",
+        "layout"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 35,
+      "project": "desktop-chromium",
+      "file": "apps/web/tests/browser/generation.spec.ts",
+      "line": 359,
+      "title": "音声補正の準備状態 setup-required を表示し、確認だけでは生成しない",
+      "seconds": 3.1,
+      "proposedPrimaryLane": "related",
+      "reason": "関連機能を変えた場合の詳細検査",
+      "relatedDomains": [
+        "generation",
+        "configuration",
+        "input"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 37,
+      "project": "desktop-chromium",
+      "file": "apps/web/tests/browser/generation.spec.ts",
+      "line": 359,
+      "title": "音声補正の準備状態 failed を表示し、確認だけでは生成しない",
+      "seconds": 2.3,
+      "proposedPrimaryLane": "related",
+      "reason": "関連機能を変えた場合の詳細検査",
+      "relatedDomains": [
+        "generation",
+        "configuration",
+        "input"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 36,
+      "project": "desktop-chromium",
+      "file": "apps/web/tests/browser/guide.spec.ts",
+      "line": 4,
+      "title": "通常読書の上下ガイドは文字サイズ・ruby・再生停止に関係なく文字と重ならない",
+      "seconds": 9.1,
+      "proposedPrimaryLane": "related",
+      "reason": "関連機能を変えた場合の詳細検査",
+      "relatedDomains": [
+        "layout"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 39,
+      "project": "desktop-chromium",
+      "file": "apps/web/tests/browser/local-security.spec.ts",
+      "line": 2,
+      "title": "local server function rejects cross-origin, forged Host and missing browser evidence",
+      "seconds": 1.3,
+      "proposedPrimaryLane": "normal",
+      "reason": "主要経路smoke",
+      "relatedDomains": [
+        "local-security"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 38,
+      "project": "desktop-chromium",
+      "file": "apps/web/tests/browser/generation.spec.ts",
+      "line": 381,
+      "title": "Gemini文字数費用は入力中に更新し、本文を送信しない /",
+      "seconds": 7.5,
+      "proposedPrimaryLane": "related",
+      "reason": "関連機能を変えた場合の詳細検査",
+      "relatedDomains": [
+        "generation",
+        "configuration",
+        "input"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 40,
+      "project": "desktop-chromium",
+      "file": "apps/web/tests/browser/progress.spec.ts",
+      "line": 13,
+      "title": "時間ゲージは長短フレーズと句読点の間を跨いで一定の速度で進む",
+      "seconds": 4.8,
+      "proposedPrimaryLane": "related",
+      "reason": "関連機能を変えた場合の詳細検査",
+      "relatedDomains": [
+        "playback"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 41,
+      "project": "desktop-chromium",
+      "file": "apps/web/tests/browser/generation.spec.ts",
+      "line": 381,
+      "title": "Gemini文字数費用は入力中に更新し、本文を送信しない /generate",
+      "seconds": 7.2,
+      "proposedPrimaryLane": "related",
+      "reason": "関連機能を変えた場合の詳細検査",
+      "relatedDomains": [
+        "generation",
+        "configuration",
+        "input"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 42,
+      "project": "desktop-chromium",
+      "file": "apps/web/tests/browser/progress.spec.ts",
+      "line": 37,
+      "title": "時間ゲージは停止・再開・速度変更・戻る・シーク・非表示停止と整合する",
+      "seconds": 4.7,
+      "proposedPrimaryLane": "related",
+      "reason": "関連機能を変えた場合の詳細検査",
+      "relatedDomains": [
+        "playback"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 43,
+      "project": "desktop-chromium",
+      "file": "apps/web/tests/browser/reader.spec.ts",
+      "line": 11,
+      "title": "貼付・空本文・原文シーク・Unicode・ruby・外部送信なし",
+      "seconds": 4.0,
+      "proposedPrimaryLane": "normal",
+      "reason": "主要経路smoke",
+      "relatedDomains": [
+        "import",
+        "playback",
+        "storage"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 44,
+      "project": "desktop-chromium",
+      "file": "apps/web/tests/browser/progress.spec.ts",
+      "line": 63,
+      "title": "ゲージは最終単位の表示中も進み、読了で100%、再読で0%",
+      "seconds": 3.9,
+      "proposedPrimaryLane": "related",
+      "reason": "関連機能を変えた場合の詳細検査",
+      "relatedDomains": [
+        "playback"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 46,
+      "project": "desktop-chromium",
+      "file": "apps/web/tests/browser/progress.spec.ts",
+      "line": 72,
+      "title": "reduced motionは連続描画を控え、静的原文と進捗の意味を残す",
+      "seconds": 3.1,
+      "proposedPrimaryLane": "related",
+      "reason": "関連機能を変えた場合の詳細検査",
+      "relatedDomains": [
+        "playback"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 45,
+      "project": "desktop-chromium",
+      "file": "apps/web/tests/browser/reader.spec.ts",
+      "line": 33,
+      "title": "MDファイルはcode/tableで止まり、元入力と同じ本文の位置を保つ",
+      "seconds": 3.8,
+      "proposedPrimaryLane": "normal",
+      "reason": "主要経路smoke",
+      "relatedDomains": [
+        "import",
+        "playback",
+        "storage"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 48,
+      "project": "desktop-chromium",
+      "file": "apps/web/tests/browser/reader.spec.ts",
+      "line": 50,
+      "title": "再生連打・速度変更・戻る・設定・背景停止は単位を飛ばさない",
+      "seconds": 4.7,
+      "proposedPrimaryLane": "normal",
+      "reason": "主要経路smoke",
+      "relatedDomains": [
+        "import",
+        "playback",
+        "storage"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 47,
+      "project": "desktop-chromium",
+      "file": "apps/web/tests/browser/progress.spec.ts",
+      "line": 83,
+      "title": "黙読再生中は本文だけが切り替わり、滑らかなゲージと停止時の詳細を保つ",
+      "seconds": 5.3,
+      "proposedPrimaryLane": "related",
+      "reason": "関連機能を変えた場合の詳細検査",
+      "relatedDomains": [
+        "playback"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 49,
+      "project": "desktop-chromium",
+      "file": "apps/web/tests/browser/reader.spec.ts",
+      "line": 74,
+      "title": "最後の1フレーズは時間を確保してから読了し、再読は停止状態",
+      "seconds": 4.0,
+      "proposedPrimaryLane": "related",
+      "reason": "関連機能を変えた場合の詳細検査",
+      "relatedDomains": [
+        "import",
+        "playback",
+        "storage"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 51,
+      "project": "desktop-chromium",
+      "file": "apps/web/tests/browser/reader.spec.ts",
+      "line": 85,
+      "title": "端末に明示保存、再開と削除",
+      "seconds": 5.6,
+      "proposedPrimaryLane": "normal",
+      "reason": "主要経路smoke",
+      "relatedDomains": [
+        "import",
+        "playback",
+        "storage"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 52,
+      "project": "desktop-chromium",
+      "file": "apps/web/tests/browser/reader.spec.ts",
+      "line": 99,
+      "title": "UTF-8 TXT・小数速度の整数化・Space長押し",
+      "seconds": 3.2,
+      "proposedPrimaryLane": "related",
+      "reason": "関連機能を変えた場合の詳細検査",
+      "relatedDomains": [
+        "import",
+        "playback",
+        "storage"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 50,
+      "project": "desktop-chromium",
+      "file": "apps/web/tests/browser/reading-options.spec.ts",
+      "line": 18,
+      "title": "optional fonts load from the same origin only, keep anchor paused and fit ruby at both sizes",
+      "seconds": 13.1,
+      "proposedPrimaryLane": "related",
+      "reason": "関連機能を変えた場合の詳細検査",
+      "relatedDomains": [
+        "layout",
+        "navigation",
+        "audio"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 53,
+      "project": "desktop-chromium",
+      "file": "apps/web/tests/browser/reader.spec.ts",
+      "line": 115,
+      "title": "日本語PDFの文字層とページ表示",
+      "seconds": 4.4,
+      "proposedPrimaryLane": "normal",
+      "reason": "主要経路smoke",
+      "relatedDomains": [
+        "import",
+        "playback",
+        "storage"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 54,
+      "project": "desktop-chromium",
+      "file": "apps/web/tests/browser/reading-options.spec.ts",
+      "line": 63,
+      "title": "font failures and stale A→B→system results leave the same anchor paused with system fallback",
+      "seconds": 5.4,
+      "proposedPrimaryLane": "related",
+      "reason": "関連機能を変えた場合の詳細検査",
+      "relatedDomains": [
+        "layout",
+        "navigation",
+        "audio"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 56,
+      "project": "desktop-chromium",
+      "file": "apps/web/tests/browser/reading-options.spec.ts",
+      "line": 87,
+      "title": "grouping is a view; Guide and Flash share position, ruby and static text",
+      "seconds": 4.7,
+      "proposedPrimaryLane": "related",
+      "reason": "関連機能を変えた場合の詳細検査",
+      "relatedDomains": [
+        "layout",
+        "navigation",
+        "audio"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 55,
+      "project": "desktop-chromium",
+      "file": "apps/web/tests/browser/reader.spec.ts",
+      "line": 127,
+      "title": "横書きテキストPDFの抽出プレビューと元ページ、保存したPDF再開",
+      "seconds": 7.4,
+      "proposedPrimaryLane": "related",
+      "reason": "関連機能を変えた場合の詳細検査",
+      "relatedDomains": [
+        "import",
+        "playback",
+        "storage"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 58,
+      "project": "desktop-chromium",
+      "file": "apps/web/tests/browser/reader.spec.ts",
+      "line": 146,
+      "title": "非対応PDF image-only.pdf は説明して空の本を作らない",
+      "seconds": 3.3,
+      "proposedPrimaryLane": "related",
+      "reason": "関連機能を変えた場合の詳細検査",
+      "relatedDomains": [
+        "import",
+        "playback",
+        "storage"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 57,
+      "project": "desktop-chromium",
+      "file": "apps/web/tests/browser/reading-options.spec.ts",
+      "line": 109,
+      "title": "Guide bounds long-document DOM; manual scrolling keeps the reading anchor and disables following",
+      "seconds": 4.6,
+      "proposedPrimaryLane": "related",
+      "reason": "関連機能を変えた場合の詳細検査",
+      "relatedDomains": [
+        "layout",
+        "navigation",
+        "audio"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 59,
+      "project": "desktop-chromium",
+      "file": "apps/web/tests/browser/reader.spec.ts",
+      "line": 146,
+      "title": "非対応PDF partial-blank.pdf は説明して空の本を作らない",
+      "seconds": 3.6,
+      "proposedPrimaryLane": "related",
+      "reason": "関連機能を変えた場合の詳細検査",
+      "relatedDomains": [
+        "import",
+        "playback",
+        "storage"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 60,
+      "project": "desktop-chromium",
+      "file": "apps/web/tests/browser/reading-options.spec.ts",
+      "line": 126,
+      "title": "Guide reveals the highlighted phrase within a tall virtual row after a search jump",
+      "seconds": 3.3,
+      "proposedPrimaryLane": "related",
+      "reason": "関連機能を変えた場合の詳細検査",
+      "relatedDomains": [
+        "layout",
+        "navigation",
+        "audio"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 62,
+      "project": "desktop-chromium",
+      "file": "apps/web/tests/browser/reading-options.spec.ts",
+      "line": 139,
+      "title": "shortcuts follow the proposal without stealing native slider/input or composing keys",
+      "seconds": 3.2,
+      "proposedPrimaryLane": "related",
+      "reason": "関連機能を変えた場合の詳細検査",
+      "relatedDomains": [
+        "layout",
+        "navigation",
+        "audio"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 61,
+      "project": "desktop-chromium",
+      "file": "apps/web/tests/browser/reader.spec.ts",
+      "line": 146,
+      "title": "非対応PDF invalid.pdf は説明して空の本を作らない",
+      "seconds": 3.8,
+      "proposedPrimaryLane": "related",
+      "reason": "関連機能を変えた場合の詳細検査",
+      "relatedDomains": [
+        "import",
+        "playback",
+        "storage"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 64,
+      "project": "desktop-chromium",
+      "file": "apps/web/tests/browser/reader.spec.ts",
+      "line": 146,
+      "title": "非対応PDF two-column.pdf は説明して空の本を作らない",
+      "seconds": 3.1,
+      "proposedPrimaryLane": "related",
+      "reason": "関連機能を変えた場合の詳細検査",
+      "relatedDomains": [
+        "import",
+        "playback",
+        "storage"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 63,
+      "project": "desktop-chromium",
+      "file": "apps/web/tests/browser/reading-options.spec.ts",
+      "line": 183,
+      "title": "audio uses original ±5 seconds across chunks, retains play intent, supports rate/sentence/end shortcuts and Guide",
+      "seconds": 4.8,
+      "proposedPrimaryLane": "related",
+      "reason": "関連機能を変えた場合の詳細検査",
+      "relatedDomains": [
+        "layout",
+        "navigation",
+        "audio"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 65,
+      "project": "desktop-chromium",
+      "file": "apps/web/tests/browser/reader.spec.ts",
+      "line": 152,
+      "title": "PDF処理を取消して別の本文を読み、古い結果が上書きしない",
+      "seconds": 3.8,
+      "proposedPrimaryLane": "related",
+      "reason": "関連機能を変えた場合の詳細検査",
+      "relatedDomains": [
+        "import",
+        "playback",
+        "storage"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 66,
+      "project": "desktop-chromium",
+      "file": "apps/web/tests/browser/reading-options.spec.ts",
+      "line": 208,
+      "title": "sentence lists pause on opening/selection and close on every explicit resume, including keyboard",
+      "seconds": 3.4,
+      "proposedPrimaryLane": "related",
+      "reason": "関連機能を変えた場合の詳細検査",
+      "relatedDomains": [
+        "layout",
+        "navigation",
+        "audio"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 67,
+      "project": "desktop-chromium",
+      "file": "apps/web/tests/browser/reader.spec.ts",
+      "line": 160,
+      "title": "キーボード操作・静的原文・高速live通知なし",
+      "seconds": 3.8,
+      "proposedPrimaryLane": "related",
+      "reason": "関連機能を変えた場合の詳細検査",
+      "relatedDomains": [
+        "import",
+        "playback",
+        "storage"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 68,
+      "project": "desktop-chromium",
+      "file": "apps/web/tests/browser/titles.spec.ts",
+      "line": 4,
+      "title": "blank and whitespace titles use local time, and renaming a saved browser document persists without moving its source anchor",
+      "seconds": 5.3,
+      "proposedPrimaryLane": "related",
+      "reason": "関連機能を変えた場合の詳細検査",
+      "relatedDomains": [
+        "storage",
+        "input"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 69,
+      "project": "desktop-chromium",
+      "file": "apps/web/tests/browser/reader.spec.ts",
+      "line": 172,
+      "title": "10万文字を貼り付けてWorkerで処理し、原文のDOMを現在位置の前後に限定する",
+      "seconds": 4.5,
+      "proposedPrimaryLane": "related",
+      "reason": "関連機能を変えた場合の詳細検査",
+      "relatedDomains": [
+        "import",
+        "playback",
+        "storage"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 70,
+      "project": "desktop-chromium",
+      "file": "apps/web/tests/browser/titles.spec.ts",
+      "line": 29,
+      "title": "detailed audio preparation accepts an omitted title and retains an explicit title",
+      "seconds": 2.9,
+      "proposedPrimaryLane": "related",
+      "reason": "関連機能を変えた場合の詳細検査",
+      "relatedDomains": [
+        "storage",
+        "input"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 71,
+      "project": "desktop-chromium",
+      "file": "apps/web/tests/browser/reader.spec.ts",
+      "line": 206,
+      "title": "Worker起動失敗時も原文を確認できる",
+      "seconds": 2.3,
+      "proposedPrimaryLane": "normal",
+      "reason": "主要経路smoke",
+      "relatedDomains": [
+        "import",
+        "playback",
+        "storage"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 73,
+      "project": "mobile-chromium",
+      "file": "apps/web/tests/browser/audio-alignment.spec.ts",
+      "line": 61,
+      "title": "同一音声内のフレーズ・ruby・seek・速度・chunk越え・背景停止・位置復元",
+      "seconds": 5.7,
+      "proposedPrimaryLane": "manual_full",
+      "reason": "通常・関連検査に残すデスクトップ経路のモバイル側の追加確認",
+      "relatedDomains": [
+        "audio",
+        "layout"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 74,
+      "project": "mobile-chromium",
+      "file": "apps/web/tests/browser/audio-alignment.spec.ts",
+      "line": 103,
+      "title": "low-score でも全区切りを表示し推定時刻を明示する",
+      "seconds": 2.7,
+      "proposedPrimaryLane": "manual_full",
+      "reason": "通常・関連検査に残すデスクトップ経路のモバイル側の追加確認",
+      "relatedDomains": [
+        "audio",
+        "layout"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 75,
+      "project": "mobile-chromium",
+      "file": "apps/web/tests/browser/audio-alignment.spec.ts",
+      "line": 103,
+      "title": "silence でも全区切りを表示し推定時刻を明示する",
+      "seconds": 2.7,
+      "proposedPrimaryLane": "manual_full",
+      "reason": "通常・関連検査に残すデスクトップ経路のモバイル側の追加確認",
+      "relatedDomains": [
+        "audio",
+        "layout"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 72,
+      "project": "mobile-chromium",
+      "file": "apps/web/tests/browser/aozora.spec.ts",
+      "line": 3,
+      "title": "青空文庫全文のルビ・仮想文一覧・章移動・保存設定",
+      "seconds": 13.4,
+      "proposedPrimaryLane": "manual_full",
+      "reason": "通常・関連検査に残すデスクトップ経路のモバイル側の追加確認",
+      "relatedDomains": [
+        "import",
+        "navigation"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "skipped",
+      "index": 77,
+      "project": "mobile-chromium",
+      "file": "apps/web/tests/browser/aozora.spec.ts",
+      "line": 56,
+      "title": "実保存ずんだもん冒頭3文は9フレーズ・ルビ・2.5倍で読み、文移動で止まる",
+      "seconds": null,
+      "proposedPrimaryLane": "local_opt_in",
+      "reason": "明示的なVOICEVOXまたは保存済み音声条件が必要",
+      "relatedDomains": [
+        "import",
+        "navigation"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 76,
+      "project": "mobile-chromium",
+      "file": "apps/web/tests/browser/audio-alignment.spec.ts",
+      "line": 103,
+      "title": "reading-mismatch でも全区切りを表示し推定時刻を明示する",
+      "seconds": 2.8,
+      "proposedPrimaryLane": "manual_full",
+      "reason": "通常・関連検査に残すデスクトップ経路のモバイル側の追加確認",
+      "relatedDomains": [
+        "audio",
+        "layout"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 78,
+      "project": "mobile-chromium",
+      "file": "apps/web/tests/browser/aozora.spec.ts",
+      "line": 101,
+      "title": "文一覧は初期状態で閉じ、開閉と文移動を保ち、別の読書は閉じて開始する",
+      "seconds": 4.7,
+      "proposedPrimaryLane": "manual_full",
+      "reason": "通常・関連検査に残すデスクトップ経路のモバイル側の追加確認",
+      "relatedDomains": [
+        "import",
+        "navigation"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 79,
+      "project": "mobile-chromium",
+      "file": "apps/web/tests/browser/audio-alignment.spec.ts",
+      "line": 121,
+      "title": "音声の自然終了で次の文へ連続再生し、最後まで完了する",
+      "seconds": 5.8,
+      "proposedPrimaryLane": "manual_full",
+      "reason": "通常・関連検査に残すデスクトップ経路のモバイル側の追加確認",
+      "relatedDomains": [
+        "audio",
+        "layout"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 81,
+      "project": "mobile-chromium",
+      "file": "apps/web/tests/browser/audio-alignment.spec.ts",
+      "line": 131,
+      "title": "音声再生中は本文だけが切り替わり、番号・説明・時間・文一覧を動かさない",
+      "seconds": 4.9,
+      "proposedPrimaryLane": "manual_full",
+      "reason": "通常・関連検査に残すデスクトップ経路のモバイル側の追加確認",
+      "relatedDomains": [
+        "audio",
+        "layout"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 82,
+      "project": "mobile-chromium",
+      "file": "apps/web/tests/browser/audio-alignment.spec.ts",
+      "line": 148,
+      "title": "音声の上下ガイドはrubyと大きな文字にも重ならず、音声切替中も本文領域を避ける",
+      "seconds": 4.0,
+      "proposedPrimaryLane": "related",
+      "reason": "viewport依存のレイアウト検査",
+      "relatedDomains": [
+        "audio",
+        "layout"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 83,
+      "project": "mobile-chromium",
+      "file": "apps/web/tests/browser/audio-alignment.spec.ts",
+      "line": 169,
+      "title": "切替commit直後の古いframeも新しい音声の時計を使い、進捗が逆行しない",
+      "seconds": 7.3,
+      "proposedPrimaryLane": "manual_full",
+      "reason": "通常・関連検査に残すデスクトップ経路のモバイル側の追加確認",
+      "relatedDomains": [
+        "audio",
+        "layout"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 84,
+      "project": "mobile-chromium",
+      "file": "apps/web/tests/browser/creation-options.spec.ts",
+      "line": 3,
+      "title": "A samples are three visible rows below the form with direct silent entry and 44px controls",
+      "seconds": 2.4,
+      "proposedPrimaryLane": "related",
+      "reason": "viewport依存のレイアウト検査",
+      "relatedDomains": [
+        "input",
+        "samples",
+        "layout"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 80,
+      "project": "mobile-chromium",
+      "file": "apps/web/tests/browser/audio-presentation.spec.ts",
+      "line": 31,
+      "title": "新規保存を実local APIで再開・seek・有音再生し、AAC静的配布でも全区切りを検査する",
+      "seconds": 23.6,
+      "proposedPrimaryLane": "manual_full",
+      "reason": "通常・関連検査に残すデスクトップ経路のモバイル側の追加確認",
+      "relatedDomains": [
+        "generation",
+        "audio",
+        "distribution"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "skipped",
+      "index": 86,
+      "project": "mobile-chromium",
+      "file": "apps/web/tests/browser/generation.spec.ts",
+      "line": 5,
+      "title": "無料生成の確認・停止再開・保存再利用と音声時計による同期",
+      "seconds": null,
+      "proposedPrimaryLane": "local_opt_in",
+      "reason": "明示的なVOICEVOXまたは保存済み音声条件が必要",
+      "relatedDomains": [
+        "generation",
+        "configuration",
+        "input"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 85,
+      "project": "mobile-chromium",
+      "file": "apps/web/tests/browser/creation-options.spec.ts",
+      "line": 17,
+      "title": "auto result and manual override preserve raw input across audio toggle and failed import",
+      "seconds": 3.9,
+      "proposedPrimaryLane": "manual_full",
+      "reason": "通常・関連検査に残すデスクトップ経路のモバイル側の追加確認",
+      "relatedDomains": [
+        "input",
+        "samples",
+        "layout"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 87,
+      "project": "mobile-chromium",
+      "file": "apps/web/tests/browser/generation.spec.ts",
+      "line": 84,
+      "title": "有料モデルはLite既定・Flashだけ、Gatewayはサーバー未設定なら無効",
+      "seconds": 2.5,
+      "proposedPrimaryLane": "manual_full",
+      "reason": "通常・関連検査に残すデスクトップ経路のモバイル側の追加確認",
+      "relatedDomains": [
+        "generation",
+        "configuration",
+        "input"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 89,
+      "project": "mobile-chromium",
+      "file": "apps/web/tests/browser/generation.spec.ts",
+      "line": 147,
+      "title": "トップの展開を往復しても原稿・形式・読みを保持し、テキストのみでは音声生成しない",
+      "seconds": 3.5,
+      "proposedPrimaryLane": "manual_full",
+      "reason": "通常・関連検査に残すデスクトップ経路のモバイル側の追加確認",
+      "relatedDomains": [
+        "generation",
+        "configuration",
+        "input"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 88,
+      "project": "mobile-chromium",
+      "file": "apps/web/tests/browser/creation-options.spec.ts",
+      "line": 26,
+      "title": "file extensions control text/Markdown and dedicated PDF survives generation toggles",
+      "seconds": 5.4,
+      "proposedPrimaryLane": "manual_full",
+      "reason": "通常・関連検査に残すデスクトップ経路のモバイル側の追加確認",
+      "relatedDomains": [
+        "input",
+        "samples",
+        "layout"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 90,
+      "project": "mobile-chromium",
+      "file": "apps/web/tests/browser/generation.spec.ts",
+      "line": 179,
+      "title": "トップの有料生成は送信内容・費用の確認を要求し、原稿変更で古い計画を破棄",
+      "seconds": 5.6,
+      "proposedPrimaryLane": "manual_full",
+      "reason": "通常・関連検査に残すデスクトップ経路のモバイル側の追加確認",
+      "relatedDomains": [
+        "generation",
+        "configuration",
+        "input"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 92,
+      "project": "mobile-chromium",
+      "file": "apps/web/tests/browser/generation.spec.ts",
+      "line": 208,
+      "title": "音声接続を取得できなくてもトップでテキストのみを生成できる",
+      "seconds": 3.0,
+      "proposedPrimaryLane": "manual_full",
+      "reason": "通常・関連検査に残すデスクトップ経路のモバイル側の追加確認",
+      "relatedDomains": [
+        "generation",
+        "configuration",
+        "input"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 91,
+      "project": "mobile-chromium",
+      "file": "apps/web/tests/browser/creation-options.spec.ts",
+      "line": 37,
+      "title": "音声サンプル voicevox は1クリックで開き、戻る・連打でも生成しない",
+      "seconds": 8.0,
+      "proposedPrimaryLane": "normal",
+      "reason": "主要経路smoke",
+      "relatedDomains": [
+        "input",
+        "samples",
+        "layout"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 93,
+      "project": "mobile-chromium",
+      "file": "apps/web/tests/browser/generation.spec.ts",
+      "line": 218,
+      "title": "音声用に取り込んだPDFはスイッチOFF後も同じ本文と元ページで読める",
+      "seconds": 4.6,
+      "proposedPrimaryLane": "manual_full",
+      "reason": "通常・関連検査に残すデスクトップ経路のモバイル側の追加確認",
+      "relatedDomains": [
+        "generation",
+        "configuration",
+        "input"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 94,
+      "project": "mobile-chromium",
+      "file": "apps/web/tests/browser/creation-options.spec.ts",
+      "line": 37,
+      "title": "音声サンプル gemini-male は1クリックで開き、戻る・連打でも生成しない",
+      "seconds": 7.2,
+      "proposedPrimaryLane": "manual_full",
+      "reason": "通常・関連検査に残すデスクトップ経路のモバイル側の追加確認",
+      "relatedDomains": [
+        "input",
+        "samples",
+        "layout"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 95,
+      "project": "mobile-chromium",
+      "file": "apps/web/tests/browser/generation.spec.ts",
+      "line": 230,
+      "title": "初期OFFで取り込んだファイルから、同じ原稿のまま音声確認へ進める",
+      "seconds": 3.8,
+      "proposedPrimaryLane": "manual_full",
+      "reason": "通常・関連検査に残すデスクトップ経路のモバイル側の追加確認",
+      "relatedDomains": [
+        "generation",
+        "configuration",
+        "input"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 97,
+      "project": "mobile-chromium",
+      "file": "apps/web/tests/browser/generation.spec.ts",
+      "line": 249,
+      "title": "設定されたGatewayは明示選択し、接続先と本文を確認しても課金を開始しない",
+      "seconds": 3.4,
+      "proposedPrimaryLane": "manual_full",
+      "reason": "通常・関連検査に残すデスクトップ経路のモバイル側の追加確認",
+      "relatedDomains": [
+        "generation",
+        "configuration",
+        "input"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 98,
+      "project": "mobile-chromium",
+      "file": "apps/web/tests/browser/generation.spec.ts",
+      "line": 273,
+      "title": "C shows checked time, unavailable and recheck without generating or switching paid",
+      "seconds": 2.7,
+      "proposedPrimaryLane": "manual_full",
+      "reason": "通常・関連検査に残すデスクトップ経路のモバイル側の追加確認",
+      "relatedDomains": [
+        "generation",
+        "configuration",
+        "input"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 96,
+      "project": "mobile-chromium",
+      "file": "apps/web/tests/browser/creation-options.spec.ts",
+      "line": 37,
+      "title": "音声サンプル gemini-female は1クリックで開き、戻る・連打でも生成しない",
+      "seconds": 7.9,
+      "proposedPrimaryLane": "manual_full",
+      "reason": "通常・関連検査に残すデスクトップ経路のモバイル側の追加確認",
+      "relatedDomains": [
+        "input",
+        "samples",
+        "layout"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 99,
+      "project": "mobile-chromium",
+      "file": "apps/web/tests/browser/generation.spec.ts",
+      "line": 283,
+      "title": "C ignores an older delayed configuration after closing and reopening audio settings",
+      "seconds": 3.1,
+      "proposedPrimaryLane": "manual_full",
+      "reason": "通常・関連検査に残すデスクトップ経路のモバイル側の追加確認",
+      "relatedDomains": [
+        "generation",
+        "configuration",
+        "input"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 101,
+      "project": "mobile-chromium",
+      "file": "apps/web/tests/browser/generation.spec.ts",
+      "line": 293,
+      "title": "mock Cloudflare availability enables explicit credit selection and requires paid review",
+      "seconds": 4.5,
+      "proposedPrimaryLane": "manual_full",
+      "reason": "通常・関連検査に残すデスクトップ経路のモバイル側の追加確認",
+      "relatedDomains": [
+        "generation",
+        "configuration",
+        "input"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 100,
+      "project": "mobile-chromium",
+      "file": "apps/web/tests/browser/creation-options.spec.ts",
+      "line": 67,
+      "title": "音声サンプルはTab・Shift+TabとEnterで3種類を直接開ける",
+      "seconds": 9.5,
+      "proposedPrimaryLane": "manual_full",
+      "reason": "通常・関連検査に残すデスクトップ経路のモバイル側の追加確認",
+      "relatedDomains": [
+        "input",
+        "samples",
+        "layout"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 102,
+      "project": "mobile-chromium",
+      "file": "apps/web/tests/browser/generation.spec.ts",
+      "line": 320,
+      "title": "Direct style is retained across Cloudflare selection and excluded from its plan",
+      "seconds": 3.7,
+      "proposedPrimaryLane": "manual_full",
+      "reason": "通常・関連検査に残すデスクトップ経路のモバイル側の追加確認",
+      "relatedDomains": [
+        "generation",
+        "configuration",
+        "input"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 104,
+      "project": "mobile-chromium",
+      "file": "apps/web/tests/browser/generation.spec.ts",
+      "line": 341,
+      "title": "real Cloudflare state explains a missing Gateway without requesting a manual token",
+      "seconds": 2.0,
+      "proposedPrimaryLane": "manual_full",
+      "reason": "通常・関連検査に残すデスクトップ経路のモバイル側の追加確認",
+      "relatedDomains": [
+        "generation",
+        "configuration",
+        "input"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 103,
+      "project": "mobile-chromium",
+      "file": "apps/web/tests/browser/creation-options.spec.ts",
+      "line": 83,
+      "title": "音声サンプル取得失敗から再確認でき、320pxでも1枠のまま直接開く",
+      "seconds": 4.3,
+      "proposedPrimaryLane": "manual_full",
+      "reason": "通常・関連検査に残すデスクトップ経路のモバイル側の追加確認",
+      "relatedDomains": [
+        "input",
+        "samples",
+        "layout"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 105,
+      "project": "mobile-chromium",
+      "file": "apps/web/tests/browser/generation.spec.ts",
+      "line": 359,
+      "title": "音声補正の準備状態 ready を表示し、確認だけでは生成しない",
+      "seconds": 2.9,
+      "proposedPrimaryLane": "manual_full",
+      "reason": "通常・関連検査に残すデスクトップ経路のモバイル側の追加確認",
+      "relatedDomains": [
+        "generation",
+        "configuration",
+        "input"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 107,
+      "project": "mobile-chromium",
+      "file": "apps/web/tests/browser/generation.spec.ts",
+      "line": 359,
+      "title": "音声補正の準備状態 setup-required を表示し、確認だけでは生成しない",
+      "seconds": 2.5,
+      "proposedPrimaryLane": "manual_full",
+      "reason": "通常・関連検査に残すデスクトップ経路のモバイル側の追加確認",
+      "relatedDomains": [
+        "generation",
+        "configuration",
+        "input"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 108,
+      "project": "mobile-chromium",
+      "file": "apps/web/tests/browser/generation.spec.ts",
+      "line": 359,
+      "title": "音声補正の準備状態 failed を表示し、確認だけでは生成しない",
+      "seconds": 2.1,
+      "proposedPrimaryLane": "manual_full",
+      "reason": "通常・関連検査に残すデスクトップ経路のモバイル側の追加確認",
+      "relatedDomains": [
+        "generation",
+        "configuration",
+        "input"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 106,
+      "project": "mobile-chromium",
+      "file": "apps/web/tests/browser/guide.spec.ts",
+      "line": 4,
+      "title": "通常読書の上下ガイドは文字サイズ・ruby・再生停止に関係なく文字と重ならない",
+      "seconds": 8.6,
+      "proposedPrimaryLane": "related",
+      "reason": "viewport依存のレイアウト検査",
+      "relatedDomains": [
+        "layout"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 109,
+      "project": "mobile-chromium",
+      "file": "apps/web/tests/browser/generation.spec.ts",
+      "line": 381,
+      "title": "Gemini文字数費用は入力中に更新し、本文を送信しない /",
+      "seconds": 7.7,
+      "proposedPrimaryLane": "manual_full",
+      "reason": "通常・関連検査に残すデスクトップ経路のモバイル側の追加確認",
+      "relatedDomains": [
+        "generation",
+        "configuration",
+        "input"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 110,
+      "project": "mobile-chromium",
+      "file": "apps/web/tests/browser/reading-options.spec.ts",
+      "line": 18,
+      "title": "optional fonts load from the same origin only, keep anchor paused and fit ruby at both sizes",
+      "seconds": 11.8,
+      "proposedPrimaryLane": "related",
+      "reason": "viewport依存のレイアウト検査",
+      "relatedDomains": [
+        "layout",
+        "navigation",
+        "audio"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 111,
+      "project": "mobile-chromium",
+      "file": "apps/web/tests/browser/generation.spec.ts",
+      "line": 381,
+      "title": "Gemini文字数費用は入力中に更新し、本文を送信しない /generate",
+      "seconds": 7.1,
+      "proposedPrimaryLane": "manual_full",
+      "reason": "通常・関連検査に残すデスクトップ経路のモバイル側の追加確認",
+      "relatedDomains": [
+        "generation",
+        "configuration",
+        "input"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 113,
+      "project": "mobile-chromium",
+      "file": "apps/web/tests/browser/responsive.spec.ts",
+      "line": 3,
+      "title": "スマホ 320×740: 片手操作・長句ruby・横溢れなし",
+      "seconds": 3.1,
+      "proposedPrimaryLane": "related",
+      "reason": "viewport依存のレイアウト検査",
+      "relatedDomains": [
+        "layout"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 112,
+      "project": "mobile-chromium",
+      "file": "apps/web/tests/browser/reading-options.spec.ts",
+      "line": 63,
+      "title": "font failures and stale A→B→system results leave the same anchor paused with system fallback",
+      "seconds": 5.2,
+      "proposedPrimaryLane": "manual_full",
+      "reason": "通常・関連検査に残すデスクトップ経路のモバイル側の追加確認",
+      "relatedDomains": [
+        "layout",
+        "navigation",
+        "audio"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 114,
+      "project": "mobile-chromium",
+      "file": "apps/web/tests/browser/responsive.spec.ts",
+      "line": 3,
+      "title": "スマホ 375×812: 片手操作・長句ruby・横溢れなし",
+      "seconds": 3.2,
+      "proposedPrimaryLane": "related",
+      "reason": "viewport依存のレイアウト検査",
+      "relatedDomains": [
+        "layout"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 115,
+      "project": "mobile-chromium",
+      "file": "apps/web/tests/browser/reading-options.spec.ts",
+      "line": 87,
+      "title": "grouping is a view; Guide and Flash share position, ruby and static text",
+      "seconds": 3.9,
+      "proposedPrimaryLane": "manual_full",
+      "reason": "通常・関連検査に残すデスクトップ経路のモバイル側の追加確認",
+      "relatedDomains": [
+        "layout",
+        "navigation",
+        "audio"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 116,
+      "project": "mobile-chromium",
+      "file": "apps/web/tests/browser/responsive.spec.ts",
+      "line": 3,
+      "title": "スマホ 390×844: 片手操作・長句ruby・横溢れなし",
+      "seconds": 3.2,
+      "proposedPrimaryLane": "normal",
+      "reason": "主要経路smoke",
+      "relatedDomains": [
+        "layout"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 117,
+      "project": "mobile-chromium",
+      "file": "apps/web/tests/browser/reading-options.spec.ts",
+      "line": 109,
+      "title": "Guide bounds long-document DOM; manual scrolling keeps the reading anchor and disables following",
+      "seconds": 4.1,
+      "proposedPrimaryLane": "manual_full",
+      "reason": "通常・関連検査に残すデスクトップ経路のモバイル側の追加確認",
+      "relatedDomains": [
+        "layout",
+        "navigation",
+        "audio"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 118,
+      "project": "mobile-chromium",
+      "file": "apps/web/tests/browser/responsive.spec.ts",
+      "line": 3,
+      "title": "スマホ 430×932: 片手操作・長句ruby・横溢れなし",
+      "seconds": 3.8,
+      "proposedPrimaryLane": "related",
+      "reason": "viewport依存のレイアウト検査",
+      "relatedDomains": [
+        "layout"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 119,
+      "project": "mobile-chromium",
+      "file": "apps/web/tests/browser/reading-options.spec.ts",
+      "line": 126,
+      "title": "Guide reveals the highlighted phrase within a tall virtual row after a search jump",
+      "seconds": 3.2,
+      "proposedPrimaryLane": "manual_full",
+      "reason": "通常・関連検査に残すデスクトップ経路のモバイル側の追加確認",
+      "relatedDomains": [
+        "layout",
+        "navigation",
+        "audio"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 120,
+      "project": "mobile-chromium",
+      "file": "apps/web/tests/browser/responsive.spec.ts",
+      "line": 3,
+      "title": "スマホ 844×390: 片手操作・長句ruby・横溢れなし",
+      "seconds": 3.7,
+      "proposedPrimaryLane": "related",
+      "reason": "viewport依存のレイアウト検査",
+      "relatedDomains": [
+        "layout"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 121,
+      "project": "mobile-chromium",
+      "file": "apps/web/tests/browser/reading-options.spec.ts",
+      "line": 139,
+      "title": "shortcuts follow the proposal without stealing native slider/input or composing keys",
+      "seconds": 3.3,
+      "proposedPrimaryLane": "manual_full",
+      "reason": "通常・関連検査に残すデスクトップ経路のモバイル側の追加確認",
+      "relatedDomains": [
+        "layout",
+        "navigation",
+        "audio"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 122,
+      "project": "mobile-chromium",
+      "file": "apps/web/tests/browser/responsive.spec.ts",
+      "line": 22,
+      "title": "回転は停止、長い単位の全体を表示、200%拡大で主要操作可能",
+      "seconds": 2.5,
+      "proposedPrimaryLane": "related",
+      "reason": "viewport依存のレイアウト検査",
+      "relatedDomains": [
+        "layout"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 123,
+      "project": "mobile-chromium",
+      "file": "apps/web/tests/browser/reading-options.spec.ts",
+      "line": 183,
+      "title": "audio uses original ±5 seconds across chunks, retains play intent, supports rate/sentence/end shortcuts and Guide",
+      "seconds": 4.2,
+      "proposedPrimaryLane": "manual_full",
+      "reason": "通常・関連検査に残すデスクトップ経路のモバイル側の追加確認",
+      "relatedDomains": [
+        "layout",
+        "navigation",
+        "audio"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 124,
+      "project": "mobile-chromium",
+      "file": "apps/web/tests/browser/titles.spec.ts",
+      "line": 4,
+      "title": "blank and whitespace titles use local time, and renaming a saved browser document persists without moving its source anchor",
+      "seconds": 5.9,
+      "proposedPrimaryLane": "manual_full",
+      "reason": "通常・関連検査に残すデスクトップ経路のモバイル側の追加確認",
+      "relatedDomains": [
+        "storage",
+        "input"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 125,
+      "project": "mobile-chromium",
+      "file": "apps/web/tests/browser/reading-options.spec.ts",
+      "line": 208,
+      "title": "sentence lists pause on opening/selection and close on every explicit resume, including keyboard",
+      "seconds": 3.7,
+      "proposedPrimaryLane": "manual_full",
+      "reason": "通常・関連検査に残すデスクトップ経路のモバイル側の追加確認",
+      "relatedDomains": [
+        "layout",
+        "navigation",
+        "audio"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 126,
+      "project": "mobile-chromium",
+      "file": "apps/web/tests/browser/titles.spec.ts",
+      "line": 29,
+      "title": "detailed audio preparation accepts an omitted title and retains an explicit title",
+      "seconds": 3.1,
+      "proposedPrimaryLane": "manual_full",
+      "reason": "通常・関連検査に残すデスクトップ経路のモバイル側の追加確認",
+      "relatedDomains": [
+        "storage",
+        "input"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 128,
+      "project": "mobile-chromium",
+      "file": "apps/web/tests/browser/wrapping.spec.ts",
+      "line": 14,
+      "title": "audio wrapping 320x740: fonts, ruby and media playback",
+      "seconds": 32.4,
+      "proposedPrimaryLane": "related",
+      "reason": "viewport依存のレイアウト検査",
+      "relatedDomains": [
+        "layout"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 127,
+      "project": "mobile-chromium",
+      "file": "apps/web/tests/browser/wrapping.spec.ts",
+      "line": 6,
+      "title": "silent wrapping 320x740: fonts, sizes, ruby and real playback",
+      "seconds": 45.6,
+      "proposedPrimaryLane": "related",
+      "reason": "viewport依存のレイアウト検査",
+      "relatedDomains": [
+        "layout"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 130,
+      "project": "mobile-chromium",
+      "file": "apps/web/tests/browser/wrapping.spec.ts",
+      "line": 14,
+      "title": "audio wrapping 390x844: fonts, ruby and media playback",
+      "seconds": 32.8,
+      "proposedPrimaryLane": "related",
+      "reason": "viewport依存のレイアウト検査",
+      "relatedDomains": [
+        "layout"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 129,
+      "project": "mobile-chromium",
+      "file": "apps/web/tests/browser/wrapping.spec.ts",
+      "line": 6,
+      "title": "silent wrapping 390x844: fonts, sizes, ruby and real playback",
+      "seconds": 45.4,
+      "proposedPrimaryLane": "related",
+      "reason": "viewport依存のレイアウト検査",
+      "relatedDomains": [
+        "layout"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 132,
+      "project": "mobile-chromium",
+      "file": "apps/web/tests/browser/wrapping.spec.ts",
+      "line": 14,
+      "title": "audio wrapping 844x390: fonts, ruby and media playback",
+      "seconds": 32.5,
+      "proposedPrimaryLane": "related",
+      "reason": "viewport依存のレイアウト検査",
+      "relatedDomains": [
+        "layout"
+      ],
+      "includedInFull": true
+    },
+    {
+      "result": "passed",
+      "index": 131,
+      "project": "mobile-chromium",
+      "file": "apps/web/tests/browser/wrapping.spec.ts",
+      "line": 6,
+      "title": "silent wrapping 844x390: fonts, sizes, ruby and real playback",
+      "seconds": 52.7,
+      "proposedPrimaryLane": "related",
+      "reason": "viewport依存のレイアウト検査",
+      "relatedDomains": [
+        "layout"
+      ],
+      "includedInFull": true
+    }
+  ],
+  "runHistory": [
+    {
+      "conclusion": "success",
+      "createdAt": "2026-10-08T07:35:07Z",
+      "databaseId": 37744337416,
+      "event": "push",
+      "headBranch": "main",
+      "headSha": "28ddb922854b6adb2399ab10c26ef475d2d03406",
+      "status": "completed",
+      "url": "https://github.com/ryryo/ripola/actions/runs/37744337416"
+    },
+    {
+      "conclusion": "success",
+      "createdAt": "2026-10-08T06:55:49Z",
+      "databaseId": 37740367548,
+      "event": "push",
+      "headBranch": "main",
+      "headSha": "e78ceb8fd6a6ffa2ccd77edf7a05c1fa9366bafe",
+      "status": "completed",
+      "url": "https://github.com/ryryo/ripola/actions/runs/37740367548"
+    },
+    {
+      "conclusion": "success",
+      "createdAt": "2026-10-08T04:18:02Z",
+      "databaseId": 37726821897,
+      "event": "push",
+      "headBranch": "main",
+      "headSha": "5fc862132ae3a32dbf7d13e9e6856e9be81a054a",
+      "status": "completed",
+      "url": "https://github.com/ryryo/ripola/actions/runs/37726821897"
+    },
+    {
+      "conclusion": "cancelled",
+      "createdAt": "2026-10-08T04:06:50Z",
+      "databaseId": 37725915638,
+      "event": "push",
+      "headBranch": "main",
+      "headSha": "0357117aece45cb3289582edf03f42b6bd841d67",
+      "status": "completed",
+      "url": "https://github.com/ryryo/ripola/actions/runs/37725915638"
+    },
+    {
+      "conclusion": "success",
+      "createdAt": "2026-10-08T03:45:54Z",
+      "databaseId": 37724266290,
+      "event": "pull_request",
+      "headBranch": "codex/wsl2-audio-setup",
+      "headSha": "d2f88f5a65f5472c2758e858068584b783932248",
+      "status": "completed",
+      "url": "https://github.com/ryryo/ripola/actions/runs/37724266290"
+    },
+    {
+      "conclusion": "cancelled",
+      "createdAt": "2026-10-08T03:39:14Z",
+      "databaseId": 37723739719,
+      "event": "pull_request",
+      "headBranch": "codex/wsl2-audio-setup",
+      "headSha": "a6b4359d3d40941bbe526c428f548a9ec26631ea",
+      "status": "completed",
+      "url": "https://github.com/ryryo/ripola/actions/runs/37723739719"
+    },
+    {
+      "conclusion": "success",
+      "createdAt": "2026-10-08T03:28:00Z",
+      "databaseId": 37722846037,
+      "event": "push",
+      "headBranch": "main",
+      "headSha": "2d8788ff69a1289c7aad2f972881f0097bcfac14",
+      "status": "completed",
+      "url": "https://github.com/ryryo/ripola/actions/runs/37722846037"
+    },
+    {
+      "conclusion": "success",
+      "createdAt": "2026-10-08T02:42:25Z",
+      "databaseId": 37719178698,
+      "event": "push",
+      "headBranch": "main",
+      "headSha": "34481f069cb004f7bf76bd3653f98295693ddcda",
+      "status": "completed",
+      "url": "https://github.com/ryryo/ripola/actions/runs/37719178698"
+    },
+    {
+      "conclusion": "success",
+      "createdAt": "2026-10-08T02:03:58Z",
+      "databaseId": 37716023925,
+      "event": "push",
+      "headBranch": "main",
+      "headSha": "9c568cbe61031e596a3ed9df961f40f2e5d83801",
+      "status": "completed",
+      "url": "https://github.com/ryryo/ripola/actions/runs/37716023925"
+    },
+    {
+      "conclusion": "failure",
+      "createdAt": "2026-10-08T02:01:04Z",
+      "databaseId": 37715778899,
+      "event": "push",
+      "headBranch": "main",
+      "headSha": "ac8e5f097ba60de3948a4314adea06928f5040ad",
+      "status": "completed",
+      "url": "https://github.com/ryryo/ripola/actions/runs/37715778899"
+    },
+    {
+      "conclusion": "failure",
+      "createdAt": "2026-10-08T01:58:56Z",
+      "databaseId": 37715594671,
+      "event": "push",
+      "headBranch": "main",
+      "headSha": "84a33c1d483ccf59b9d6e81d5095e29eea58795c",
+      "status": "completed",
+      "url": "https://github.com/ryryo/ripola/actions/runs/37715594671"
+    }
+  ]
+}

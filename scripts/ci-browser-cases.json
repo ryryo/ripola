@@ -1,0 +1,1322 @@
+[
+  {
+    "project": "desktop-chromium",
+    "file": "audio-alignment.spec.ts",
+    "title": "同一音声内のフレーズ・ruby・seek・速度・chunk越え・背景停止・位置復元",
+    "lane": "normal",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "audio-alignment.spec.ts",
+    "title": "low-score でも全区切りを表示し推定時刻を明示する",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "aozora.spec.ts",
+    "title": "青空文庫全文のルビ・仮想文一覧・章移動・保存設定",
+    "lane": "related",
+    "domains": [
+      "import"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "aozora.spec.ts",
+    "title": "実保存ずんだもん冒頭3文は9フレーズ・ルビ・2.5倍で読み、文移動で止まる",
+    "lane": "local_opt_in",
+    "domains": [
+      "import"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "audio-alignment.spec.ts",
+    "title": "silence でも全区切りを表示し推定時刻を明示する",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "audio-alignment.spec.ts",
+    "title": "reading-mismatch でも全区切りを表示し推定時刻を明示する",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "aozora.spec.ts",
+    "title": "文一覧は初期状態で閉じ、開閉と文移動を保ち、別の読書は閉じて開始する",
+    "lane": "related",
+    "domains": [
+      "import"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "audio-alignment.spec.ts",
+    "title": "音声の自然終了で次の文へ連続再生し、最後まで完了する",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "audio-alignment.spec.ts",
+    "title": "音声再生中は本文だけが切り替わり、番号・説明・時間・文一覧を動かさない",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "audio-alignment.spec.ts",
+    "title": "音声の上下ガイドはrubyと大きな文字にも重ならず、音声切替中も本文領域を避ける",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "audio-alignment.spec.ts",
+    "title": "切替commit直後の古いframeも新しい音声の時計を使い、進捗が逆行しない",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "creation-options.spec.ts",
+    "title": "A samples are three visible rows below the form with direct silent entry and 44px controls",
+    "lane": "related",
+    "domains": [
+      "generation",
+      "import",
+      "distribution",
+      "layout"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "audio-presentation.spec.ts",
+    "title": "新規保存を実local APIで再開・seek・有音再生し、AAC静的配布でも全区切りを検査する",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "distribution",
+      "generation"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "generation.spec.ts",
+    "title": "無料生成の確認・停止再開・保存再利用と音声時計による同期",
+    "lane": "local_opt_in",
+    "domains": [
+      "generation"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "generation.spec.ts",
+    "title": "有料モデルはLite既定・Flashだけ、Gatewayはサーバー未設定なら無効",
+    "lane": "normal",
+    "domains": [
+      "generation"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "creation-options.spec.ts",
+    "title": "auto result and manual override preserve raw input across audio toggle and failed import",
+    "lane": "related",
+    "domains": [
+      "generation",
+      "import",
+      "distribution",
+      "layout"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "generation.spec.ts",
+    "title": "トップの展開を往復しても原稿・形式・読みを保持し、テキストのみでは音声生成しない",
+    "lane": "related",
+    "domains": [
+      "generation"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "creation-options.spec.ts",
+    "title": "file extensions control text/Markdown and dedicated PDF survives generation toggles",
+    "lane": "related",
+    "domains": [
+      "generation",
+      "import",
+      "distribution",
+      "layout"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "generation.spec.ts",
+    "title": "トップの有料生成は送信内容・費用の確認を要求し、原稿変更で古い計画を破棄",
+    "lane": "normal",
+    "domains": [
+      "generation"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "generation.spec.ts",
+    "title": "音声接続を取得できなくてもトップでテキストのみを生成できる",
+    "lane": "related",
+    "domains": [
+      "generation"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "creation-options.spec.ts",
+    "title": "音声サンプル voicevox は1クリックで開き、戻る・連打でも生成しない",
+    "lane": "related",
+    "domains": [
+      "generation",
+      "import",
+      "distribution",
+      "layout"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "generation.spec.ts",
+    "title": "音声用に取り込んだPDFはスイッチOFF後も同じ本文と元ページで読める",
+    "lane": "related",
+    "domains": [
+      "generation"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "generation.spec.ts",
+    "title": "初期OFFで取り込んだファイルから、同じ原稿のまま音声確認へ進める",
+    "lane": "related",
+    "domains": [
+      "generation"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "creation-options.spec.ts",
+    "title": "音声サンプル gemini-male は1クリックで開き、戻る・連打でも生成しない",
+    "lane": "related",
+    "domains": [
+      "generation",
+      "import",
+      "distribution",
+      "layout"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "generation.spec.ts",
+    "title": "設定されたGatewayは明示選択し、接続先と本文を確認しても課金を開始しない",
+    "lane": "related",
+    "domains": [
+      "generation"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "generation.spec.ts",
+    "title": "C shows checked time, unavailable and recheck without generating or switching paid",
+    "lane": "related",
+    "domains": [
+      "generation"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "creation-options.spec.ts",
+    "title": "音声サンプル gemini-female は1クリックで開き、戻る・連打でも生成しない",
+    "lane": "related",
+    "domains": [
+      "generation",
+      "import",
+      "distribution",
+      "layout"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "generation.spec.ts",
+    "title": "C ignores an older delayed configuration after closing and reopening audio settings",
+    "lane": "related",
+    "domains": [
+      "generation"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "generation.spec.ts",
+    "title": "mock Cloudflare availability enables explicit credit selection and requires paid review",
+    "lane": "related",
+    "domains": [
+      "generation"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "generation.spec.ts",
+    "title": "Direct style is retained across Cloudflare selection and excluded from its plan",
+    "lane": "related",
+    "domains": [
+      "generation"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "creation-options.spec.ts",
+    "title": "音声サンプルはTab・Shift+TabとEnterで3種類を直接開ける",
+    "lane": "related",
+    "domains": [
+      "generation",
+      "import",
+      "distribution",
+      "layout"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "generation.spec.ts",
+    "title": "real Cloudflare state explains a missing Gateway without requesting a manual token",
+    "lane": "related",
+    "domains": [
+      "generation"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "generation.spec.ts",
+    "title": "音声補正の準備状態 ready を表示し、確認だけでは生成しない",
+    "lane": "related",
+    "domains": [
+      "generation"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "creation-options.spec.ts",
+    "title": "音声サンプル取得失敗から再確認でき、320pxでも1枠のまま直接開く",
+    "lane": "related",
+    "domains": [
+      "generation",
+      "import",
+      "distribution",
+      "layout"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "generation.spec.ts",
+    "title": "音声補正の準備状態 setup-required を表示し、確認だけでは生成しない",
+    "lane": "related",
+    "domains": [
+      "generation"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "generation.spec.ts",
+    "title": "音声補正の準備状態 failed を表示し、確認だけでは生成しない",
+    "lane": "related",
+    "domains": [
+      "generation"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "guide.spec.ts",
+    "title": "通常読書の上下ガイドは文字サイズ・ruby・再生停止に関係なく文字と重ならない",
+    "lane": "related",
+    "domains": [
+      "layout"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "local-security.spec.ts",
+    "title": "local server function rejects cross-origin, forged Host and missing browser evidence",
+    "lane": "normal",
+    "domains": [
+      "generation",
+      "distribution"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "generation.spec.ts",
+    "title": "Gemini文字数費用は入力中に更新し、本文を送信しない /",
+    "lane": "related",
+    "domains": [
+      "generation"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "progress.spec.ts",
+    "title": "時間ゲージは長短フレーズと句読点の間を跨いで一定の速度で進む",
+    "lane": "related",
+    "domains": [
+      "import",
+      "audio"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "generation.spec.ts",
+    "title": "Gemini文字数費用は入力中に更新し、本文を送信しない /generate",
+    "lane": "related",
+    "domains": [
+      "generation"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "progress.spec.ts",
+    "title": "時間ゲージは停止・再開・速度変更・戻る・シーク・非表示停止と整合する",
+    "lane": "related",
+    "domains": [
+      "import",
+      "audio"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "reader.spec.ts",
+    "title": "貼付・空本文・原文シーク・Unicode・ruby・外部送信なし",
+    "lane": "normal",
+    "domains": [
+      "import",
+      "layout",
+      "audio"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "progress.spec.ts",
+    "title": "ゲージは最終単位の表示中も進み、読了で100%、再読で0%",
+    "lane": "related",
+    "domains": [
+      "import",
+      "audio"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "progress.spec.ts",
+    "title": "reduced motionは連続描画を控え、静的原文と進捗の意味を残す",
+    "lane": "related",
+    "domains": [
+      "import",
+      "audio"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "reader.spec.ts",
+    "title": "MDファイルはcode/tableで止まり、元入力と同じ本文の位置を保つ",
+    "lane": "normal",
+    "domains": [
+      "import",
+      "layout",
+      "audio"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "reader.spec.ts",
+    "title": "再生連打・速度変更・戻る・設定・背景停止は単位を飛ばさない",
+    "lane": "normal",
+    "domains": [
+      "import",
+      "layout",
+      "audio"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "progress.spec.ts",
+    "title": "黙読再生中は本文だけが切り替わり、滑らかなゲージと停止時の詳細を保つ",
+    "lane": "related",
+    "domains": [
+      "import",
+      "audio"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "reader.spec.ts",
+    "title": "最後の1フレーズは時間を確保してから読了し、再読は停止状態",
+    "lane": "related",
+    "domains": [
+      "import",
+      "layout",
+      "audio"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "reader.spec.ts",
+    "title": "端末に明示保存、再開と削除",
+    "lane": "normal",
+    "domains": [
+      "import",
+      "layout",
+      "audio"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "reader.spec.ts",
+    "title": "UTF-8 TXT・小数速度の整数化・Space長押し",
+    "lane": "related",
+    "domains": [
+      "import",
+      "layout",
+      "audio"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "reading-options.spec.ts",
+    "title": "optional fonts load from the same origin only, keep anchor paused and fit ruby at both sizes",
+    "lane": "related",
+    "domains": [
+      "layout"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "reader.spec.ts",
+    "title": "日本語PDFの文字層とページ表示",
+    "lane": "normal",
+    "domains": [
+      "import",
+      "layout",
+      "audio"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "reading-options.spec.ts",
+    "title": "font failures and stale A→B→system results leave the same anchor paused with system fallback",
+    "lane": "related",
+    "domains": [
+      "layout"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "reading-options.spec.ts",
+    "title": "grouping is a view; Guide and Flash share position, ruby and static text",
+    "lane": "related",
+    "domains": [
+      "layout"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "reader.spec.ts",
+    "title": "横書きテキストPDFの抽出プレビューと元ページ、保存したPDF再開",
+    "lane": "related",
+    "domains": [
+      "import",
+      "layout",
+      "audio"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "reader.spec.ts",
+    "title": "非対応PDF image-only.pdf は説明して空の本を作らない",
+    "lane": "related",
+    "domains": [
+      "import",
+      "layout",
+      "audio"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "reading-options.spec.ts",
+    "title": "Guide bounds long-document DOM; manual scrolling keeps the reading anchor and disables following",
+    "lane": "related",
+    "domains": [
+      "layout"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "reader.spec.ts",
+    "title": "非対応PDF partial-blank.pdf は説明して空の本を作らない",
+    "lane": "related",
+    "domains": [
+      "import",
+      "layout",
+      "audio"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "reading-options.spec.ts",
+    "title": "Guide reveals the highlighted phrase within a tall virtual row after a search jump",
+    "lane": "related",
+    "domains": [
+      "layout"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "reading-options.spec.ts",
+    "title": "shortcuts follow the proposal without stealing native slider/input or composing keys",
+    "lane": "related",
+    "domains": [
+      "layout"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "reader.spec.ts",
+    "title": "非対応PDF invalid.pdf は説明して空の本を作らない",
+    "lane": "related",
+    "domains": [
+      "import",
+      "layout",
+      "audio"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "reader.spec.ts",
+    "title": "非対応PDF two-column.pdf は説明して空の本を作らない",
+    "lane": "related",
+    "domains": [
+      "import",
+      "layout",
+      "audio"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "reading-options.spec.ts",
+    "title": "audio uses original ±5 seconds across chunks, retains play intent, supports rate/sentence/end shortcuts and Guide",
+    "lane": "related",
+    "domains": [
+      "layout"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "reader.spec.ts",
+    "title": "PDF処理を取消して別の本文を読み、古い結果が上書きしない",
+    "lane": "related",
+    "domains": [
+      "import",
+      "layout",
+      "audio"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "reading-options.spec.ts",
+    "title": "sentence lists pause on opening/selection and close on every explicit resume, including keyboard",
+    "lane": "related",
+    "domains": [
+      "layout"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "reader.spec.ts",
+    "title": "キーボード操作・静的原文・高速live通知なし",
+    "lane": "related",
+    "domains": [
+      "import",
+      "layout",
+      "audio"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "titles.spec.ts",
+    "title": "blank and whitespace titles use local time, and renaming a saved browser document persists without moving its source anchor",
+    "lane": "related",
+    "domains": [
+      "import",
+      "audio",
+      "generation"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "reader.spec.ts",
+    "title": "10万文字を貼り付けてWorkerで処理し、原文のDOMを現在位置の前後に限定する",
+    "lane": "related",
+    "domains": [
+      "import",
+      "layout",
+      "audio"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "titles.spec.ts",
+    "title": "detailed audio preparation accepts an omitted title and retains an explicit title",
+    "lane": "related",
+    "domains": [
+      "import",
+      "audio",
+      "generation"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "reader.spec.ts",
+    "title": "Worker起動失敗時も原文を確認できる",
+    "lane": "normal",
+    "domains": [
+      "import",
+      "layout",
+      "audio"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "audio-alignment.spec.ts",
+    "title": "同一音声内のフレーズ・ruby・seek・速度・chunk越え・背景停止・位置復元",
+    "lane": "manual_full",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "audio-alignment.spec.ts",
+    "title": "low-score でも全区切りを表示し推定時刻を明示する",
+    "lane": "manual_full",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "audio-alignment.spec.ts",
+    "title": "silence でも全区切りを表示し推定時刻を明示する",
+    "lane": "manual_full",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "aozora.spec.ts",
+    "title": "青空文庫全文のルビ・仮想文一覧・章移動・保存設定",
+    "lane": "manual_full",
+    "domains": [
+      "import"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "aozora.spec.ts",
+    "title": "実保存ずんだもん冒頭3文は9フレーズ・ルビ・2.5倍で読み、文移動で止まる",
+    "lane": "local_opt_in",
+    "domains": [
+      "import"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "audio-alignment.spec.ts",
+    "title": "reading-mismatch でも全区切りを表示し推定時刻を明示する",
+    "lane": "manual_full",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "aozora.spec.ts",
+    "title": "文一覧は初期状態で閉じ、開閉と文移動を保ち、別の読書は閉じて開始する",
+    "lane": "manual_full",
+    "domains": [
+      "import"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "audio-alignment.spec.ts",
+    "title": "音声の自然終了で次の文へ連続再生し、最後まで完了する",
+    "lane": "manual_full",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "audio-alignment.spec.ts",
+    "title": "音声再生中は本文だけが切り替わり、番号・説明・時間・文一覧を動かさない",
+    "lane": "manual_full",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "audio-alignment.spec.ts",
+    "title": "音声の上下ガイドはrubyと大きな文字にも重ならず、音声切替中も本文領域を避ける",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "audio-alignment.spec.ts",
+    "title": "切替commit直後の古いframeも新しい音声の時計を使い、進捗が逆行しない",
+    "lane": "manual_full",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "creation-options.spec.ts",
+    "title": "A samples are three visible rows below the form with direct silent entry and 44px controls",
+    "lane": "related",
+    "domains": [
+      "generation",
+      "import",
+      "distribution",
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "audio-presentation.spec.ts",
+    "title": "新規保存を実local APIで再開・seek・有音再生し、AAC静的配布でも全区切りを検査する",
+    "lane": "manual_full",
+    "domains": [
+      "audio",
+      "distribution",
+      "generation"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "generation.spec.ts",
+    "title": "無料生成の確認・停止再開・保存再利用と音声時計による同期",
+    "lane": "local_opt_in",
+    "domains": [
+      "generation"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "creation-options.spec.ts",
+    "title": "auto result and manual override preserve raw input across audio toggle and failed import",
+    "lane": "manual_full",
+    "domains": [
+      "generation",
+      "import",
+      "distribution",
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "generation.spec.ts",
+    "title": "有料モデルはLite既定・Flashだけ、Gatewayはサーバー未設定なら無効",
+    "lane": "manual_full",
+    "domains": [
+      "generation"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "generation.spec.ts",
+    "title": "トップの展開を往復しても原稿・形式・読みを保持し、テキストのみでは音声生成しない",
+    "lane": "manual_full",
+    "domains": [
+      "generation"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "creation-options.spec.ts",
+    "title": "file extensions control text/Markdown and dedicated PDF survives generation toggles",
+    "lane": "manual_full",
+    "domains": [
+      "generation",
+      "import",
+      "distribution",
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "generation.spec.ts",
+    "title": "トップの有料生成は送信内容・費用の確認を要求し、原稿変更で古い計画を破棄",
+    "lane": "manual_full",
+    "domains": [
+      "generation"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "generation.spec.ts",
+    "title": "音声接続を取得できなくてもトップでテキストのみを生成できる",
+    "lane": "manual_full",
+    "domains": [
+      "generation"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "creation-options.spec.ts",
+    "title": "音声サンプル voicevox は1クリックで開き、戻る・連打でも生成しない",
+    "lane": "normal",
+    "domains": [
+      "generation",
+      "import",
+      "distribution",
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "generation.spec.ts",
+    "title": "音声用に取り込んだPDFはスイッチOFF後も同じ本文と元ページで読める",
+    "lane": "manual_full",
+    "domains": [
+      "generation"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "creation-options.spec.ts",
+    "title": "音声サンプル gemini-male は1クリックで開き、戻る・連打でも生成しない",
+    "lane": "manual_full",
+    "domains": [
+      "generation",
+      "import",
+      "distribution",
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "generation.spec.ts",
+    "title": "初期OFFで取り込んだファイルから、同じ原稿のまま音声確認へ進める",
+    "lane": "manual_full",
+    "domains": [
+      "generation"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "generation.spec.ts",
+    "title": "設定されたGatewayは明示選択し、接続先と本文を確認しても課金を開始しない",
+    "lane": "manual_full",
+    "domains": [
+      "generation"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "generation.spec.ts",
+    "title": "C shows checked time, unavailable and recheck without generating or switching paid",
+    "lane": "manual_full",
+    "domains": [
+      "generation"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "creation-options.spec.ts",
+    "title": "音声サンプル gemini-female は1クリックで開き、戻る・連打でも生成しない",
+    "lane": "manual_full",
+    "domains": [
+      "generation",
+      "import",
+      "distribution",
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "generation.spec.ts",
+    "title": "C ignores an older delayed configuration after closing and reopening audio settings",
+    "lane": "manual_full",
+    "domains": [
+      "generation"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "generation.spec.ts",
+    "title": "mock Cloudflare availability enables explicit credit selection and requires paid review",
+    "lane": "manual_full",
+    "domains": [
+      "generation"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "creation-options.spec.ts",
+    "title": "音声サンプルはTab・Shift+TabとEnterで3種類を直接開ける",
+    "lane": "manual_full",
+    "domains": [
+      "generation",
+      "import",
+      "distribution",
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "generation.spec.ts",
+    "title": "Direct style is retained across Cloudflare selection and excluded from its plan",
+    "lane": "manual_full",
+    "domains": [
+      "generation"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "generation.spec.ts",
+    "title": "real Cloudflare state explains a missing Gateway without requesting a manual token",
+    "lane": "manual_full",
+    "domains": [
+      "generation"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "creation-options.spec.ts",
+    "title": "音声サンプル取得失敗から再確認でき、320pxでも1枠のまま直接開く",
+    "lane": "manual_full",
+    "domains": [
+      "generation",
+      "import",
+      "distribution",
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "generation.spec.ts",
+    "title": "音声補正の準備状態 ready を表示し、確認だけでは生成しない",
+    "lane": "manual_full",
+    "domains": [
+      "generation"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "generation.spec.ts",
+    "title": "音声補正の準備状態 setup-required を表示し、確認だけでは生成しない",
+    "lane": "manual_full",
+    "domains": [
+      "generation"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "generation.spec.ts",
+    "title": "音声補正の準備状態 failed を表示し、確認だけでは生成しない",
+    "lane": "manual_full",
+    "domains": [
+      "generation"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "guide.spec.ts",
+    "title": "通常読書の上下ガイドは文字サイズ・ruby・再生停止に関係なく文字と重ならない",
+    "lane": "related",
+    "domains": [
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "generation.spec.ts",
+    "title": "Gemini文字数費用は入力中に更新し、本文を送信しない /",
+    "lane": "manual_full",
+    "domains": [
+      "generation"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "reading-options.spec.ts",
+    "title": "optional fonts load from the same origin only, keep anchor paused and fit ruby at both sizes",
+    "lane": "related",
+    "domains": [
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "generation.spec.ts",
+    "title": "Gemini文字数費用は入力中に更新し、本文を送信しない /generate",
+    "lane": "manual_full",
+    "domains": [
+      "generation"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "responsive.spec.ts",
+    "title": "スマホ 320×740: 片手操作・長句ruby・横溢れなし",
+    "lane": "related",
+    "domains": [
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "reading-options.spec.ts",
+    "title": "font failures and stale A→B→system results leave the same anchor paused with system fallback",
+    "lane": "manual_full",
+    "domains": [
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "responsive.spec.ts",
+    "title": "スマホ 375×812: 片手操作・長句ruby・横溢れなし",
+    "lane": "related",
+    "domains": [
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "reading-options.spec.ts",
+    "title": "grouping is a view; Guide and Flash share position, ruby and static text",
+    "lane": "manual_full",
+    "domains": [
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "responsive.spec.ts",
+    "title": "スマホ 390×844: 片手操作・長句ruby・横溢れなし",
+    "lane": "normal",
+    "domains": [
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "reading-options.spec.ts",
+    "title": "Guide bounds long-document DOM; manual scrolling keeps the reading anchor and disables following",
+    "lane": "manual_full",
+    "domains": [
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "responsive.spec.ts",
+    "title": "スマホ 430×932: 片手操作・長句ruby・横溢れなし",
+    "lane": "related",
+    "domains": [
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "reading-options.spec.ts",
+    "title": "Guide reveals the highlighted phrase within a tall virtual row after a search jump",
+    "lane": "manual_full",
+    "domains": [
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "responsive.spec.ts",
+    "title": "スマホ 844×390: 片手操作・長句ruby・横溢れなし",
+    "lane": "related",
+    "domains": [
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "reading-options.spec.ts",
+    "title": "shortcuts follow the proposal without stealing native slider/input or composing keys",
+    "lane": "manual_full",
+    "domains": [
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "responsive.spec.ts",
+    "title": "回転は停止、長い単位の全体を表示、200%拡大で主要操作可能",
+    "lane": "related",
+    "domains": [
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "reading-options.spec.ts",
+    "title": "audio uses original ±5 seconds across chunks, retains play intent, supports rate/sentence/end shortcuts and Guide",
+    "lane": "manual_full",
+    "domains": [
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "titles.spec.ts",
+    "title": "blank and whitespace titles use local time, and renaming a saved browser document persists without moving its source anchor",
+    "lane": "manual_full",
+    "domains": [
+      "import",
+      "audio",
+      "generation"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "reading-options.spec.ts",
+    "title": "sentence lists pause on opening/selection and close on every explicit resume, including keyboard",
+    "lane": "manual_full",
+    "domains": [
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "titles.spec.ts",
+    "title": "detailed audio preparation accepts an omitted title and retains an explicit title",
+    "lane": "manual_full",
+    "domains": [
+      "import",
+      "audio",
+      "generation"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "wrapping.spec.ts",
+    "title": "audio wrapping 320x740: fonts, ruby and media playback",
+    "lane": "related",
+    "domains": [
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "wrapping.spec.ts",
+    "title": "silent wrapping 320x740: fonts, sizes, ruby and real playback",
+    "lane": "related",
+    "domains": [
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "wrapping.spec.ts",
+    "title": "audio wrapping 390x844: fonts, ruby and media playback",
+    "lane": "related",
+    "domains": [
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "wrapping.spec.ts",
+    "title": "silent wrapping 390x844: fonts, sizes, ruby and real playback",
+    "lane": "related",
+    "domains": [
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "wrapping.spec.ts",
+    "title": "audio wrapping 844x390: fonts, ruby and media playback",
+    "lane": "related",
+    "domains": [
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "wrapping.spec.ts",
+    "title": "silent wrapping 844x390: fonts, sizes, ruby and real playback",
+    "lane": "related",
+    "domains": [
+      "layout"
+    ]
+  },
+  {
+    "project": "pages-chromium",
+    "file": "pages-smoke.spec.ts",
+    "title": "完成Pagesの初期本文・読書・明示保存前の再読み込み",
+    "lane": "normal",
+    "domains": [
+      "distribution"
+    ]
+  },
+  {
+    "project": "pages-chromium",
+    "file": "pages-smoke.spec.ts",
+    "title": "完成Pagesの全音声サンプル・直リンク・seek・公開API境界",
+    "lane": "normal",
+    "domains": [
+      "distribution"
+    ]
+  }
+]

@@ -23,7 +23,8 @@
     "test": "node --import tsx --test apps/web/tests/*.test.ts",
     "test:e2e": "playwright test",
     "check": "pnpm typecheck && pnpm lint && pnpm test && pnpm build",
-    "audit:audio": "node --import tsx scripts/audit-audio-presentation.ts"
+    "audit:audio": "node --import tsx scripts/audit-audio-presentation.ts",
+    "test:ci-browser": "node scripts/ci-browser.mjs"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",

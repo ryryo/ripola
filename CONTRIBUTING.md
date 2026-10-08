@@ -9,10 +9,12 @@
 ```sh
 pnpm check
 pnpm exec playwright install chromium
-pnpm test:e2e
 pnpm build:worker
 pnpm build:pages
+pnpm test:ci-browser
 ```
+
+通常・関連変更・手動fullの範囲とケース追加は[CIガイド](docs/development/ci.md)を参照してください。全件の登録と選別をブラウザ起動なしで確認するには `pnpm test:ci-browser --list` を使います。
 
 保存・AAC配布の統合試験にはffmpeg／ffprobeが必要です。E2EはPlaywright Chromiumを取得する代わりに、既存ブラウザの実行ファイルを `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` で明示指定できます。新しいOSでの差異と、PC／スマホ幅エミュレーション／実機の区別を報告してください。
 
