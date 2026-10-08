@@ -3,7 +3,7 @@ import { spawnSync } from 'node:child_process';
 import { basename } from 'node:path';
 import { assertBrowserFiles, assertCaseInventory, selectedCases } from './ci-scope.mjs';
 
-assertBrowserFiles(readdirSync(new URL('../apps/web/tests/browser/', import.meta.url)).filter(file => file.endsWith('.spec.ts')));
+assertBrowserFiles(readdirSync(new URL('../apps/web/tests/browser/', import.meta.url), { recursive: true }).filter(file => /\.(?:spec|test)\.[cm]?[jt]sx?$/.test(file)).map(file => basename(file)));
 const mode = process.env.RIPOLA_CI_MODE ?? 'full';
 const domains = (process.env.RIPOLA_CI_DOMAINS ?? '').split(',').filter(Boolean);
 function listing(listMode, listDomains) {
