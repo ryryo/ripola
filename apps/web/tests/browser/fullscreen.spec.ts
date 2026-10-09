@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { installWakeLock } from '../helpers/screen-wake-lock';
 
 const manuscript = '静かな朝に図書館で本を読みます。窓の向こうに青い空が広がっています。次の頁をゆっくりめくります。'.repeat(5);
 async function read(page: Page) {
@@ -20,6 +21,101 @@ async function viewportSurface(page: Page) {
   expect(bounds.height).toBeCloseTo(bounds.viewportHeight, 0);
   return full;
 }
+test('screen wake lock follows silent playback in normal and fullscreen views; hidden return stays paused', async ({ page }) => {
+  await installWakeLock(page);
+  await read(page);
+  expect(await page.evaluate(() => window.testWakeLock.requests)).toEqual([]);
+  await page.getByRole('button', { name: '再生', exact: true }).click();
+  await expect.poll(() => page.evaluate(() => window.testWakeLock.held)).toBe(1);
+  await page.getByLabel('読む速さ（字/分）', { exact: true }).fill('100');
+  expect(await page.evaluate(() => window.testWakeLock.requests)).toEqual(['screen']);
+  await page.getByRole('button', { name: '一時停止', exact: true }).click();
+  await expect.poll(() => page.evaluate(() => window.testWakeLock.held)).toBe(0);
+  // Exercise the mobile CSS fallback independently of native fullscreen support.
+  await page.evaluate(() => { Element.prototype.requestFullscreen = () => Promise.reject(new Error('test denied')); });
+  await page.getByRole('button', { name: '全画面で読む', exact: true }).click();
+  const full = page.locator('.fullscreen-reader[data-fullscreen="true"]');
+  await full.getByRole('button', { name: '再生', exact: true }).click();
+  await expect.poll(() => page.evaluate(() => window.testWakeLock.held)).toBe(1);
+  await page.evaluate(() => {
+    Object.defineProperty(document, 'hidden', { configurable: true, get: () => true });
+    document.dispatchEvent(new Event('visibilitychange'));
+    Object.defineProperty(document, 'hidden', { configurable: true, get: () => false });
+    document.dispatchEvent(new Event('visibilitychange'));
+  });
+  await expect(full).toHaveAttribute('data-playing', 'false');
+  await expect.poll(() => page.evaluate(() => window.testWakeLock.held)).toBe(0);
+  expect(await page.evaluate(() => window.testWakeLock.requests)).toEqual(['screen', 'screen']);
+  await full.getByRole('button', { name: '再生', exact: true }).click();
+  await expect.poll(() => page.evaluate(() => window.testWakeLock.held)).toBe(1);
+  await page.keyboard.press('Escape');
+  await expect.poll(() => page.evaluate(() => window.testWakeLock.held)).toBe(0);
+});
+
+test('late screen wake lock grants are released after pause and stale playback sessions', async ({ page }) => {
+  await installWakeLock(page, 'defer');
+  await read(page);
+  await page.getByLabel('読む速さ（字/分）', { exact: true }).fill('100');
+  await page.getByRole('button', { name: '再生', exact: true }).click();
+  await expect.poll(() => page.evaluate(() => window.testWakeLock.requests.length)).toBe(1);
+  await page.getByRole('button', { name: '一時停止', exact: true }).click();
+  await page.getByRole('button', { name: '再生', exact: true }).click();
+  await expect.poll(() => page.evaluate(() => window.testWakeLock.requests.length)).toBe(2);
+  await page.evaluate(() => window.testWakeLock.resolvePending());
+  await expect.poll(() => page.evaluate(() => window.testWakeLock.held)).toBe(1);
+  expect(await page.evaluate(() => window.testWakeLock.releases)).toBe(1);
+  await page.getByRole('button', { name: '一時停止', exact: true }).click();
+  await expect.poll(() => page.evaluate(() => window.testWakeLock.held)).toBe(0);
+  await page.getByRole('button', { name: '再生', exact: true }).click();
+  await expect.poll(() => page.evaluate(() => window.testWakeLock.requests.length)).toBe(3);
+  await page.getByRole('button', { name: '一時停止', exact: true }).click();
+  await page.evaluate(() => window.testWakeLock.resolvePending());
+  await expect.poll(() => page.evaluate(() => window.testWakeLock.releases)).toBe(3);
+  expect(await page.evaluate(() => window.testWakeLock.held)).toBe(0);
+});
+
+for (const mode of ['unsupported', 'insecure', 'deny'] as const) {
+  test(`screen wake lock ${mode} does not block silent playback or retry in a loop`, async ({ page }) => {
+    const failures: string[] = [];
+    page.on('pageerror', error => failures.push(error.message));
+    await installWakeLock(page, mode);
+    await read(page);
+    await page.getByLabel('読む速さ（字/分）', { exact: true }).fill('100');
+    await page.getByRole('button', { name: '再生', exact: true }).click();
+    await expect(page.locator('.fullscreen-reader')).toHaveAttribute('data-playing', 'true');
+    await expect.poll(() => page.evaluate(() => window.testWakeLock.requests.length)).toBe(mode === 'deny' ? 1 : 0);
+    await page.getByRole('button', { name: '一時停止', exact: true }).click();
+    expect(await page.evaluate(() => window.testWakeLock.held)).toBe(0);
+    expect(failures).toEqual([]);
+  });
+}
+
+test('screen wake lock is released at silent completion and respects an OS release until replay', async ({ page }) => {
+  await installWakeLock(page);
+  await read(page);
+  await page.getByLabel('読む速さ（字/分）', { exact: true }).fill('100');
+  await page.getByRole('button', { name: '再生', exact: true }).click();
+  await expect.poll(() => page.evaluate(() => window.testWakeLock.held)).toBe(1);
+  await page.evaluate(() => window.testWakeLock.releaseAll());
+  await expect(page.locator('.fullscreen-reader')).toHaveAttribute('data-playing', 'true');
+  // A visible DOM update must not repeatedly override the OS decision.
+  await page.getByLabel('読む速さ（字/分）', { exact: true }).fill('200');
+  expect(await page.evaluate(() => window.testWakeLock.requests.length)).toBe(1);
+  expect(await page.evaluate(() => window.testWakeLock.held)).toBe(0);
+  await page.getByRole('button', { name: '一時停止', exact: true }).click();
+  await page.getByRole('button', { name: '全画面で読む', exact: true }).click();
+  const full = page.locator('.fullscreen-reader[data-fullscreen="true"]');
+  const position = full.getByRole('slider', { name: '読書の再生位置', exact: true });
+  const last = await position.getAttribute('max');
+  await position.fill(last!);
+  await full.getByLabel('読む速さ（字/分）', { exact: true }).fill('3000');
+  await full.getByRole('button', { name: '再生', exact: true }).click();
+  await expect(full.getByRole('button', { name: 'もう一度', exact: true })).toBeVisible();
+  expect(await page.evaluate(() => window.testWakeLock.requests.length)).toBe(2);
+  await expect.poll(() => page.evaluate(() => window.testWakeLock.releases)).toBe(2);
+  await expect.poll(() => page.evaluate(() => window.testWakeLock.held)).toBe(0);
+});
+
 test('fullscreen expands the text surface, isolates playback, reveals only seek on hover and restores focus', async ({ page }, info) => {
   await read(page);
   const icon = await page.getByRole('button', { name: '全画面で読む', exact: true }).boundingBox();

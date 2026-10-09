@@ -1465,5 +1465,165 @@
       "layout",
       "audio"
     ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "fullscreen.spec.ts",
+    "title": "screen wake lock follows silent playback in normal and fullscreen views; hidden return stays paused",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "fullscreen.spec.ts",
+    "title": "late screen wake lock grants are released after pause and stale playback sessions",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "fullscreen.spec.ts",
+    "title": "screen wake lock unsupported does not block silent playback or retry in a loop",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "fullscreen.spec.ts",
+    "title": "screen wake lock insecure does not block silent playback or retry in a loop",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "fullscreen.spec.ts",
+    "title": "screen wake lock deny does not block silent playback or retry in a loop",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "fullscreen.spec.ts",
+    "title": "screen wake lock is released at silent completion and respects an OS release until replay",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "audio-alignment.spec.ts",
+    "title": "screen wake lock follows audio intent across seek, buffering, chunks, hidden pause and completion",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "audio-alignment.spec.ts",
+    "title": "screen wake lock releases on audio error and unmount and tolerates refusal",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "fullscreen.spec.ts",
+    "title": "screen wake lock follows silent playback in normal and fullscreen views; hidden return stays paused",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "fullscreen.spec.ts",
+    "title": "late screen wake lock grants are released after pause and stale playback sessions",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "fullscreen.spec.ts",
+    "title": "screen wake lock unsupported does not block silent playback or retry in a loop",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "fullscreen.spec.ts",
+    "title": "screen wake lock insecure does not block silent playback or retry in a loop",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "fullscreen.spec.ts",
+    "title": "screen wake lock deny does not block silent playback or retry in a loop",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "fullscreen.spec.ts",
+    "title": "screen wake lock is released at silent completion and respects an OS release until replay",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "audio-alignment.spec.ts",
+    "title": "screen wake lock follows audio intent across seek, buffering, chunks, hidden pause and completion",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "audio-alignment.spec.ts",
+    "title": "screen wake lock releases on audio error and unmount and tolerates refusal",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
   }
 ]

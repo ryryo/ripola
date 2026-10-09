@@ -19,6 +19,7 @@ import { GuideReader } from './GuideReader';
 import { StoppedContext } from './StoppedContext';
 import { TitleEditor } from './TitleEditor';
 import { FullscreenEnterButton, FullscreenReader, useFullscreenReader } from './FullscreenReader';
+import { useScreenWakeLock } from './useScreenWakeLock';
 import { ReadingModeControls } from './ReadingModeControls';
 import { useReaderPreferences } from './useReaderPreferences';
 import { resetDisplaySettings } from '../preferences';
@@ -109,6 +110,7 @@ export function AudioReader({ book, onClose, attribution, localTools, demo = fal
 
   const font = useReadingFont(book.document.blocks, options.fontFamily ?? 'system', pause);
   const fullscreen = useFullscreenReader(pause);
+  useScreenWakeLock(reading && validation.valid && display.precision !== 'unavailable' && !error && !font.busy);
   useEffect(() => { if (error && fullscreen.active) fullscreen.exit(); }, [error, fullscreen.active, fullscreen.exit]);
   const updateOptions = (patch: Partial<ReaderSettings>) => { pause(); setOptions(previous => ({ ...previous, ...patch })); };
 

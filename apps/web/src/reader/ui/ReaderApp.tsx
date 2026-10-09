@@ -29,6 +29,7 @@ import { EnvironmentAvailability } from './EnvironmentAvailability';
 import { FullscreenEnterButton, FullscreenReader, useFullscreenReader } from './FullscreenReader';
 import { ReadingModeControls } from './ReadingModeControls';
 import { useReaderPreferences } from './useReaderPreferences';
+import { useScreenWakeLock } from './useScreenWakeLock';
 import { hasStoredPreferences, resetDisplaySettings } from '../preferences';
 import { resolveInputFormat, type InputFormat } from '../input-format';
 import { readerCapabilities } from '../environment';
@@ -79,6 +80,7 @@ export function ReaderApp() {
   const sentenceIndex = sentenceIndexAt(sentences, playback.index);
   const pauseReading = useCallback(() => controller.pause(), [controller]);
   const fullscreen = useFullscreenReader(pauseReading);
+  useScreenWakeLock(playback.status === 'playing');
   useEffect(() => { controller.updateSettings(settings); setCpmInput(String(settings.cpm)); }, [controller, settings]);
   const font = useReadingFont(document?.blocks, settings.fontFamily ?? 'system', pauseReading);
   const groups = useMemo(() => groupReadingUnits(document?.units ?? [], { target: settings.groupTarget ?? 0, minimum: settings.groupMinimum ?? 0 }, new Set(sentences.map(sentence => sentence.target))), [document, sentences, settings.groupTarget, settings.groupMinimum]);

@@ -4,6 +4,7 @@ import { inspectGuides } from './guide-inspection';
 import { expect, test, type Page } from '@playwright/test';
 import type { ReadingDocument, ReadingUnit } from '../../src/reader/model';
 import { browserMp3 } from '../helpers/browser-media';
+import { installWakeLock } from '../helpers/screen-wake-lock';
 
 // Synthetic local tone + authored text test only the player's clock and mapping.
 // These cue scores are fixtures, not evidence about an acoustic model's accuracy.
@@ -26,7 +27,7 @@ function toneWave(seconds = 4, frequency = 220): Buffer {
   return output;
 }
 
-async function installAudioFixture(page: Page, fallback?: 'low-score' | 'silence' | 'reading-mismatch') {
+async function installAudioFixture(page: Page, fallback?: 'low-score' | 'silence' | 'reading-mismatch', publicDemo = true) {
   const units = [unit('u0', '私は', 0), unit('u1', '図書館へ。', 2), unit('u2', '今日は', 7), unit('u3', '読む。', 10)];
   units[1].ruby = [{ start: 0, end: 3, reading: 'としょかん' }];
   const document: ReadingDocument = { id: bookId, contentHash: revision, title: 'フレーズ同期のUI検証', format: 'txt', rawText: text,
@@ -50,7 +51,7 @@ async function installAudioFixture(page: Page, fallback?: 'low-score' | 'silence
     document, chunks, warnings: ['UIテスト用の合成音と整列fixtureです。'], completedChunks: 2, totalChunks: 2, durationSeconds: 8, precision: 'sentence', attribution: 'UIテスト用の自作文' });
   const catalog = { schemaVersion: 1, target: 'worker', createdAt: '2026-10-06T00:00:00Z', books: [{ id: bookId, revision, title: document.title,
     manifestUrl: `library/books/${bookId}/${revision}/manifest.json`, manifestSha256: createHash('sha256').update(manifest).digest('hex'),
-    manifestBytes: Buffer.byteLength(manifest), durationSeconds: 8, precision: 'sentence', attribution: 'UIテスト用の自作文', publicDemo: true }] };
+    manifestBytes: Buffer.byteLength(manifest), durationSeconds: 8, precision: 'sentence', attribution: 'UIテスト用の自作文', publicDemo }] };
   await page.route('**/library/index.json', route => route.fulfill({ json: catalog }));
   await page.route(`**/library/books/${bookId}/${revision}/manifest.json`, route => route.fulfill({ body: manifest, contentType: 'application/json' }));
   for (const audio of media) await page.route(`**/media/${audio.sha256}.mp3`, route => route.fulfill({ body: audio.bytes, contentType: 'audio/mpeg', headers: { 'Accept-Ranges': 'bytes' } }));
@@ -97,6 +98,58 @@ test('同一音声内のフレーズ・ruby・seek・速度・chunk越え・背�
   await expect(page.getByTestId('audio-phrase')).toHaveText('今日は');
   await expect(page.getByRole('button', { name: '再生', exact: true })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+});
+
+test('screen wake lock follows audio intent across seek, buffering, chunks, hidden pause and completion', async ({ page }) => {
+  await installWakeLock(page);
+  await installAudioFixture(page);
+  const position = page.getByRole('slider', { name: '音声の再生位置', exact: true });
+  const firstSource = await page.locator('audio').getAttribute('src');
+  await page.getByRole('button', { name: '再生', exact: true }).click();
+  await expect.poll(() => page.evaluate(() => window.testWakeLock.held)).toBe(1);
+  await page.locator('audio').evaluate(element => element.dispatchEvent(new Event('waiting')));
+  await position.fill('2');
+  await expect(page.getByRole('button', { name: '一時停止', exact: true })).toBeVisible();
+  await expect.poll(() => page.locator('audio').getAttribute('src')).not.toBe(firstSource);
+  expect(await page.evaluate(() => window.testWakeLock.requests)).toEqual(['screen']);
+  expect(await page.evaluate(() => window.testWakeLock.held)).toBe(1);
+  await page.evaluate(() => { Object.defineProperty(document, 'hidden', { configurable: true, get: () => true }); document.dispatchEvent(new Event('visibilitychange')); });
+  await expect(page.getByRole('button', { name: '再生', exact: true })).toBeVisible();
+  await expect.poll(() => page.evaluate(() => window.testWakeLock.held)).toBe(0);
+  await page.evaluate(() => { Object.defineProperty(document, 'hidden', { configurable: true, get: () => false }); document.dispatchEvent(new Event('visibilitychange')); });
+  expect(await page.evaluate(() => window.testWakeLock.requests.length)).toBe(1);
+  await position.fill('6');
+  await page.getByRole('button', { name: '全画面で読む', exact: true }).click();
+  const full = page.locator('.fullscreen-reader[data-fullscreen="true"]');
+  await full.getByRole('button', { name: '再生', exact: true }).click();
+  await expect.poll(() => page.evaluate(() => window.testWakeLock.held)).toBe(1);
+  await expect(full).toHaveAttribute('data-playing', 'false');
+  await expect.poll(() => page.evaluate(() => window.testWakeLock.held)).toBe(0);
+  expect(await page.evaluate(() => window.testWakeLock.requests)).toEqual(['screen', 'screen']);
+});
+
+test('screen wake lock releases on audio error and unmount and tolerates refusal', async ({ page }) => {
+  await installWakeLock(page);
+  await installAudioFixture(page, undefined, false);
+  await page.getByRole('button', { name: '再生', exact: true }).click();
+  await expect.poll(() => page.evaluate(() => window.testWakeLock.held)).toBe(1);
+  await page.locator('audio').evaluate(element => element.dispatchEvent(new Event('error')));
+  await expect(page.getByRole('alert')).toContainText('保存音声を開けませんでした');
+  await expect.poll(() => page.evaluate(() => window.testWakeLock.held)).toBe(0);
+  await page.getByRole('button', { name: '保存音声を再読込', exact: true }).click();
+  await page.evaluate(() => { window.testWakeLock.mode = 'deny'; });
+  await page.getByRole('button', { name: '再生', exact: true }).click();
+  await expect.poll(() => page.evaluate(() => window.testWakeLock.requests.length)).toBe(2);
+  await expect.poll(() => page.locator('audio').evaluate((element: HTMLAudioElement) => element.paused)).toBe(false);
+  expect(await page.evaluate(() => window.testWakeLock.held)).toBe(0);
+  await page.getByRole('button', { name: '一時停止', exact: true }).click();
+  await page.evaluate(() => { window.testWakeLock.mode = 'defer'; });
+  await page.getByRole('button', { name: '再生', exact: true }).click();
+  await expect.poll(() => page.evaluate(() => window.testWakeLock.requests.length)).toBe(3);
+  await page.getByRole('button', { name: '本棚へ戻る', exact: true }).click();
+  await page.evaluate(() => window.testWakeLock.resolvePending());
+  await expect.poll(() => page.evaluate(() => window.testWakeLock.releases)).toBe(2);
+  expect(await page.evaluate(() => window.testWakeLock.held)).toBe(0);
 });
 
 for (const reason of ['low-score', 'silence', 'reading-mismatch'] as const) {
