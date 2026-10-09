@@ -113,7 +113,7 @@ test('Guide bounds long-document DOM; manual scrolling keeps the reading anchor 
   await page.getByRole('button', { name: '全文表示', exact: true }).click();
   expect(await page.locator('.guide-unit').count()).toBeLessThan(250);
   const position = await page.locator('.playback-position-label').innerText();
-  await page.getByTestId('guide-viewport').hover(); await page.mouse.wheel(0, 5000);
+  await page.getByRole('button', { name: '再生（画面中央）', exact: true }).hover(); await page.mouse.wheel(0, 5000);
   await expect(page.getByRole('button', { name: '現在位置を追従', exact: true })).toBeVisible();
   expect(await page.locator('.playback-position-label').innerText()).toBe(position);
   const scrolled = await page.getByTestId('guide-viewport').evaluate(element => element.scrollTop);
@@ -385,7 +385,7 @@ test('vertical Guide virtualizes right-to-left columns, follows search and prese
   }
   const position = await page.locator('.playback-position-label').innerText();
   const before = await viewport.evaluate(element => element.scrollLeft);
-  await viewport.hover(); await page.mouse.wheel(0, -2000);
+  await page.getByRole('button', { name: '再生（画面中央）', exact: true }).hover(); await page.mouse.wheel(0, -2000);
   await expect(page.getByRole('button', { name: '現在位置を追従', exact: true })).toBeVisible();
   await expect.poll(() => viewport.evaluate(element => element.scrollLeft)).toBeGreaterThan(before);
   await expect(page.locator('.playback-position-label')).toHaveText(position);

@@ -89,7 +89,27 @@ function FullscreenIcon({ exiting = false }: { exiting?: boolean }) {
 export function ReaderPlayButton({ playing, disabled = false, label = '再生', onPlay }: {
   playing: boolean; disabled?: boolean; label?: string; onPlay: () => void;
 }) {
-  return <button type="button" className="reader-play-overlay" hidden={playing} disabled={disabled} aria-label={`${label}（画面中央）`} title={label} aria-keyshortcuts="Space" onClick={onPlay}>
+  const button = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    const element = button.current; if (!element) return;
+    const wheel = (event: WheelEvent) => {
+      const viewport = element.closest('.reader-stage, .audio-stage')?.querySelector<HTMLElement>('.guide-viewport');
+      if (!viewport || event.ctrlKey) return;
+      // Preserve Guide's vertical-wheel conversion and manual-follow state.
+      const forwarded = new WheelEvent('wheel', { bubbles: true, cancelable: true,
+        deltaX: event.deltaX, deltaY: event.deltaY, deltaMode: event.deltaMode });
+      viewport.dispatchEvent(forwarded);
+      // Synthetic events have no native scrolling default for horizontal Guide.
+      if (!forwarded.defaultPrevented) {
+        const scale = event.deltaMode === 1 ? 20 : event.deltaMode === 2 ? viewport.clientHeight : 1;
+        viewport.scrollBy(event.deltaX * scale, event.deltaY * scale);
+      }
+      event.preventDefault();
+    };
+    element.addEventListener('wheel', wheel, { passive: false });
+    return () => element.removeEventListener('wheel', wheel);
+  }, []);
+  return <button ref={button} type="button" className="reader-play-overlay" hidden={playing} disabled={disabled} aria-label={`${label}（画面中央）`} title={label} aria-keyshortcuts="Space" onClick={onPlay}>
     <svg width="44" height="44" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4v16l14-8z" /></svg>
   </button>;
 }
