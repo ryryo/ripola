@@ -66,13 +66,10 @@ jobs:
           "$RUNNER_TEMP/ripola-python-test/bin/python" -m pip install numpy==2.3.5
           "$RUNNER_TEMP/ripola-python-test/bin/python" scripts/test_align_audio.py
           "$RUNNER_TEMP/ripola-python-test/bin/python" scripts/test_check_alignment_runtime.py
+      # Each distribution build audits the final bytes before committing its output.
       - run: pnpm build:worker
         if: steps.scope.outputs.code == 'true'
       - run: pnpm build:pages
-        if: steps.scope.outputs.code == 'true'
-      - run: pnpm audit:audio --distribution dist/distribution/worker
-        if: steps.scope.outputs.code == 'true'
-      - run: pnpm audit:audio --distribution dist/distribution/pages
         if: steps.scope.outputs.code == 'true'
       - name: Source package
         if: steps.scope.outputs.code == 'true'

@@ -20,9 +20,10 @@ function listing(listMode, listDomains) {
   report.suites.forEach(visit);
   return cases;
 }
-assertCaseInventory(listing('full', []));
+const fullInventory = listing('full', []);
+assertCaseInventory(fullInventory);
 const expected = selectedCases(mode, domains);
-assertCaseInventory(listing(mode, domains), expected);
+assertCaseInventory(mode === 'full' ? fullInventory : listing(mode, domains), expected);
 console.log(`Browser scope: ${mode}; domains: ${domains.join(',') || 'none'}; selected ${expected.length}/${browserCases.length} (all registered cases retained in full).`);
 if (process.argv.includes('--list')) process.exit(0);
 const run = spawnSync('pnpm', ['exec', 'playwright', 'test'], { stdio: 'inherit', env: { ...process.env, RIPOLA_CI_MODE: mode, RIPOLA_CI_DOMAINS: domains.join(',') } });
