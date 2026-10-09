@@ -16,7 +16,7 @@ RIPOLA_CI_MODE=normal RIPOLA_CI_DOMAINS=layout pnpm test:ci-browser
 pnpm test:ci-browser
 ```
 
-mode未指定はfullです。Windows PowerShellでは同じ変数を `$env:RIPOLA_CI_MODE='normal'` などで設定します。既存132件は削除せず、完成Pages2件を加えてfullは134件、追加領域のない通常は14件、全関連領域を含む通常は88件です。fullの4件はnative VOICEVOX等のopt-in条件がなければskipします。有料実合成や個人書籍は使いません。
+mode未指定はfullです。Windows PowerShellでは同じ変数を `$env:RIPOLA_CI_MODE='normal'` などで設定します。既存132件は削除せず、全画面・設定記憶8件と完成Pages2件を加えてfullは142件、追加領域のない通常は14件、全関連領域を含む通常は96件です。fullの4件はnative VOICEVOX等のopt-in条件がなければskipします。有料実合成や個人書籍は使いません。
 
 完成Pages検査は先に `pnpm build:pages` で作った公開配布物を確認します。既定のlocal serverは127.0.0.1:4173、Pages検査専用serverは127.0.0.1:4175です。別のサーバーを使っている場合は `RSVP_TEST_BASE_URL` と `RSVP_PAGES_TEST_BASE_URL` に空いているloopbackポートを指定してください。隔離して実行する場合は `CI=1`、有料生成を無効、`RSVP_LIBRARY_DIR` に検査専用ディレクトリーを指定します。既存の私的libraryを検査へ持ち込みません。
 

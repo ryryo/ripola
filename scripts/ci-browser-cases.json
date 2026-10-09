@@ -1318,5 +1318,85 @@
     "domains": [
       "distribution"
     ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "fullscreen.spec.ts",
+    "title": "fullscreen expands the text surface, isolates playback, reveals only seek on hover and restores focus",
+    "lane": "related",
+    "domains": [
+      "layout",
+      "audio"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "fullscreen.spec.ts",
+    "title": "fullscreen falls back when denied, traps keyboard focus, supports Guide and exits on Escape",
+    "lane": "related",
+    "domains": [
+      "layout",
+      "audio"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "fullscreen.spec.ts",
+    "title": "display and silent speed persist across reload; reset keeps speed and saved reading position",
+    "lane": "related",
+    "domains": [
+      "layout",
+      "audio"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "fullscreen.spec.ts",
+    "title": "fullscreen expands the text surface, isolates playback, reveals only seek on hover and restores focus",
+    "lane": "related",
+    "domains": [
+      "layout",
+      "audio"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "fullscreen.spec.ts",
+    "title": "fullscreen falls back when denied, traps keyboard focus, supports Guide and exits on Escape",
+    "lane": "related",
+    "domains": [
+      "layout",
+      "audio"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "fullscreen.spec.ts",
+    "title": "display and silent speed persist across reload; reset keeps speed and saved reading position",
+    "lane": "related",
+    "domains": [
+      "layout",
+      "audio"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "reading-options.spec.ts",
+    "title": "audio fullscreen keeps the media clock, remembers rate and shares display reset with silent reading",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "reading-options.spec.ts",
+    "title": "audio fullscreen keeps the media clock, remembers rate and shares display reset with silent reading",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
   }
 ]
