@@ -1,3 +1,21 @@
+.audio-stage { position: relative; }
+.fullscreen-enter {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--muted);
+}
+.fullscreen-enter:hover { background: var(--accent-soft); color: var(--accent); }
+.fullscreen-enter[hidden] { display: none; }
+.fullscreen-reader[data-fullscreen='false'] .guide-mode .guide-reader { padding-bottom: 68px; }
 /* Expand the reading surface itself, removing page width, gutters and chrome. */
 .fullscreen-reader[data-fullscreen='true'] {
   position: fixed;
@@ -14,6 +32,11 @@
   outline: none;
 }
 .fullscreen-reader::backdrop { background: var(--panel); }
+.fullscreen-mode-controls { position: absolute; top: max(12px, env(safe-area-inset-top)); left: 0; width: 100%; z-index: 3; }
+.fullscreen-mode-controls[hidden] { display: block; visibility: hidden; pointer-events: none; }
+.fullscreen-mode-controls .reading-mode-controls { margin: 0; }
+.fullscreen-reader[data-fullscreen='true'] .stage-topline { position: absolute; inset: max(12px, env(safe-area-inset-top)) 0 auto; height: 36px; align-items: center; padding: 0 max(16px, env(safe-area-inset-right)) 0 max(16px, env(safe-area-inset-left)); }
+.fullscreen-reader[data-fullscreen='true'] .stage-topline > span { max-width: calc((100% - 240px) / 2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .fullscreen-reader[data-fullscreen='true'] > .reader-stage,
 .fullscreen-reader[data-fullscreen='true'] > .audio-stage {
   width: 100%;
@@ -28,7 +51,7 @@
 .fullscreen-reader[data-fullscreen='true'] > .stopped-context {
   position: absolute;
   left: 50%;
-  bottom: 170px;
+  bottom: calc(var(--fullscreen-footer-height, 170px) + 12px);
   transform: translateX(-50%);
   width: min(800px, 100%);
   padding: 8px 24px;
@@ -36,7 +59,7 @@
 }
 .fullscreen-reader[data-fullscreen='true'][data-playing='true'] .stage-topline,
 .fullscreen-reader[data-fullscreen='true'][data-playing='true'] .guide { visibility: hidden; }
-.fullscreen-reader[data-fullscreen='true'] .guide-reader { flex: 1; min-height: 0; padding-bottom: 170px; }
+.fullscreen-reader[data-fullscreen='true'] .guide-reader { flex: 1; min-height: 0; padding-top: 64px; padding-bottom: calc(var(--fullscreen-footer-height, 170px) + 12px); }
 .fullscreen-reader[data-fullscreen='true'] .guide-viewport { height: auto; flex: 1; min-height: 0; }
 .fullscreen-reader[data-fullscreen='true'][data-playing='true'] .guide-toolbar,
 .fullscreen-reader[data-fullscreen='true'][data-playing='true'] .guide-status,
@@ -45,8 +68,9 @@
 .fullscreen-seek { padding: 36px 0 16px; }
 .fullscreen-seek label { display: flex; flex-direction: column; gap: 8px; font-size: 12px; }
 .fullscreen-seek input { width: 100%; min-height: 28px; accent-color: var(--accent); }
-.fullscreen-actions { display: flex; justify-content: center; align-items: center; gap: 16px; flex-wrap: wrap; }
-.fullscreen-actions[hidden] { display: none; }
+.fullscreen-actions { display: flex; justify-content: center; align-items: center; gap: 16px; flex-wrap: wrap; padding-right: 56px; }
+/* Retain the paused controls' space so playback/hover never moves the body. */
+.fullscreen-actions[hidden] { display: flex; visibility: hidden; pointer-events: none; }
 .fullscreen-actions label { font-size: 12px; display: flex; align-items: center; gap: 8px; }
 .fullscreen-actions input, .fullscreen-actions select { width: 100px; min-height: 44px; border: 1px solid var(--line); border-radius: var(--radius-control); background: var(--panel); color: var(--ink); padding: 8px; }
 .fullscreen-reader[data-playing='true'] .fullscreen-seek { opacity: 0; pointer-events: none; }
@@ -57,8 +81,8 @@
   /* Keep body, context and controls from overlapping in landscape; reserve
      the same space while playing so showing the seek bar never moves text. */
   .fullscreen-reader[data-fullscreen='true'] > .reader-stage:not(.guide-mode),
-  .fullscreen-reader[data-fullscreen='true'] > .audio-stage:not(.guide-mode) { padding-bottom: 210px; }
-  .fullscreen-reader[data-fullscreen='true'] > .stopped-context { bottom: 125px; font-size: 11px; }
+  .fullscreen-reader[data-fullscreen='true'] > .audio-stage:not(.guide-mode) { padding-bottom: calc(var(--fullscreen-footer-height, 125px) + 100px); }
+  .fullscreen-reader[data-fullscreen='true'] > .stopped-context { font-size: 11px; }
   .fullscreen-seek { padding: 16px 0 8px; }
   .fullscreen-actions { gap: 8px; }
 }

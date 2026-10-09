@@ -76,23 +76,44 @@ export function useFullscreenReader(pause: () => void) {
   return { active, containerRef, enter, exit };
 }
 
-export function FullscreenReader({ fullscreen, playing, children, seek, speed, toggle, pause, disabled = false, playLabel = '再生' }: {
-  fullscreen: ReturnType<typeof useFullscreenReader>; playing: boolean; children: ReactNode; seek: ReactNode; speed: ReactNode;
+export function FullscreenEnterButton({ fullscreen }: { fullscreen: ReturnType<typeof useFullscreenReader> }) {
+  return <button type="button" className="fullscreen-enter" hidden={fullscreen.active} aria-label="全画面で読む" title="全画面で読む" onClick={event => fullscreen.enter(event.currentTarget)}>
+    <FullscreenIcon />
+  </button>;
+}
+
+function FullscreenIcon({ exiting = false }: { exiting?: boolean }) {
+  return <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={exiting ? 'M3 8h5V3M16 3v5h5M21 16h-5v5M8 21v-5H3' : 'M8 3H3v5M16 3h5v5M21 16v5h-5M8 21H3v-5'} /></svg>;
+}
+
+export function FullscreenReader({ fullscreen, playing, children, seek, speed, modes, toggle, pause, disabled = false, playLabel = '再生' }: {
+  fullscreen: ReturnType<typeof useFullscreenReader>; playing: boolean; children: ReactNode; seek: ReactNode; speed: ReactNode; modes: ReactNode;
   toggle: () => void; pause: () => void; disabled?: boolean; playLabel?: string;
 }) {
+  const footerRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const element = fullscreen.containerRef.current; const footer = footerRef.current;
+    if (!fullscreen.active || !element || !footer) return;
+    // Wrapped controls must leave room for the stopped context on small screens.
+    const measure = () => element.style.setProperty('--fullscreen-footer-height', `${footer.getBoundingClientRect().height}px`);
+    measure();
+    const observer = new ResizeObserver(measure); observer.observe(footer);
+    return () => { observer.disconnect(); element.style.removeProperty('--fullscreen-footer-height'); };
+  }, [fullscreen.active, fullscreen.containerRef]);
   return <div ref={fullscreen.containerRef} className="fullscreen-reader" data-fullscreen={fullscreen.active} data-playing={playing} tabIndex={-1} role={fullscreen.active ? 'region' : undefined} aria-label={fullscreen.active ? '全画面の読書' : undefined}
     onClick={event => {
       if (!fullscreen.active || !playing || !(event.target instanceof HTMLElement) || !event.target.closest('.reader-stage, .audio-stage') || event.target.closest('button, input, select, a')) return;
       pause(); fullscreen.containerRef.current?.focus({ preventScroll: true });
     }}>
+    {fullscreen.active && <div className="fullscreen-mode-controls" hidden={playing}>{modes}</div>}
     {children}
-    {fullscreen.active && <div className="fullscreen-footer">
+    {fullscreen.active && <div ref={footerRef} className="fullscreen-footer">
       <div className="fullscreen-seek">{seek}</div>
       <div className="fullscreen-actions" hidden={playing}>
         <Button disabled={disabled} onClick={() => { toggle(); fullscreen.containerRef.current?.focus({ preventScroll: true }); }} aria-keyshortcuts="Space">{playLabel}</Button>
         {speed}
-        <Button variant="subtle" onClick={fullscreen.exit}>全画面を終了</Button>
       </div>
+      <button type="button" className="fullscreen-enter" hidden={playing} aria-label="全画面を終了" title="全画面を終了" onClick={fullscreen.exit}><FullscreenIcon exiting /></button>
     </div>}
   </div>;
 }

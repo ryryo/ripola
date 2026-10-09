@@ -22,15 +22,36 @@ async function viewportSurface(page: Page) {
 }
 test('fullscreen expands the text surface, isolates playback, reveals only seek on hover and restores focus', async ({ page }, info) => {
   await read(page);
-  await page.getByRole('button', { name: '全画面', exact: true }).click();
+  const icon = await page.getByRole('button', { name: '全画面で読む', exact: true }).boundingBox();
+  const stage = await page.getByTestId('reader-stage').boundingBox();
+  expect(icon!.x + icon!.width).toBeCloseTo(stage!.x + stage!.width - 13, 0);
+  expect(icon!.y + icon!.height).toBeCloseTo(stage!.y + stage!.height - 13, 0);
+  await page.getByRole('button', { name: '全画面で読む', exact: true }).click();
   const full = await viewportSurface(page);
   if (!info.project.name.startsWith('mobile')) await expect.poll(() => full.evaluate(element => document.fullscreenElement === element)).toBe(true);
   await expect(full.getByTestId('stopped-context')).toBeVisible();
   await expect(full.getByRole('slider', { name: '読書の再生位置' })).toBeVisible();
   await expect(full.getByLabel('読む速さ（字/分）', { exact: true })).toBeVisible();
+  const modes = await full.locator('.fullscreen-mode-controls').boundingBox();
+  const topline = await full.locator('.stage-topline').boundingBox();
+  expect(modes!.y + modes!.height / 2).toBeCloseTo(topline!.y + topline!.height / 2, 0);
+  const exit = await full.getByRole('button', { name: '全画面を終了', exact: true }).boundingBox();
+  const viewport = page.viewportSize()!;
+  expect(exit!.x + exit!.width).toBeCloseTo(viewport.width - 12, 0);
+  expect(exit!.y + exit!.height).toBeCloseTo(viewport.height - 12, 0);
   await full.getByRole('slider', { name: '読書の再生位置' }).fill('3');
   await expect(full.locator('.playback-position-label')).toContainText('4 /');
   await full.getByLabel('読む速さ（字/分）', { exact: true }).fill('800');
+  const phrase = await full.getByTestId('current-phrase').innerText();
+  await full.getByRole('button', { name: '全文表示', exact: true }).click();
+  await expect(full.getByTestId('guide-reader')).toBeVisible();
+  await expect(full.getByRole('button', { name: '全文表示', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await expect(full.getByRole('slider', { name: '読書の再生位置' })).toHaveValue('3');
+  await full.getByRole('button', { name: 'フレーズ表示', exact: true }).click();
+  await expect(full.getByTestId('current-phrase')).toHaveText(phrase);
+  const context = await full.getByTestId('stopped-context').boundingBox();
+  const footer = await full.locator('.fullscreen-footer').boundingBox();
+  expect(context!.y + context!.height).toBeLessThan(footer!.y);
   await full.getByRole('button', { name: '再生', exact: true }).click();
   await page.mouse.move(100, 100);
   await expect(full).toHaveAttribute('data-playing', 'true');
@@ -40,6 +61,7 @@ test('fullscreen expands the text surface, isolates playback, reveals only seek 
   await expect(full.getByTestId('stopped-context')).toBeHidden();
   await expect(full.locator('.fullscreen-seek')).toHaveCSS('opacity', '0');
   await expect(full.locator('.fullscreen-actions')).toBeHidden();
+  await expect(full.getByRole('button', { name: '全文表示', exact: true })).toHaveCount(0);
   await expect(page.getByRole('button', { name: '原文', exact: true })).toHaveCount(0);
   if (!info.project.name.startsWith('mobile')) {
     const before = await full.getByTestId('current-phrase').boundingBox();
@@ -59,10 +81,10 @@ test('fullscreen expands the text surface, isolates playback, reveals only seek 
   await info.attach('fullscreen-paused', { body: await page.screenshot(), contentType: 'image/png' });
   await full.getByRole('button', { name: '全画面を終了' }).click();
   await expect(full).toHaveCount(0);
-  await expect(page.getByRole('button', { name: '全画面', exact: true })).toBeFocused();
+  await expect(page.getByRole('button', { name: '全画面で読む', exact: true })).toBeFocused();
   await expect(page.getByLabel('読む速さ（字/分）', { exact: true })).toHaveValue('800');
   if (!info.project.name.startsWith('mobile')) {
-    await page.getByRole('button', { name: '全画面', exact: true }).click();
+    await page.getByRole('button', { name: '全画面で読む', exact: true }).click();
     await expect.poll(() => page.evaluate(() => Boolean(document.fullscreenElement))).toBe(true);
     await page.evaluate(() => document.exitFullscreen());
     await expect(full).toHaveCount(0);
@@ -71,8 +93,8 @@ test('fullscreen expands the text surface, isolates playback, reveals only seek 
 test('fullscreen falls back when denied, traps keyboard focus, supports Guide and exits on Escape', async ({ page }) => {
   await page.addInitScript(() => { Element.prototype.requestFullscreen = () => Promise.reject(new Error('test denied')); });
   await read(page);
-  await page.getByRole('button', { name: 'Guide全文', exact: true }).click();
-  await page.getByRole('button', { name: '全画面', exact: true }).click();
+  await page.getByRole('button', { name: '全文表示', exact: true }).click();
+  await page.getByRole('button', { name: '全画面で読む', exact: true }).click();
   const full = await viewportSurface(page);
   expect(await page.evaluate(() => document.fullscreenElement === null)).toBe(true);
   await expect(full.getByTestId('guide-reader')).toBeVisible();
@@ -87,10 +109,10 @@ test('fullscreen falls back when denied, traps keyboard focus, supports Guide an
   await page.keyboard.press('Escape');
   await expect(full).toHaveCount(0);
   expect(await page.evaluate(() => document.body.style.overflow)).toBe('');
-  await expect(page.getByRole('button', { name: '全画面', exact: true })).toBeFocused();
+  await expect(page.getByRole('button', { name: '全画面で読む', exact: true })).toBeFocused();
   await page.setViewportSize({ width: 844, height: 390 });
-  await page.getByRole('button', { name: 'Flash', exact: true }).click();
-  await page.getByRole('button', { name: '全画面', exact: true }).click();
+  await page.getByRole('button', { name: 'フレーズ表示', exact: true }).click();
+  await page.getByRole('button', { name: '全画面で読む', exact: true }).click();
   await viewportSurface(page);
   const body = await full.getByTestId('current-phrase').boundingBox();
   const context = await full.getByTestId('stopped-context').boundingBox();

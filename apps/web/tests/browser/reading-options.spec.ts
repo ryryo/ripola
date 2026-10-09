@@ -89,7 +89,7 @@ test('grouping is a view; Guide and Flash share position, ruby and static text',
   await page.getByLabel('まとめる', { exact: true }).selectOption('8');
   await page.getByLabel('最小字数', { exact: true }).selectOption('3'); await close(page);
   const position = await page.locator('.playback-position-label').innerText();
-  await page.getByRole('button', { name: 'Guide全文', exact: true }).click();
+  await page.getByRole('button', { name: '全文表示', exact: true }).click();
   await expect(page.getByTestId('guide-reader')).toBeVisible();
   await expect(page.locator('.playback-position-label')).toHaveText(position);
   await expect(page.locator('.guide-unit rt')).toContainText(['としょかん']);
@@ -98,7 +98,7 @@ test('grouping is a view; Guide and Flash share position, ruby and static text',
   await expect(page.getByRole('button', { name: '再生', exact: true })).toBeVisible();
   await page.getByText('全文を静止表示・コピー', { exact: true }).click();
   await expect(page.getByLabel('Guide静止全文')).toHaveValue(manuscript.replace('<ruby>図書館<rt>としょかん</rt></ruby>', '図書館'));
-  await page.getByRole('button', { name: 'Flash', exact: true }).click();
+  await page.getByRole('button', { name: 'フレーズ表示', exact: true }).click();
   await expect(page.getByTestId('current-phrase')).toContainText('最後');
   const context = await page.getByTestId('stopped-context').textContent();
   await page.getByRole('button', { name: '再生', exact: true }).click();
@@ -110,7 +110,7 @@ test('Guide bounds long-document DOM; manual scrolling keeps the reading anchor 
   test.setTimeout(60000);
   const text = '朝に本を読み、原文を確かめる。\n\n'.repeat(6000).slice(0, 100000);
   await read(page, text);
-  await page.getByRole('button', { name: 'Guide全文', exact: true }).click();
+  await page.getByRole('button', { name: '全文表示', exact: true }).click();
   expect(await page.locator('.guide-unit').count()).toBeLessThan(250);
   const position = await page.locator('.playback-position-label').innerText();
   await page.getByTestId('guide-viewport').hover(); await page.mouse.wheel(0, 5000);
@@ -125,7 +125,7 @@ test('Guide bounds long-document DOM; manual scrolling keeps the reading anchor 
 
 test('Guide reveals the highlighted phrase within a tall virtual row after a search jump', async ({ page }) => {
   await read(page, '静かな図書館で記録を読む。'.repeat(14) + 'ここが現在位置の目印です。' + '続きをゆっくり読む。'.repeat(25));
-  await page.getByRole('button', { name: 'Guide全文', exact: true }).click();
+  await page.getByRole('button', { name: '全文表示', exact: true }).click();
   await page.getByLabel('Guide本文を検索', { exact: true }).fill('目印');
   await page.getByRole('button', { name: '検索して移動', exact: true }).click();
   await expect.poll(() => page.getByTestId('guide-viewport').evaluate(element => {
@@ -208,9 +208,9 @@ test('audio uses original ±5 seconds across chunks, retains play intent, suppor
   await expect(page.getByRole('button', { name: '一時停止', exact: true })).toBeVisible();
   await expect.poll(async () => Number(await slider.inputValue())).toBeGreaterThan(14);
   await page.getByRole('button', { name: '一時停止', exact: true }).click();
-  const position = Number(await slider.inputValue()); await page.getByRole('button', { name: 'Guide全文', exact: true }).click();
+  const position = Number(await slider.inputValue()); await page.getByRole('button', { name: '全文表示', exact: true }).click();
   await expect(page.getByTestId('guide-reader')).toBeVisible(); expect(Number(await slider.inputValue())).toBeCloseTo(position, 2);
-  await page.getByRole('button', { name: 'Flash', exact: true }).click(); await settings(page);
+  await page.getByRole('button', { name: 'フレーズ表示', exact: true }).click(); await settings(page);
   await page.getByLabel('まとめる', { exact: true }).selectOption('8'); await page.getByLabel('本文の書体', { exact: true }).selectOption('noto-sans-jp');
   await expect(page.locator('.font-status')).toHaveText('書体の準備完了'); await close(page);
   expect(Number(await slider.inputValue())).toBeCloseTo(position, 2); await expect(page.getByRole('button', { name: '再生', exact: true })).toBeEnabled();
@@ -237,7 +237,7 @@ test('audio fullscreen keeps the media clock, remembers rate and shares display 
   await page.getByRole('combobox', { name: '音声の速さ', exact: true }).click();
   await page.getByRole('option', { name: '4.75倍', exact: true }).click();
   await page.getByRole('slider', { name: '音声の再生位置', exact: true }).fill('3');
-  await page.getByRole('button', { name: '全画面', exact: true }).click();
+  await page.getByRole('button', { name: '全画面で読む', exact: true }).click();
   const full = page.locator('.fullscreen-reader[data-fullscreen="true"]');
   await expect(full).toBeVisible();
   await expect(full.getByRole('combobox', { name: '音声の速さ', exact: true })).toHaveValue('4.75');
@@ -245,6 +245,13 @@ test('audio fullscreen keeps the media clock, remembers rate and shares display 
   await expect.poll(() => page.locator('audio').evaluate((element: HTMLAudioElement) => element.playbackRate)).toBe(1.25);
   const slider = full.getByRole('slider', { name: '音声の再生位置', exact: true });
   await slider.fill('9');
+  const phrase = await full.getByTestId('audio-phrase').innerText();
+  await full.getByRole('button', { name: '全文表示', exact: true }).click();
+  await expect(full.getByTestId('guide-reader')).toBeVisible();
+  await expect(slider).toHaveValue('9');
+  await full.getByRole('button', { name: 'フレーズ表示', exact: true }).click();
+  await expect(full.getByTestId('audio-phrase')).toHaveText(phrase);
+  await expect(slider).toHaveValue('9');
   await full.getByRole('button', { name: '再生', exact: true }).click();
   await page.mouse.move(100, 100);
   await expect(full).toHaveAttribute('data-playing', 'true');
