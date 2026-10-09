@@ -19,6 +19,9 @@ async function viewportSurface(page: Page) {
   expect(bounds.x).toBeCloseTo(0, 0); expect(bounds.y).toBeCloseTo(0, 0);
   expect(bounds.width).toBeCloseTo(bounds.viewportWidth, 0);
   expect(bounds.height).toBeCloseTo(bounds.viewportHeight, 0);
+  const play = await full.locator('.reader-play-overlay').boundingBox();
+  expect(play!.x + play!.width / 2).toBeCloseTo(bounds.viewportWidth / 2, 0);
+  expect(play!.y + play!.height / 2).toBeCloseTo(bounds.viewportHeight / 2, 0);
   return full;
 }
 test('screen wake lock follows silent playback in normal and fullscreen views; hidden return stays paused', async ({ page }) => {
@@ -118,6 +121,15 @@ test('screen wake lock is released at silent completion and respects an OS relea
 
 test('fullscreen expands the text surface, isolates playback, reveals only seek on hover and restores focus', async ({ page }, info) => {
   await read(page);
+  const centerPlay = page.getByRole('button', { name: '再生（画面中央）', exact: true });
+  const center = await centerPlay.boundingBox();
+  const normalStage = await page.getByTestId('reader-stage').boundingBox();
+  expect(center!.x + center!.width / 2).toBeCloseTo(normalStage!.x + normalStage!.width / 2, 0);
+  expect(center!.y + center!.height / 2).toBeCloseTo(normalStage!.y + normalStage!.height / 2, 0);
+  await centerPlay.click();
+  await expect(centerPlay).toBeHidden();
+  await page.keyboard.press('Space');
+  await expect(centerPlay).toBeVisible();
   const icon = await page.getByRole('button', { name: '全画面で読む', exact: true }).boundingBox();
   const stage = await page.getByTestId('reader-stage').boundingBox();
   expect(icon!.x + icon!.width).toBeCloseTo(stage!.x + stage!.width - 13, 0);
@@ -148,9 +160,10 @@ test('fullscreen expands the text surface, isolates playback, reveals only seek 
   const context = await full.getByTestId('stopped-context').boundingBox();
   const footer = await full.locator('.fullscreen-footer').boundingBox();
   expect(context!.y + context!.height).toBeLessThan(footer!.y);
-  await full.getByRole('button', { name: '再生', exact: true }).click();
+  await centerPlay.click();
   await page.mouse.move(100, 100);
   await expect(full).toHaveAttribute('data-playing', 'true');
+  await expect(centerPlay).toBeHidden();
   await expect(full.locator('.stage-topline')).toBeHidden();
   await expect(full.locator('.guide-top')).toBeVisible();
   await expect(full.locator('.guide-bottom')).toBeVisible();
@@ -173,6 +186,7 @@ test('fullscreen expands the text surface, isolates playback, reveals only seek 
   }
   await full.getByTestId('current-phrase').click();
   await expect(full).toHaveAttribute('data-playing', 'false');
+  await expect(centerPlay).toBeVisible();
   await expect(full.getByTestId('stopped-context')).toBeVisible();
   await page.keyboard.press('Space'); await expect(full).toHaveAttribute('data-playing', 'true');
   await page.keyboard.press('Space'); await expect(full).toHaveAttribute('data-playing', 'false');

@@ -86,6 +86,14 @@ function FullscreenIcon({ exiting = false }: { exiting?: boolean }) {
   return <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={exiting ? 'M3 8h5V3M16 3v5h5M21 16h-5v5M8 21v-5H3' : 'M8 3H3v5M16 3h5v5M21 16v5h-5M8 21H3v-5'} /></svg>;
 }
 
+export function ReaderPlayButton({ playing, disabled = false, label = '再生', onPlay }: {
+  playing: boolean; disabled?: boolean; label?: string; onPlay: () => void;
+}) {
+  return <button type="button" className="reader-play-overlay" hidden={playing} disabled={disabled} aria-label={`${label}（画面中央）`} title={label} aria-keyshortcuts="Space" onClick={onPlay}>
+    <svg width="44" height="44" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4v16l14-8z" /></svg>
+  </button>;
+}
+
 export function FullscreenReader({ fullscreen, playing, children, seek, speed, modes, toggle, pause, disabled = false, playLabel = '再生' }: {
   fullscreen: ReturnType<typeof useFullscreenReader>; playing: boolean; children: ReactNode; seek: ReactNode; speed: ReactNode; modes: ReactNode;
   toggle: () => void; pause: () => void; disabled?: boolean; playLabel?: string;

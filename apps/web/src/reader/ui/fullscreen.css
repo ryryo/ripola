@@ -1,4 +1,30 @@
-.audio-stage { position: relative; }
+.reader-stage, .audio-stage { position: relative; }
+.reader-play-overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 76px;
+  height: 76px;
+  padding: 0;
+  border: 1px solid rgb(255 255 255 / 25%);
+  border-radius: 50%;
+  background: rgb(24 34 40 / 92%);
+  color: white;
+  box-shadow: 0 4px 18px rgb(0 0 0 / 18%);
+  cursor: pointer;
+}
+.reader-play-overlay:hover { background: rgb(24 34 40 / 100%); }
+.reader-play-overlay:focus-visible { outline: 3px solid var(--accent); outline-offset: 4px; }
+.reader-play-overlay:disabled { opacity: .5; cursor: wait; }
+.reader-play-overlay[hidden] { display: none; }
+.fullscreen-reader[data-fullscreen='true'] .reader-play-overlay { width: 88px; height: 88px; }
+@media(max-width:600px) {
+  .reader-play-overlay, .fullscreen-reader[data-fullscreen='true'] .reader-play-overlay { width: 64px; height: 64px; }
+}
 .fullscreen-enter {
   position: absolute;
   right: 12px;
