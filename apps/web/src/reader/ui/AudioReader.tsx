@@ -18,7 +18,7 @@ import { shortcutBlocked, repeatedArrowAllowed } from '../shortcuts';
 import { GuideReader } from './GuideReader';
 import { StoppedContext } from './StoppedContext';
 import { TitleEditor } from './TitleEditor';
-import { FullscreenEnterButton, FullscreenReader, useFullscreenReader } from './FullscreenReader';
+import { FullscreenEnterButton, FullscreenReader, ReaderPlayButton, useFullscreenReader } from './FullscreenReader';
 import { useScreenWakeLock } from './useScreenWakeLock';
 import { ReadingModeControls } from './ReadingModeControls';
 import { useReaderPreferences } from './useReaderPreferences';
@@ -227,6 +227,8 @@ export function AudioReader({ book, onClose, attribution, localTools, demo = fal
       <section className={`audio-stage ${options.mode === 'guide' ? 'guide-mode' : ''} ${guide ? 'with-guide' : ''}`} aria-label="音声同期表示" data-testid="audio-stage">
         <div className="stage-topline"><span>{reading ? '音声再生中' : buffering ? '音声を準備中' : position >= total ? '再生終了' : '一時停止'}</span><span className="playback-position-label">{reading ? '\u00a0' : <>{index + 1} / {segments.length} 文{display.unitIndices.length > 0 && <> · フレーズ {display.unitIndices[0] + 1}{display.unitIndices.length > 1 ? `–${display.unitIndices.at(-1)! + 1}` : ''}</>}</>}</span></div>
         {options.mode === 'guide' ? <GuideReader key={options.writingMode} writingMode={options.writingMode} blocks={book.document.blocks} units={playableUnits} currentIndices={displayGroup ? Array.from({ length: displayGroup.endIndex - displayGroup.startIndex + 1 }, (_, i) => displayGroup.startIndex + i) : [displayIndex]} playing={reading} ruby={ruby} family={READING_FONTS[font.applied].family} onJump={target => seek(unitTimes.get(playableUnits[target]?.id) ?? 0, false)} onPause={pause} /> : <PhraseDisplay writingMode={options.writingMode} unit={displayGroup?.unit ?? display.units[0]} fontSize={options.fontSize} ruby={ruby} family={READING_FONTS[font.applied].family} audio precision={display.precision} unitIds={displayGroup?.units.map(unit => unit.id).join(' ') ?? display.units.map(unit => unit.id).join(' ')} />}
+      <ReaderPlayButton playing={reading} disabled={font.busy} label={position >= total ? 'もう一度' : '再生'}
+        onPlay={() => { void play(); fullscreen.containerRef.current?.focus({ preventScroll: true }); }} />
       <FullscreenEnterButton fullscreen={fullscreen} />
       </section>
       {(options.mode ?? 'flash') === 'flash' && <StoppedContext groups={groups} groupIndex={groupIndex} playing={reading} enabled={options.context ?? true} ruby={ruby} onJump={target => seek(unitTimes.get(playableUnits[target]?.id) ?? 0, false)} />}

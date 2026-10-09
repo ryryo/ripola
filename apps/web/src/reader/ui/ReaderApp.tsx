@@ -26,7 +26,7 @@ import { MAX_TITLE_LENGTH, resolveDocumentTitle } from '../document-title';
 import { TitleEditor } from './TitleEditor';
 import { InputFormatControl } from './InputFormatControl';
 import { EnvironmentAvailability } from './EnvironmentAvailability';
-import { FullscreenEnterButton, FullscreenReader, useFullscreenReader } from './FullscreenReader';
+import { FullscreenEnterButton, FullscreenReader, ReaderPlayButton, useFullscreenReader } from './FullscreenReader';
 import { ReadingModeControls } from './ReadingModeControls';
 import { useReaderPreferences } from './useReaderPreferences';
 import { useScreenWakeLock } from './useScreenWakeLock';
@@ -331,6 +331,9 @@ export function ReaderApp() {
             <div className="stage-topline"><span>{completed ? '読了' : current?.kind === 'static' ? '原文で確認' : playback.status === 'playing' ? '再生中' : '一時停止'}</span><span className="playback-position-label">{playback.status === 'playing' ? '\u00a0' : `${playback.index + 1} / ${document.units.length} フレーズ`}</span></div>
             {settings.mode === 'guide' ? <GuideReader key={settings.writingMode} writingMode={settings.writingMode} blocks={document.blocks} units={document.units} currentIndices={displayGroup ? Array.from({ length: displayGroup.endIndex - displayGroup.startIndex + 1 }, (_, i) => displayGroup.startIndex + i) : [playback.index]} playing={playback.status === 'playing'} ruby={settings.ruby} family={READING_FONTS[font.applied].family} onJump={index => controller.seek(index)} onPause={pauseReading} /> : current?.kind === 'static' ? <div className="static-notice"><h2>コード・表は原文で。</h2><p>内容を確認してから、次のフレーズへ進めます。</p><Button variant="light" onClick={openSource}>原文を開く</Button></div> : <PhraseDisplay writingMode={settings.writingMode} unit={displayGroup?.unit ?? current} fontSize={settings.fontSize} ruby={settings.ruby} family={READING_FONTS[font.applied].family} />}
 
+            <ReaderPlayButton playing={playback.status === 'playing'} disabled={loading || font.busy}
+              label={completed ? 'もう一度' : current?.kind === 'static' ? '次のフレーズへ' : '再生'}
+              onPlay={() => { if (completed) controller.seek(0); controller.play(); fullscreen.containerRef.current?.focus({ preventScroll: true }); }} />
             <FullscreenEnterButton fullscreen={fullscreen} />
           </section>
           {(settings.mode ?? 'flash') === 'flash' && <StoppedContext groups={groups} groupIndex={groupIndex} playing={playback.status === 'playing'} enabled={settings.context ?? true} ruby={settings.ruby} onJump={index => controller.seek(index)} />}
