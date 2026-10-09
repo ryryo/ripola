@@ -6,9 +6,10 @@ const all = () => [...DOMAINS];
 const docs = path => /^(?:README\.md|CONTRIBUTING\.md|docs\/README\.md)$/.test(path)
   || /^docs\/(?:guides|development|research|validation\/public-release)\/.+\.(?:md|json)$/.test(path);
 
-/** Allowlist pure documentation; unknown paths fail closed to the complete suite. */
+/** Automatic runs stay bounded; explicit full keeps every registered regression. */
 export function classifyChanges(paths, { manual = false, uncertain = false } = {}) {
-  if (manual || uncertain || !paths.length) return { code: true, mode: 'full', domains: all(), python: true, reason: manual ? 'manual full' : 'unknown diff' };
+  if (manual) return { code: true, mode: 'full', domains: all(), python: true, reason: 'manual full' };
+  if (uncertain || !paths.length) return { code: true, mode: 'normal', domains: all(), python: true, reason: 'unknown diff: all focused smoke' };
   const changed = paths.filter(path => !docs(path));
   if (!changed.length) return { code: false, mode: 'docs', domains: [], python: false, reason: 'documentation only' };
   const domains = new Set();
@@ -43,24 +44,12 @@ export function classifyChanges(paths, { manual = false, uncertain = false } = {
     else if (/^apps\/web\/src\/(?:distribution-ui\/|reader\/environment|router\.tsx|routes\/|start)/.test(path)) add(...all());
     else unknown = true;
   }
-  return { code: true, mode: unknown ? 'full' : 'normal', domains: unknown ? all() : DOMAINS.filter(domain => domains.has(domain)), python: unknown || python, reason: unknown ? 'unclassified path: full suite' : 'normal plus related domains' };
-}
-
-/** Every viewport covers all fonts and both size/ruby states; full keeps the Cartesian matrix. */
-export function wrappingVariants(mode, viewportIndex, fonts) {
-  if (!['full', 'normal'].includes(mode) || !Number.isInteger(viewportIndex) || viewportIndex < 0 || viewportIndex > 2) throw new Error('Invalid wrapping scope');
-  const silent = fonts.flatMap((family, index) => mode === 'full'
-    ? [24, 96].flatMap(size => [false, true].map(ruby => ({ family, size, ruby })))
-    : [{ family, size: (index + viewportIndex) % 2 ? 96 : 24, ruby: Boolean((Math.floor(index / 2) + viewportIndex) % 2) }]);
-  const audio = fonts.flatMap((family, index) => mode === 'full'
-    ? [false, true].map(ruby => ({ family, ruby }))
-    : [{ family, ruby: Boolean((index + viewportIndex) % 2) }]);
-  return { silent, audio };
+  return { code: true, mode: 'normal', domains: unknown ? all() : DOMAINS.filter(domain => domains.has(domain)), python: unknown || python, reason: unknown ? 'unclassified path: all focused smoke' : 'normal plus focused domains' };
 }
 
 export function selectedCases(mode = 'full', domains = []) {
   if (!['full', 'normal'].includes(mode) || domains.some(domain => !DOMAINS.includes(domain))) throw new Error('Invalid CI browser scope');
-  return browserCases.filter(item => mode === 'full' || item.lane === 'normal' || item.lane === 'related' && item.domains.some(domain => domains.includes(domain)));
+  return browserCases.filter(item => mode === 'full' || item.lane === 'normal' || item.lane === 'related' && item.quick === true && item.domains.some(domain => domains.includes(domain)));
 }
 const escape = value => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 export function projectGrep(project, mode, domains) {

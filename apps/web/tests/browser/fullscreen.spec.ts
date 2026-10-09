@@ -56,8 +56,10 @@ test('fullscreen expands the text surface, isolates playback, reveals only seek 
   await page.mouse.move(100, 100);
   await expect(full).toHaveAttribute('data-playing', 'true');
   await expect(full.locator('.stage-topline')).toBeHidden();
-  await expect(full.locator('.guide-top')).toBeHidden();
-  await expect(full.locator('.guide-bottom')).toBeHidden();
+  await expect(full.locator('.guide-top')).toBeVisible();
+  await expect(full.locator('.guide-bottom')).toBeVisible();
+  await expect(full.locator('.guide-top')).not.toHaveCSS('opacity', '0');
+  await expect(full.locator('.guide-bottom')).not.toHaveCSS('opacity', '0');
   await expect(full.getByTestId('stopped-context')).toBeHidden();
   await expect(full.locator('.fullscreen-seek')).toHaveCSS('opacity', '0');
   await expect(full.locator('.fullscreen-actions')).toBeHidden();
@@ -89,6 +91,15 @@ test('fullscreen expands the text surface, isolates playback, reveals only seek 
     await page.evaluate(() => document.exitFullscreen());
     await expect(full).toHaveCount(0);
   }
+  await page.getByRole('button', { name: '表示設定', exact: true }).click();
+  await page.getByLabel('注視点ガイド', { exact: true }).uncheck();
+  await page.getByRole('button', { name: '閉じる', exact: true }).click();
+  await page.getByRole('button', { name: '全画面で読む', exact: true }).click();
+  await full.getByRole('button', { name: '再生', exact: true }).click();
+  await expect(full).toHaveAttribute('data-playing', 'true');
+  await expect(full.locator('.guide-top')).toHaveCSS('opacity', '0');
+  await expect(full.locator('.guide-bottom')).toHaveCSS('opacity', '0');
+  await page.keyboard.press('Escape');
 });
 test('fullscreen falls back when denied, traps keyboard focus, supports Guide and exits on Escape', async ({ page }) => {
   await page.addInitScript(() => { Element.prototype.requestFullscreen = () => Promise.reject(new Error('test denied')); });

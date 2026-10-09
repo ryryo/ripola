@@ -1,14 +1,17 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { assertBrowserFiles, assertCaseInventory, browserCases, classifyChanges, DOMAINS, selectedCases, wrappingVariants } from '../../../scripts/ci-scope.mjs';
+import { assertBrowserFiles, assertCaseInventory, browserCases, classifyChanges, DOMAINS, selectedCases } from '../../../scripts/ci-scope.mjs';
 
 test('only allowlisted documentation bypasses shipping and browser checks', () => {
   assert.equal(classifyChanges(['README.md', 'docs/development/ci.md']).code, false);
   for (const path of ['docs/licenses/NOTICE.md', 'docs/validation/fixtures/book.md', '.env.example', 'LICENSE', 'apps/web/public/samples/audio/NOTICE.md', 'docs/unclassified/new.md']) assert.equal(classifyChanges([path]).code, true, path);
   assert.equal(classifyChanges(['README.md', 'apps/web/src/styles.css']).code, true);
 });
-test('unknown, missing and manual diffs run full; foundation changes select every related domain', () => {
-  for (const scope of [classifyChanges([]), classifyChanges(['new/subsystem.ts']), classifyChanges(['README.md'], { uncertain: true }), classifyChanges(['README.md'], { manual: true })]) assert.equal(scope.mode, 'full');
+test('manual runs full; unknown automatic diffs stay within the focused smoke budget', () => {
+  assert.equal(classifyChanges(['README.md'], { manual: true }).mode, 'full');
+  for (const scope of [classifyChanges([]), classifyChanges(['new/subsystem.ts']), classifyChanges(['README.md'], { uncertain: true })]) {
+    assert.equal(scope.mode, 'normal'); assert.deepEqual(scope.domains, DOMAINS);
+  }
   for (const path of ['.github/workflows/ci.yml', 'pnpm-lock.yaml', 'playwright.config.ts']) assert.deepEqual(classifyChanges([path]).domains, DOMAINS, path);
 });
 test('targeted source changes retain mandatory smoke and the appropriate extra coverage', () => {
@@ -17,9 +20,9 @@ test('targeted source changes retain mandatory smoke and the appropriate extra c
   assert.ok(classifyChanges(['apps/web/src/generation/core/service.ts']).domains.includes('generation'));
   assert.equal(classifyChanges(['scripts/alignment-platforms.json']).python, true);
   const layout = selectedCases('normal', ['layout']);
-  assert.equal(layout.filter(item => item.file === 'wrapping.spec.ts').length, 6);
-  assert.equal(layout.filter(item => item.file === 'responsive.spec.ts').length, 6);
-  assert.equal(layout.filter(item => item.file === 'guide.spec.ts').length, 2);
+  assert.equal(layout.filter(item => item.file === 'wrapping.spec.ts').length, 0);
+  assert.equal(layout.filter(item => item.file === 'responsive.spec.ts').length, 1);
+  assert.ok(layout.some(item => item.title.startsWith('vertical phrases')));
 });
 test('full preserves every registered case; selection is a union', () => {
   const original = browserCases.filter(item => item.project !== 'pages-chromium');
@@ -27,7 +30,7 @@ test('full preserves every registered case; selection is a union', () => {
   assert.equal(original.filter(item => item.lane === 'local_opt_in').length, 4);
   assert.deepEqual(selectedCases('full'), browserCases);
   assert.equal(selectedCases('normal').length, 14);
-  assert.deepEqual(selectedCases('normal', DOMAINS), browserCases.filter(item => ['normal', 'related'].includes(item.lane)));
+  assert.deepEqual(selectedCases('normal', DOMAINS), browserCases.filter(item => item.lane === 'normal' || item.lane === 'related' && item.quick));
   assertCaseInventory(browserCases);
   const files = [...new Set(browserCases.map(item => item.file))];
   assertBrowserFiles(files);
@@ -39,7 +42,7 @@ test('full preserves every registered case; selection is a union', () => {
   assert.throws(() => selectedCases('normal', ['typo']), /Invalid/);
 });
 
-test('reader UI and preferences do not opt into generation/setup or Python; unknown sources still run full', () => {
+test('reader UI and preferences do not opt into generation/setup or Python; unknown sources retain every focused smoke', () => {
   for (const path of ['apps/web/src/reader/preferences.ts', 'apps/web/src/reader/ui/ReaderApp.tsx', 'apps/web/src/reader/ui/FullscreenReader.tsx', 'apps/web/src/reader/ui/useReaderPreferences.ts']) {
     const scope = classifyChanges([path]);
     assert.equal(scope.mode, 'normal', path);
@@ -51,32 +54,20 @@ test('reader UI and preferences do not opt into generation/setup or Python; unkn
   assert.deepEqual(browser.domains, ['audio', 'layout']);
   assert.equal(browser.python, false);
   assert.deepEqual(classifyChanges(['apps/web/tests/preferences.test.ts']).domains, []);
-  assert.equal(classifyChanges(['apps/web/tests/browser/new-unregistered.spec.ts']).mode, 'full');
-  assert.equal(classifyChanges(['apps/web/src/reader/new-subsystem.ts']).mode, 'full');
+  assert.deepEqual(classifyChanges(['apps/web/tests/browser/new-unregistered.spec.ts']).domains, DOMAINS);
+  assert.deepEqual(classifyChanges(['apps/web/src/reader/new-subsystem.ts']).domains, DOMAINS);
   assert.equal(classifyChanges(['apps/web/src/generation/core/service.ts']).python, false);
   for (const path of ['scripts/align_audio.py', 'scripts/test_check_alignment_runtime.py', 'scripts/alignment-requirements.txt', '.github/workflows/ci.yml']) assert.equal(classifyChanges([path]).python, true, path);
 });
 
-test('representative wrapping covers each font, viewport and both states; full retains all 72 combinations', () => {
-  const fonts = ['system', 'noto-sans-jp', 'noto-serif-jp', 'biz-udpgothic'];
-  const matrices = [0, 1, 2].map(index => wrappingVariants('normal', index, fonts));
-  for (const matrix of matrices) {
-    assert.deepEqual(matrix.silent.map(item => item.family), fonts);
-    assert.deepEqual(matrix.audio.map(item => item.family), fonts);
-    assert.deepEqual([...new Set(matrix.silent.map(item => item.size))].sort(), [24, 96]);
-    assert.deepEqual([...new Set(matrix.silent.map(item => item.ruby))].sort(), [false, true]);
-    assert.deepEqual([...new Set(matrix.audio.map(item => item.ruby))].sort(), [false, true]);
-  }
-  for (const family of fonts) {
-    assert.deepEqual([...new Set(matrices.flatMap(matrix => matrix.silent).filter(item => item.family === family).map(item => item.size))].sort(), [24, 96]);
-    for (const kind of ['silent', 'audio'] as const) assert.deepEqual([...new Set(matrices.flatMap(matrix => matrix[kind]).filter(item => item.family === family).map(item => item.ruby))].sort(), [false, true]);
-  }
-  assert.equal(matrices.reduce((sum, matrix) => sum + matrix.silent.length + matrix.audio.length, 0), 24);
-  for (const index of [0, 1, 2]) {
-    const full = wrappingVariants('full', index, fonts);
-    assert.equal(full.silent.length, 16); assert.equal(full.audio.length, 8);
-    assert.equal(new Set(full.silent.map(item => JSON.stringify(item))).size, 16);
-    for (const family of fonts) for (const size of [24, 96]) for (const ruby of [false, true]) assert.ok(full.silent.some(item => item.family === family && item.size === size && item.ruby === ruby));
-  }
-  assert.throws(() => wrappingVariants('docs', 0, fonts), /Invalid/);
+test('automatic browser coverage remains bounded and full retains exhaustive regressions', () => {
+  const automatic = selectedCases('normal', DOMAINS);
+  assert.ok(automatic.length <= 24, 'replace a representative before expanding the automatic suite');
+  assert.ok(automatic.length > selectedCases('normal').length);
+  for (const item of selectedCases('normal')) assert.ok(automatic.includes(item));
+  assert.ok(automatic.some(item => item.project === 'mobile-chromium' && item.title.startsWith('vertical phrases')));
+  assert.ok(automatic.some(item => item.title.startsWith('audio vertical')));
+  assert.ok(automatic.some(item => item.title.startsWith('vertical Guide')));
+  assert.equal(selectedCases('full').filter(item => item.file === 'wrapping.spec.ts').length, 6);
+  assert.equal(selectedCases('full').length, browserCases.length);
 });
