@@ -256,6 +256,10 @@ test('audio fullscreen keeps the media clock, remembers rate and shares display 
   await page.mouse.move(100, 100);
   await expect(full).toHaveAttribute('data-playing', 'true');
   await expect(full.locator('.stage-topline')).toBeHidden();
+  await expect(full.locator('.guide-top')).toBeVisible();
+  await expect(full.locator('.guide-bottom')).toBeVisible();
+  await expect(full.locator('.guide-top')).not.toHaveCSS('opacity', '0');
+  await expect(full.locator('.guide-bottom')).not.toHaveCSS('opacity', '0');
   await expect(full.getByTestId('stopped-context')).toBeHidden();
   await expect(full.locator('.fullscreen-seek')).toHaveCSS('opacity', '0');
   if (!info.project.name.startsWith('mobile')) {
@@ -288,4 +292,160 @@ test('audio fullscreen keeps the media clock, remembers rate and shares display 
   await settings(page);
   await expect(page.getByLabel('文字サイズ', { exact: true })).toHaveValue('56');
   await expect(page.getByLabel('暗い背景', { exact: true })).not.toBeChecked();
+});
+
+test('vertical phrases fit ruby and guides, retain position and restore/reset the writing direction', async ({ page }) => {
+  await read(page);
+  await page.getByRole('button', { name: '原文', exact: true }).click();
+  await page.locator('.source-unit').filter({ hasText: '図書館' }).first().click(); await close(page);
+  const anchor = await page.getByTestId('current-phrase').innerText();
+  const position = await page.locator('.playback-position-label').innerText();
+  await settings(page); await page.getByLabel('本文の向き', { exact: true }).selectOption('vertical-rl');
+  await page.getByLabel('本文の書体', { exact: true }).selectOption('noto-serif-jp');
+  await expect(page.locator('.font-status')).toHaveText('書体の準備完了');
+  for (const size of ['24', '96']) {
+    await page.getByLabel('文字サイズ', { exact: true }).fill(size); await close(page);
+    await expect(page.getByTestId('current-phrase')).toHaveText(anchor);
+    await expect(page.locator('.playback-position-label')).toHaveText(position);
+    await expect(page.getByTestId('current-phrase')).toHaveCSS('writing-mode', 'vertical-rl');
+    await expect.poll(() => verticalGlyphsFit(page, 'reader-stage')).toBe(true);
+    await settings(page);
+  }
+  await close(page);
+  await page.getByRole('button', { name: /^全画面(?:で読む)?$/ }).click();
+  await expect.poll(() => verticalGlyphsFit(page, 'reader-stage')).toBe(true);
+  await page.screenshot({ path: test.info().outputPath('vertical-phrase-fullscreen.png') });
+  await page.getByRole('button', { name: '全画面を終了', exact: true }).click();
+  await page.getByRole('button', { name: '端末に保存', exact: true }).click();
+  await page.reload(); await page.getByRole('button', { name: '続きから開く', exact: true }).click();
+  await expect(page.getByTestId('current-phrase')).toHaveCSS('writing-mode', 'vertical-rl');
+  await expect(page.getByTestId('current-phrase')).toHaveText(anchor);
+  await settings(page); await page.getByRole('button', { name: '表示設定をリセット', exact: true }).click();
+  await expect(page.getByLabel('本文の向き', { exact: true })).toHaveValue('horizontal-tb'); await close(page);
+  await expect(page.getByTestId('current-phrase')).toHaveText(anchor);
+  await expect(page.getByTestId('current-phrase')).toHaveCSS('writing-mode', 'horizontal-tb');
+  await settings(page);
+  await page.getByLabel('本文の向き', { exact: true }).selectOption('vertical-rl');
+  await page.getByLabel('まとめる', { exact: true }).selectOption('24');
+  await page.getByLabel('文字サイズ', { exact: true }).fill('96'); await close(page);
+  await expect.poll(() => verticalGlyphsFit(page, 'reader-stage')).toBe(true);
+  await page.getByLabel('読む速さ（字/分）', { exact: true }).fill('100');
+  await page.getByRole('button', { name: '全画面で読む', exact: true }).click();
+  const full = page.locator('.fullscreen-reader[data-fullscreen="true"]');
+  await full.getByRole('button', { name: '再生', exact: true }).click();
+  await expect(full).toHaveAttribute('data-playing', 'true');
+  await expect(full.locator('.guide-top')).toBeVisible();
+  await expect(full.locator('.guide-bottom')).toBeVisible();
+  await expect(full.locator('.guide-top')).not.toHaveCSS('opacity', '0');
+  await expect(full.locator('.guide-bottom')).not.toHaveCSS('opacity', '0');
+  await page.screenshot({ path: test.info().outputPath('vertical-guides-playing.png') });
+  await full.getByTestId('current-phrase').click();
+  await full.getByRole('button', { name: '全画面を終了', exact: true }).click();
+});
+
+async function verticalGlyphsFit(page: Page, stage: string) {
+  return page.getByTestId(stage).evaluate(element => {
+    const frame = element.getBoundingClientRect();
+    const phrase = element.querySelector('.phrase')!;
+    const markers = [...element.querySelectorAll<HTMLElement>('.guide')].map(node => node.getBoundingClientRect());
+    const walker = document.createTreeWalker(phrase, NodeFilter.SHOW_TEXT);
+    let count = 0;
+    while (walker.nextNode()) {
+      if (!walker.currentNode.textContent?.trim()) continue;
+      const range = document.createRange(); range.selectNodeContents(walker.currentNode);
+      for (const rect of range.getClientRects()) {
+        count++;
+        if (rect.left < frame.left || rect.right > frame.right || rect.top < frame.top || rect.bottom > frame.bottom) return false;
+        if (markers.some(marker => rect.left < marker.right && rect.right > marker.left && rect.top < marker.bottom && rect.bottom > marker.top)) return false;
+      }
+    }
+    return count > 0;
+  });
+}
+
+test('vertical Guide virtualizes right-to-left columns, follows search and preserves the anchor on manual scroll', async ({ page }) => {
+  const text = '静かな<ruby>図書館<rt>としょかん</rt></ruby>で記録を読む。'.repeat(14) + '現在位置の目印です。' + '続きをゆっくり読む。'.repeat(25) + '\n\n' + '朝に本を読み、原文を確かめる。\n\n'.repeat(1200) + '末尾の標識です。';
+  await read(page, text); await settings(page);
+  await page.getByLabel('本文の向き', { exact: true }).selectOption('vertical-rl'); await close(page);
+  await page.getByRole('button', { name: /^(Guide全文|全文表示)$/ }).click();
+  const viewport = page.getByTestId('guide-viewport');
+  await expect(viewport).toHaveCSS('writing-mode', 'vertical-rl');
+  await expect(page.locator('.guide-unit rt').first()).toHaveText('としょかん');
+  expect(await page.locator('.guide-unit').count()).toBeLessThan(250);
+  for (const query of ['目印', '末尾の標識']) {
+    await page.getByLabel('Guide本文を検索', { exact: true }).fill(query);
+    await page.getByRole('button', { name: '検索して移動', exact: true }).click();
+    await expect(page.locator('.guide-unit[aria-current="location"]').first()).toContainText(query === '目印' ? '目印' : '末尾');
+    await expect.poll(() => viewport.evaluate(element => {
+      const target = element.querySelector('.guide-unit[aria-current="location"]');
+      const frame = element.getBoundingClientRect(); const rect = target?.getClientRects()[0];
+      return Boolean(rect && rect.left >= frame.left && rect.right <= frame.right && rect.top >= frame.top && rect.bottom <= frame.bottom);
+    })).toBe(true);
+    expect(await page.locator('.guide-unit').count()).toBeLessThan(250);
+  }
+  const position = await page.locator('.playback-position-label').innerText();
+  const before = await viewport.evaluate(element => element.scrollLeft);
+  await viewport.hover(); await page.mouse.wheel(0, -2000);
+  await expect(page.getByRole('button', { name: '現在位置を追従', exact: true })).toBeVisible();
+  await expect.poll(() => viewport.evaluate(element => element.scrollLeft)).toBeGreaterThan(before);
+  await expect(page.locator('.playback-position-label')).toHaveText(position);
+  await page.getByRole('button', { name: '現在位置を追従', exact: true }).click();
+  await expect.poll(() => viewport.evaluate(element => {
+    const target = element.querySelector('.guide-unit[aria-current="location"]');
+    const frame = element.getBoundingClientRect(); const rect = target?.getClientRects()[0];
+    return Boolean(rect && rect.left >= frame.left && rect.right <= frame.right);
+  })).toBe(true);
+  await page.getByRole('button', { name: /^全画面(?:で読む)?$/ }).click();
+  await expect(viewport).toHaveCSS('writing-mode', 'vertical-rl');
+  await expect.poll(() => viewport.evaluate(element => {
+    const target = element.querySelector('.guide-unit[aria-current="location"]');
+    const frame = element.getBoundingClientRect(); const rect = target?.getClientRects()[0];
+    return Boolean(rect && rect.left >= frame.left && rect.right <= frame.right);
+  })).toBe(true);
+  await page.getByRole('button', { name: '全画面を終了', exact: true }).click();
+  await page.getByRole('button', { name: /^(Flash|フレーズ表示)$/ }).click();
+  await expect(page.getByTestId('current-phrase')).toContainText('末尾');
+  await expect(page.getByTestId('current-phrase')).toHaveCSS('writing-mode', 'vertical-rl');
+});
+
+test('audio vertical layout keeps timing, works fullscreen and restores direction after reload', async ({ page }) => {
+  await audioFixture(page);
+  const slider = page.getByRole('slider', { name: '音声の再生位置', exact: true });
+  await slider.fill('6');
+  await settings(page); await page.getByLabel('本文の向き', { exact: true }).selectOption('vertical-rl'); await close(page);
+  await expect(page.getByTestId('audio-sentence')).toHaveCSS('writing-mode', 'vertical-rl');
+  await expect(page.locator('.audio-sentence rt')).toHaveText('としょかん');
+  expect(Number(await slider.inputValue())).toBeCloseTo(6, 2);
+  await expect.poll(() => verticalGlyphsFit(page, 'audio-stage')).toBe(true);
+  await page.getByRole('button', { name: /^全画面(?:で読む)?$/ }).click();
+  await expect.poll(() => verticalGlyphsFit(page, 'audio-stage')).toBe(true);
+  const full = page.locator('.fullscreen-reader[data-fullscreen="true"]');
+  await full.getByRole('button', { name: '再生', exact: true }).click();
+  await expect(full).toHaveAttribute('data-playing', 'true');
+  await expect(full.locator('.guide-top')).toBeVisible();
+  await expect(full.locator('.guide-bottom')).toBeVisible();
+  await expect(full.locator('.guide-top')).not.toHaveCSS('opacity', '0');
+  await expect(full.locator('.guide-bottom')).not.toHaveCSS('opacity', '0');
+  await full.getByTestId('audio-phrase').click();
+  await page.getByRole('button', { name: '全画面を終了', exact: true }).click();
+  await slider.fill('6');
+  await page.getByRole('button', { name: /^(Guide全文|全文表示)$/ }).click();
+  await expect(page.getByTestId('guide-viewport')).toHaveCSS('writing-mode', 'vertical-rl');
+  expect(Number(await slider.inputValue())).toBeCloseTo(6, 2);
+  await page.getByRole('button', { name: /^(Flash|フレーズ表示)$/ }).click();
+  await page.getByRole('button', { name: '再生', exact: true }).click();
+  await expect.poll(async () => Number(await slider.inputValue())).toBeGreaterThan(6);
+  await page.getByRole('button', { name: '一時停止', exact: true }).click();
+  await page.reload();
+  await expect(page.getByTestId('audio-sentence')).toHaveCSS('writing-mode', 'vertical-rl');
+  await page.getByLabel('注視点ガイド', { exact: true }).uncheck();
+  await page.getByRole('button', { name: '全画面で読む', exact: true }).click();
+  await full.getByRole('button', { name: '再生', exact: true }).click();
+  await expect(full).toHaveAttribute('data-playing', 'true');
+  await expect(full.locator('.guide-top')).toHaveCSS('opacity', '0');
+  await expect(full.locator('.guide-bottom')).toHaveCSS('opacity', '0');
+  await full.getByTestId('audio-phrase').click();
+  await full.getByRole('button', { name: '全画面を終了', exact: true }).click();
+  await settings(page); await page.getByLabel('本文の向き', { exact: true }).selectOption('horizontal-tb'); await close(page);
+  await expect(page.getByTestId('audio-sentence')).toHaveCSS('writing-mode', 'horizontal-tb');
 });

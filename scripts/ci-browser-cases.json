@@ -1398,5 +1398,65 @@
       "audio",
       "layout"
     ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "reading-options.spec.ts",
+    "title": "vertical phrases fit ruby and guides, retain position and restore/reset the writing direction",
+    "lane": "related",
+    "domains": [
+      "layout",
+      "audio"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "reading-options.spec.ts",
+    "title": "vertical Guide virtualizes right-to-left columns, follows search and preserves the anchor on manual scroll",
+    "lane": "related",
+    "domains": [
+      "layout",
+      "audio"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "reading-options.spec.ts",
+    "title": "audio vertical layout keeps timing, works fullscreen and restores direction after reload",
+    "lane": "related",
+    "domains": [
+      "layout",
+      "audio"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "reading-options.spec.ts",
+    "title": "vertical phrases fit ruby and guides, retain position and restore/reset the writing direction",
+    "lane": "related",
+    "domains": [
+      "layout",
+      "audio"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "reading-options.spec.ts",
+    "title": "vertical Guide virtualizes right-to-left columns, follows search and preserves the anchor on manual scroll",
+    "lane": "related",
+    "domains": [
+      "layout",
+      "audio"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "reading-options.spec.ts",
+    "title": "audio vertical layout keeps timing, works fullscreen and restores direction after reload",
+    "lane": "related",
+    "domains": [
+      "layout",
+      "audio"
+    ]
   }
 ]

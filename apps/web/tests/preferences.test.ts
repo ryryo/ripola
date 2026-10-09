@@ -10,10 +10,11 @@ function storage() {
 test('preferences retain separate speeds and shared display settings without manuscript data', () => {
   const local = storage();
   writePreferences({ audioRate: '5' }, local);
-  writePreferences({ settings: { ...DEFAULT_SETTINGS, cpm: 850, contrast: 'night', ruby: false, fontSize: 72 } }, local);
+  writePreferences({ settings: { ...DEFAULT_SETTINGS, cpm: 850, contrast: 'night', ruby: false, fontSize: 72, writingMode: 'vertical-rl' } }, local);
   assert.equal(readPreferences(local).audioRate, '5');
   assert.equal(readPreferences(local).settings.cpm, 850);
   assert.equal(readPreferences(local).settings.contrast, 'night');
+  assert.equal(readPreferences(local).settings.writingMode, 'vertical-rl');
   assert.deepEqual(Object.keys(JSON.parse(local.getItem(PREFERENCES_KEY)!)).sort(), ['audioRate', 'schemaVersion', 'settings']);
 });
 test('malformed, unsupported and inaccessible storage leave valid bounded defaults', () => {
@@ -22,7 +23,7 @@ test('malformed, unsupported and inaccessible storage leave valid bounded defaul
     local.setItem(PREFERENCES_KEY, source);
     assert.deepEqual(readPreferences(local), { settings: DEFAULT_SETTINGS, audioRate: '2.5' });
   }
-  local.setItem(PREFERENCES_KEY, JSON.stringify({ schemaVersion: 1, audioRate: 6, settings: { cpm: -1, fontSize: 999, fontFamily: '__proto__', mode: 'other', contrast: 'bad', ruby: 'false', guide: false, groupTarget: null } }));
+  local.setItem(PREFERENCES_KEY, JSON.stringify({ schemaVersion: 1, audioRate: 6, settings: { cpm: -1, fontSize: 999, fontFamily: '__proto__', mode: 'other', writingMode: 'sideways', contrast: 'bad', ruby: 'false', guide: false, groupTarget: null } }));
   assert.deepEqual(readPreferences(local), { settings: { ...DEFAULT_SETTINGS, guide: false }, audioRate: '2.5' });
   for (const audioRate of ['NaN', '0.49', '2.6', null, false, true, {}, [], [2]]) {
     local.setItem(PREFERENCES_KEY, JSON.stringify({ schemaVersion: 1, audioRate }));
@@ -35,7 +36,7 @@ test('malformed, unsupported and inaccessible storage leave valid bounded defaul
 });
 test('old audio display preferences migrate; reset preserves both speeds and rhythm', () => {
   const local = storage();
-  const settings = { ...DEFAULT_SETTINGS, fontFamily: 'noto-serif-jp' as const, cpm: 900, punctuationPause: false, fontSize: 72, contrast: 'night' as const };
+  const settings = { ...DEFAULT_SETTINGS, fontFamily: 'noto-serif-jp' as const, cpm: 900, punctuationPause: false, fontSize: 72, contrast: 'night' as const, writingMode: 'vertical-rl' as const };
   local.setItem('rsvp-audio-reading-options-v2', JSON.stringify(settings));
   assert.deepEqual(readPreferences(local).settings, settings);
   writePreferences({ audioRate: '4.75', settings: resetDisplaySettings(settings) }, local);

@@ -18,7 +18,7 @@ RIPOLA_CI_MODE=normal RIPOLA_CI_DOMAINS=layout pnpm test:ci-browser
 pnpm test:ci-browser
 ```
 
-mode未指定はfullです。Windows PowerShellでは同じ変数を `$env:RIPOLA_CI_MODE='normal'` などで設定します。fullは登録済みの全ケース、通常は必須normalと該当domainのrelatedのunionです。2026-10-09時点ではfull142件、追加領域のない通常14件、全関連領域を含む通常96件です。fullの4件はnative VOICEVOX等のopt-in条件がなければskipします。有料実合成や個人書籍は使いません。
+mode未指定はfullです。Windows PowerShellでは同じ変数を `$env:RIPOLA_CI_MODE='normal'` などで設定します。fullは登録済みの全ケース、通常は必須normalと該当domainのrelatedのunionです。2026-10-09時点ではfull148件、追加領域のない通常14件、全関連領域を含む通常102件です。fullの4件はnative VOICEVOX等のopt-in条件がなければskipします。有料実合成や個人書籍は使いません。
 
 折り返しの6ケースは、通常では3画面幅ごとに全4書体を確認し、大小文字・ルビ有無を組み合わせて計24通りを再生します。各書体は3画面幅を通して両文字サイズ・両ルビ状態を確認します。fullでは元の72通り（3幅×テキスト16通り＋音声8通り）を網羅します。描画・音声の観測時間や溢れ・文字サイズ変動・スクロール・進捗・ガイドの判定は共通です。書体×サイズ×ルビ×幅の高次の相互作用はfullで検出する範囲です。
 
