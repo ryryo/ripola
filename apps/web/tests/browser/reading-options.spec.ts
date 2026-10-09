@@ -256,6 +256,10 @@ test('audio fullscreen keeps the media clock, remembers rate and shares display 
   await page.mouse.move(100, 100);
   await expect(full).toHaveAttribute('data-playing', 'true');
   await expect(full.locator('.stage-topline')).toBeHidden();
+  await expect(full.locator('.guide-top')).toBeVisible();
+  await expect(full.locator('.guide-bottom')).toBeVisible();
+  await expect(full.locator('.guide-top')).not.toHaveCSS('opacity', '0');
+  await expect(full.locator('.guide-bottom')).not.toHaveCSS('opacity', '0');
   await expect(full.getByTestId('stopped-context')).toBeHidden();
   await expect(full.locator('.fullscreen-seek')).toHaveCSS('opacity', '0');
   if (!info.project.name.startsWith('mobile')) {
@@ -325,6 +329,18 @@ test('vertical phrases fit ruby and guides, retain position and restore/reset th
   await page.getByLabel('まとめる', { exact: true }).selectOption('24');
   await page.getByLabel('文字サイズ', { exact: true }).fill('96'); await close(page);
   await expect.poll(() => verticalGlyphsFit(page, 'reader-stage')).toBe(true);
+  await page.getByLabel('読む速さ（字/分）', { exact: true }).fill('100');
+  await page.getByRole('button', { name: '全画面で読む', exact: true }).click();
+  const full = page.locator('.fullscreen-reader[data-fullscreen="true"]');
+  await full.getByRole('button', { name: '再生', exact: true }).click();
+  await expect(full).toHaveAttribute('data-playing', 'true');
+  await expect(full.locator('.guide-top')).toBeVisible();
+  await expect(full.locator('.guide-bottom')).toBeVisible();
+  await expect(full.locator('.guide-top')).not.toHaveCSS('opacity', '0');
+  await expect(full.locator('.guide-bottom')).not.toHaveCSS('opacity', '0');
+  await page.screenshot({ path: test.info().outputPath('vertical-guides-playing.png') });
+  await full.getByTestId('current-phrase').click();
+  await full.getByRole('button', { name: '全画面を終了', exact: true }).click();
 });
 
 async function verticalGlyphsFit(page: Page, stage: string) {
@@ -403,7 +419,16 @@ test('audio vertical layout keeps timing, works fullscreen and restores directio
   await expect.poll(() => verticalGlyphsFit(page, 'audio-stage')).toBe(true);
   await page.getByRole('button', { name: /^全画面(?:で読む)?$/ }).click();
   await expect.poll(() => verticalGlyphsFit(page, 'audio-stage')).toBe(true);
+  const full = page.locator('.fullscreen-reader[data-fullscreen="true"]');
+  await full.getByRole('button', { name: '再生', exact: true }).click();
+  await expect(full).toHaveAttribute('data-playing', 'true');
+  await expect(full.locator('.guide-top')).toBeVisible();
+  await expect(full.locator('.guide-bottom')).toBeVisible();
+  await expect(full.locator('.guide-top')).not.toHaveCSS('opacity', '0');
+  await expect(full.locator('.guide-bottom')).not.toHaveCSS('opacity', '0');
+  await full.getByTestId('audio-phrase').click();
   await page.getByRole('button', { name: '全画面を終了', exact: true }).click();
+  await slider.fill('6');
   await page.getByRole('button', { name: /^(Guide全文|全文表示)$/ }).click();
   await expect(page.getByTestId('guide-viewport')).toHaveCSS('writing-mode', 'vertical-rl');
   expect(Number(await slider.inputValue())).toBeCloseTo(6, 2);
@@ -413,6 +438,14 @@ test('audio vertical layout keeps timing, works fullscreen and restores directio
   await page.getByRole('button', { name: '一時停止', exact: true }).click();
   await page.reload();
   await expect(page.getByTestId('audio-sentence')).toHaveCSS('writing-mode', 'vertical-rl');
+  await page.getByLabel('注視点ガイド', { exact: true }).uncheck();
+  await page.getByRole('button', { name: '全画面で読む', exact: true }).click();
+  await full.getByRole('button', { name: '再生', exact: true }).click();
+  await expect(full).toHaveAttribute('data-playing', 'true');
+  await expect(full.locator('.guide-top')).toHaveCSS('opacity', '0');
+  await expect(full.locator('.guide-bottom')).toHaveCSS('opacity', '0');
+  await full.getByTestId('audio-phrase').click();
+  await full.getByRole('button', { name: '全画面を終了', exact: true }).click();
   await settings(page); await page.getByLabel('本文の向き', { exact: true }).selectOption('horizontal-tb'); await close(page);
   await expect(page.getByTestId('audio-sentence')).toHaveCSS('writing-mode', 'horizontal-tb');
 });

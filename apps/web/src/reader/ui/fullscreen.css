@@ -57,8 +57,8 @@
   padding: 8px 24px;
   background: var(--panel);
 }
-.fullscreen-reader[data-fullscreen='true'][data-playing='true'] .stage-topline,
-.fullscreen-reader[data-fullscreen='true'][data-playing='true'] .guide { visibility: hidden; }
+/* Keep fixation guides governed by the reader's guide setting during playback. */
+.fullscreen-reader[data-fullscreen='true'][data-playing='true'] .stage-topline { visibility: hidden; }
 .fullscreen-reader[data-fullscreen='true'] .guide-reader { flex: 1; min-height: 0; padding-top: 64px; padding-bottom: calc(var(--fullscreen-footer-height, 170px) + 12px); }
 .fullscreen-reader[data-fullscreen='true'] .guide-viewport { height: auto; flex: 1; min-height: 0; }
 .fullscreen-reader[data-fullscreen='true'][data-playing='true'] .guide-toolbar,
