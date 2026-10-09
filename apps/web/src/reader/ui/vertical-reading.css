@@ -1,0 +1,8 @@
+.writing-mode-setting label { display: flex; flex-direction: column; gap: 7px; font-size: 13px; margin: 12px 0; }
+.writing-mode-setting select { padding: 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); color: var(--ink); font: inherit; }
+.phrase-container.vertical-phrase-frame { flex-direction: row-reverse; align-items: center; min-width: 0; }
+.vertical-phrase-frame .phrase { max-height: 100%; min-height: 0; min-width: 0; text-orientation: mixed; }
+.vertical-phrase-frame .guide { width: 15px; height: 1px; }
+.guide-viewport[data-writing-mode='vertical-rl'] { writing-mode: vertical-rl; text-orientation: mixed; overflow-y: hidden; }
+.guide-viewport[data-writing-mode='vertical-rl'] .guide-row { inline-size: 100%; }
+.guide-viewport[data-writing-mode='vertical-rl'] .guide-unit { text-align: start; }

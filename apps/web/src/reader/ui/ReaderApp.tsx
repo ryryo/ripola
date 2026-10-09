@@ -15,6 +15,7 @@ import type { DraftDocument } from '../model';
 import { Brand } from '../../ui/Brand';
 import { AudioDemo } from './AudioDemo';
 import { PhraseDisplay, RubyText } from './PhraseDisplay';
+import { WritingModeSelect } from './WritingModeSelect';
 import { FontSelect, GroupSettings, ShortcutHelp, useReadingFont } from './ReadingOptions';
 import { READING_FONTS } from '../reading-fonts';
 import { groupIndexAt, groupReadingUnits } from '../display-groups';
@@ -326,7 +327,7 @@ export function ReaderApp() {
             speed={<label>読む速さ（字/分）<input aria-label="読む速さ（字/分）" type="number" min="100" max="3000" step="50" value={cpmInput} onChange={event => { setCpmInput(event.target.value); const value = Number(event.target.value); if (Number.isFinite(value) && value >= 100 && value <= 3000) update({ cpm: Math.round(value) }); }} onBlur={() => setCpmInput(String(settings.cpm))} /></label>}>
           <section className={`reader-stage ${settings.mode === 'guide' ? 'guide-mode' : ''} ${settings.guide ? 'with-guide' : ''}`} aria-label="フレーズ表示" data-testid="reader-stage">
             <div className="stage-topline"><span>{completed ? '読了' : current?.kind === 'static' ? '原文で確認' : playback.status === 'playing' ? '再生中' : '一時停止'}</span><span className="playback-position-label">{playback.status === 'playing' ? '\u00a0' : `${playback.index + 1} / ${document.units.length} フレーズ`}</span></div>
-            {settings.mode === 'guide' ? <GuideReader blocks={document.blocks} units={document.units} currentIndices={displayGroup ? Array.from({ length: displayGroup.endIndex - displayGroup.startIndex + 1 }, (_, i) => displayGroup.startIndex + i) : [playback.index]} playing={playback.status === 'playing'} ruby={settings.ruby} family={READING_FONTS[font.applied].family} onJump={index => controller.seek(index)} onPause={pauseReading} /> : current?.kind === 'static' ? <div className="static-notice"><h2>コード・表は原文で。</h2><p>内容を確認してから、次のフレーズへ進めます。</p><Button variant="light" onClick={openSource}>原文を開く</Button></div> : <PhraseDisplay unit={displayGroup?.unit ?? current} fontSize={settings.fontSize} ruby={settings.ruby} family={READING_FONTS[font.applied].family} />}
+            {settings.mode === 'guide' ? <GuideReader key={settings.writingMode} writingMode={settings.writingMode} blocks={document.blocks} units={document.units} currentIndices={displayGroup ? Array.from({ length: displayGroup.endIndex - displayGroup.startIndex + 1 }, (_, i) => displayGroup.startIndex + i) : [playback.index]} playing={playback.status === 'playing'} ruby={settings.ruby} family={READING_FONTS[font.applied].family} onJump={index => controller.seek(index)} onPause={pauseReading} /> : current?.kind === 'static' ? <div className="static-notice"><h2>コード・表は原文で。</h2><p>内容を確認してから、次のフレーズへ進めます。</p><Button variant="light" onClick={openSource}>原文を開く</Button></div> : <PhraseDisplay writingMode={settings.writingMode} unit={displayGroup?.unit ?? current} fontSize={settings.fontSize} ruby={settings.ruby} family={READING_FONTS[font.applied].family} />}
 
             <FullscreenEnterButton fullscreen={fullscreen} />
           </section>
@@ -351,6 +352,7 @@ export function ReaderApp() {
         {document && <section className="settings-section"><h2>本文の名前</h2><TitleEditor title={document.title} onRename={renameDocument} /></section>}
         <section className="settings-section"><h2>文字と表示</h2>
           <FontSelect value={settings.fontFamily ?? 'system'} onChange={fontFamily => { controller.pause(); update({ fontFamily }); }} phase={font.phase} error={font.error} />
+          <WritingModeSelect value={settings.writingMode} onChange={writingMode => { controller.pause(); update({ writingMode }); }} />
           <GroupSettings settings={settings} onChange={patch => { controller.pause(); update(patch); }} />
           <Switch label="停止時に前後の文脈を表示" checked={settings.context ?? true} onChange={e => update({ context: e.currentTarget.checked })} />
           <label className="font-size-setting">文字サイズ <strong>{settings.fontSize} px</strong><input aria-label="文字サイズ" type="range" min="24" max="96" step="2" value={settings.fontSize} onChange={e => update({ fontSize: Number(e.target.value) })} /></label>

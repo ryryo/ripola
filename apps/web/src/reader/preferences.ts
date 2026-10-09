@@ -18,6 +18,7 @@ export function normalizeSettings(value: unknown): ReaderSettings {
   if (integer('groupMinimum', 0, 12)) settings.groupMinimum = Number(stored.groupMinimum);
   for (const key of ['punctuationPause', 'ruby', 'guide', 'context'] as const) if (typeof stored[key] === 'boolean') settings[key] = stored[key];
   if (isReadingFont(stored.fontFamily)) settings.fontFamily = stored.fontFamily;
+  if (stored.writingMode === 'horizontal-tb' || stored.writingMode === 'vertical-rl') settings.writingMode = stored.writingMode;
   if (stored.mode === 'flash' || stored.mode === 'guide') settings.mode = stored.mode;
   if (stored.contrast === 'paper' || stored.contrast === 'night') settings.contrast = stored.contrast;
   return settings;

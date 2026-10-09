@@ -39,4 +39,8 @@ test('old six-field settings migrate without changing the saved source anchor; a
   assert.deepEqual(restored?.settings, DEFAULT_SETTINGS);
   await assert.rejects(saveReading({ document, anchor, settings: { ...old, fontFamily: 'https://example.com/font.css' } as unknown as typeof DEFAULT_SETTINGS }));
   await assert.rejects(saveReading({ document, anchor, settings: { ...old, groupTarget: 999 } }));
+  await saveReading({ document, anchor, settings: { ...old, writingMode: 'vertical-rl' } });
+  assert.equal((await loadReading())?.settings.writingMode, 'vertical-rl');
+  assert.deepEqual((await loadReading())?.anchor, anchor);
+  await assert.rejects(saveReading({ document, anchor, settings: { ...old, writingMode: 'sideways' } as unknown as typeof DEFAULT_SETTINGS }));
 });
