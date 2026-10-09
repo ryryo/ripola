@@ -196,7 +196,8 @@
     "lane": "related",
     "domains": [
       "generation"
-    ]
+    ],
+    "quick": true
   },
   {
     "project": "desktop-chromium",
@@ -247,7 +248,8 @@
     "lane": "related",
     "domains": [
       "generation"
-    ]
+    ],
+    "quick": true
   },
   {
     "project": "desktop-chromium",
@@ -1327,7 +1329,8 @@
     "domains": [
       "layout",
       "audio"
-    ]
+    ],
+    "quick": true
   },
   {
     "project": "desktop-chromium",
@@ -1347,7 +1350,8 @@
     "domains": [
       "layout",
       "audio"
-    ]
+    ],
+    "quick": true
   },
   {
     "project": "mobile-chromium",
@@ -1417,7 +1421,8 @@
     "domains": [
       "layout",
       "audio"
-    ]
+    ],
+    "quick": true
   },
   {
     "project": "desktop-chromium",
@@ -1427,7 +1432,8 @@
     "domains": [
       "layout",
       "audio"
-    ]
+    ],
+    "quick": true
   },
   {
     "project": "mobile-chromium",
@@ -1437,7 +1443,8 @@
     "domains": [
       "layout",
       "audio"
-    ]
+    ],
+    "quick": true
   },
   {
     "project": "mobile-chromium",

@@ -75,7 +75,7 @@ jobs:
         if: steps.scope.outputs.code == 'true'
         working-directory: apps/web
         run: npm pack --dry-run --ignore-scripts
-      - name: Browser smoke and related coverage (manual dispatch runs full)
+      - name: Browser smoke and focused regressions (manual dispatch runs full)
         if: steps.scope.outputs.code == 'true'
         env:
           RIPOLA_CI_MODE: ${{ steps.scope.outputs.mode }}
