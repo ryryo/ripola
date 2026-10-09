@@ -45,5 +45,5 @@ export function GroupSettings({ settings, onChange }: { settings: ReaderSettings
 }
 
 export function ShortcutHelp({ audio = false }: { audio?: boolean }) {
-  return <details className="shortcut-help"><summary>キーボード操作</summary><dl><dt>Space</dt><dd>再生・一時停止</dd><dt>← / →</dt><dd>{audio ? '原音声を5秒戻す・進める（再生状態を維持）' : '前・次の元フレーズへ移動して停止'}</dd><dt>Shift + ← / →</dt><dd>前・次の文へ移動{audio ? '（再生状態を維持）' : 'して停止'}</dd><dt>↑ / ↓</dt><dd>{audio ? '再生率を0.25倍ずつ変更（0.5〜3倍）' : '100字/分ずつ変更（100〜3000）'}</dd><dt>Home / End</dt><dd>先頭・末尾へ移動して停止</dd></dl><p className="input-note">入力欄・ボタン・スライダー・日本語変換中・開いたダイアログでは通常の操作を優先します。1文字キーのR・Vは割り当てていません。</p></details>;
+  return <details className="shortcut-help"><summary>キーボード操作</summary><dl><dt>Space</dt><dd>再生・一時停止</dd><dt>← / →</dt><dd>{audio ? '原音声を5秒戻す・進める（再生状態を維持）' : '前・次の元フレーズへ移動して停止'}</dd><dt>Shift + ← / →</dt><dd>前・次の文へ移動{audio ? '（再生状態を維持）' : 'して停止'}</dd><dt>↑ / ↓</dt><dd>{audio ? '再生率を0.25倍ずつ変更（0.5〜5倍）' : '100字/分ずつ変更（100〜3000）'}</dd><dt>Home / End</dt><dd>先頭・末尾へ移動して停止</dd></dl><p className="input-note">入力欄・ボタン・スライダー・日本語変換中・開いたダイアログでは通常の操作を優先します。1文字キーのR・Vは割り当てていません。</p></details>;
 }

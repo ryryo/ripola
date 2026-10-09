@@ -189,6 +189,18 @@ test('audio uses original ±5 seconds across chunks, retains play intent, suppor
   await page.keyboard.press('ArrowLeft'); await expect.poll(async () => Number(await slider.inputValue())).toBeCloseTo(9, 2);
   await page.keyboard.press('Shift+ArrowRight'); await expect.poll(async () => Number(await slider.inputValue())).toBeCloseTo(12, 2);
   await page.keyboard.press('ArrowDown'); await expect.poll(() => page.locator('audio').evaluate((element: HTMLAudioElement) => element.playbackRate)).toBe(2.25);
+  await page.getByRole('combobox', { name: '音声の速さ', exact: true }).click();
+  await page.getByRole('option', { name: '5倍', exact: true }).click();
+  await expect.poll(() => page.locator('audio').evaluate((element: HTMLAudioElement) => element.playbackRate)).toBe(5);
+  await page.locator('.generation-title h1').click(); await page.keyboard.press('ArrowUp');
+  await expect(page.getByRole('combobox', { name: '音声の速さ', exact: true })).toHaveValue('5倍');
+  await page.keyboard.press('ArrowDown');
+  await expect.poll(() => page.locator('audio').evaluate((element: HTMLAudioElement) => element.playbackRate)).toBe(4.75);
+  await page.keyboard.press('ArrowUp'); await page.keyboard.press('Shift+ArrowLeft');
+  await expect.poll(() => page.locator('audio').evaluate((element: HTMLAudioElement) => element.playbackRate)).toBe(5);
+  await page.getByRole('combobox', { name: '音声の速さ', exact: true }).click();
+  await page.getByRole('option', { name: '2.25倍', exact: true }).click();
+  await page.locator('.generation-title h1').click();
   await page.keyboard.press('End'); await expect.poll(async () => Number(await slider.inputValue())).toBeCloseTo(24, 2);
   await page.getByRole('button', { name: 'もう一度', exact: true }).click(); await expect(page.getByRole('button', { name: '一時停止', exact: true })).toBeVisible();
   await page.getByRole('button', { name: '一時停止', exact: true }).click(); await slider.fill('9');
