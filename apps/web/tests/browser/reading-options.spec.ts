@@ -231,3 +231,54 @@ test('sentence lists pause on opening/selection and close on every explicit resu
   await expect(page.getByTestId('sentence-list')).toHaveCount(0);
   await page.getByRole('button', { name: '一時停止', exact: true }).click();
 });
+
+test('audio fullscreen keeps the media clock, remembers rate and shares display reset with silent reading', async ({ page }, info) => {
+  await audioFixture(page);
+  await page.getByRole('combobox', { name: '音声の速さ', exact: true }).click();
+  await page.getByRole('option', { name: '4.75倍', exact: true }).click();
+  await page.getByRole('slider', { name: '音声の再生位置', exact: true }).fill('3');
+  await page.getByRole('button', { name: '全画面', exact: true }).click();
+  const full = page.locator('.fullscreen-reader[data-fullscreen="true"]');
+  await expect(full).toBeVisible();
+  await expect(full.getByRole('combobox', { name: '音声の速さ', exact: true })).toHaveValue('4.75');
+  await full.getByRole('combobox', { name: '音声の速さ', exact: true }).selectOption('1.25');
+  await expect.poll(() => page.locator('audio').evaluate((element: HTMLAudioElement) => element.playbackRate)).toBe(1.25);
+  const slider = full.getByRole('slider', { name: '音声の再生位置', exact: true });
+  await slider.fill('9');
+  await full.getByRole('button', { name: '再生', exact: true }).click();
+  await page.mouse.move(100, 100);
+  await expect(full).toHaveAttribute('data-playing', 'true');
+  await expect(full.locator('.stage-topline')).toBeHidden();
+  await expect(full.getByTestId('stopped-context')).toBeHidden();
+  await expect(full.locator('.fullscreen-seek')).toHaveCSS('opacity', '0');
+  if (!info.project.name.startsWith('mobile')) {
+    await full.locator('.fullscreen-footer').hover();
+    await expect(full.locator('.fullscreen-seek')).toHaveCSS('opacity', '1');
+    await expect(full.locator('.fullscreen-actions')).toBeHidden();
+    await slider.fill('13');
+    await expect(full).toHaveAttribute('data-playing', 'true');
+  }
+  await full.getByTestId('audio-phrase').click();
+  await expect(full).toHaveAttribute('data-playing', 'false');
+  await slider.fill('14');
+  await full.getByRole('button', { name: '全画面を終了', exact: true }).click();
+  await settings(page);
+  await page.getByLabel('暗い背景', { exact: true }).check();
+  await page.getByLabel('文字サイズ', { exact: true }).fill('72');
+  await close(page);
+  await page.reload();
+  await expect(page.getByRole('combobox', { name: '音声の速さ', exact: true })).toHaveValue('1.25倍');
+  await expect.poll(async () => Number(await page.getByRole('slider', { name: '音声の再生位置', exact: true }).inputValue())).toBeCloseTo(14, 2);
+  await settings(page);
+  await expect(page.getByLabel('暗い背景', { exact: true })).toBeChecked();
+  await expect(page.getByLabel('文字サイズ', { exact: true })).toHaveValue('72');
+  await page.getByRole('button', { name: '表示設定をリセット', exact: true }).click();
+  await expect(page.getByLabel('文字サイズ', { exact: true })).toHaveValue('56');
+  await close(page);
+  await expect(page.getByRole('combobox', { name: '音声の速さ', exact: true })).toHaveValue('1.25倍');
+  await page.goto('/');
+  await read(page);
+  await settings(page);
+  await expect(page.getByLabel('文字サイズ', { exact: true })).toHaveValue('56');
+  await expect(page.getByLabel('暗い背景', { exact: true })).not.toBeChecked();
+});

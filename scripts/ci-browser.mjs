@@ -1,7 +1,7 @@
 import { readdirSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { basename } from 'node:path';
-import { assertBrowserFiles, assertCaseInventory, selectedCases } from './ci-scope.mjs';
+import { assertBrowserFiles, assertCaseInventory, browserCases, selectedCases } from './ci-scope.mjs';
 
 assertBrowserFiles(readdirSync(new URL('../apps/web/tests/browser/', import.meta.url), { recursive: true }).filter(file => /\.(?:spec|test)\.[cm]?[jt]sx?$/.test(file)).map(file => basename(file)));
 const mode = process.env.RIPOLA_CI_MODE ?? 'full';
@@ -23,7 +23,7 @@ function listing(listMode, listDomains) {
 assertCaseInventory(listing('full', []));
 const expected = selectedCases(mode, domains);
 assertCaseInventory(listing(mode, domains), expected);
-console.log(`Browser scope: ${mode}; domains: ${domains.join(',') || 'none'}; selected ${expected.length}/134 (all 132 original cases retained in full).`);
+console.log(`Browser scope: ${mode}; domains: ${domains.join(',') || 'none'}; selected ${expected.length}/${browserCases.length} (all registered cases retained in full).`);
 if (process.argv.includes('--list')) process.exit(0);
 const run = spawnSync('pnpm', ['exec', 'playwright', 'test'], { stdio: 'inherit', env: { ...process.env, RIPOLA_CI_MODE: mode, RIPOLA_CI_DOMAINS: domains.join(',') } });
 if (run.error) throw run.error;

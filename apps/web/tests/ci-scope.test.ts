@@ -21,14 +21,14 @@ test('targeted source changes retain mandatory smoke and the appropriate extra c
   assert.equal(layout.filter(item => item.file === 'responsive.spec.ts').length, 6);
   assert.equal(layout.filter(item => item.file === 'guide.spec.ts').length, 2);
 });
-test('full preserves all original 132 cases and adds two Pages smoke cases; selection is a union', () => {
+test('full includes all registered reader and Pages cases; selection is a union', () => {
   const original = browserCases.filter(item => item.project !== 'pages-chromium');
-  assert.equal(original.length, 132);
+  assert.equal(original.length, 140);
   assert.equal(original.filter(item => item.lane === 'normal').length, 12);
   assert.equal(original.filter(item => item.lane === 'local_opt_in').length, 4);
-  assert.equal(selectedCases('full').length, 134);
+  assert.equal(selectedCases('full').length, 142);
   assert.equal(selectedCases('normal').length, 14);
-  assert.equal(selectedCases('normal', DOMAINS).length, 88);
+  assert.equal(selectedCases('normal', DOMAINS).length, 96);
   assertCaseInventory(browserCases);
   const files = [...new Set(browserCases.map(item => item.file))];
   assertBrowserFiles(files);
