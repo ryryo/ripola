@@ -54,7 +54,8 @@ test('omission and repetition are tentative source-mapped warnings; empty, low-s
   const normal = compareContent(QA_TEXT, candidate(QA_CANDIDATES.normal)); assert.equal(normal.evidence.status, 'indeterminate'); assert.deepEqual(normal.issues, []);
   const omitted = compareContent(QA_TEXT, candidate(QA_CANDIDATES.omitted), undefined, [], 'test-only');
   const omission = omitted.issues.find(i => i.code === 'possible-omission'); assert.ok(omission?.source); assert.ok(QA_TEXT.slice(omission.source.start, omission.source.end).includes('図書館'));
-  assert.ok(compareContent(QA_TEXT, candidate(QA_CANDIDATES.repeated), undefined, [], 'test-only').issues.some(i => i.code === 'possible-repetition'));
+  const repetition = compareContent(QA_TEXT, candidate(QA_CANDIDATES.repeated), undefined, [], 'test-only').issues.find(i => i.code === 'possible-repetition');
+  assert.ok(repetition?.source); assert.equal(QA_TEXT.slice(repetition.source.start, repetition.source.end), '図書館で');
   const weak = compareContent(QA_TEXT, candidate(QA_CANDIDATES.omitted)); assert.deepEqual(weak.issues, []); assert.equal(weak.evidence.status, 'indeterminate'); assert.ok(weak.evidence.differences?.length);
   assert.deepEqual(compareContent(QA_TEXT, candidate(QA_CANDIDATES.omitted, .2)).issues, []);
   assert.equal(compareContent(QA_TEXT, candidate('')).evidence.status, 'indeterminate');
