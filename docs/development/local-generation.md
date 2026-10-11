@@ -117,3 +117,15 @@ local profileだけに生成UI/API/Node coreを含めます。Pages/Workerはrou
 ## 生成後の自動圧縮
 
 全経路の生成runnerは同期補正後に共通のMP3圧縮・検証処理を実行し、その処理の終了後に生成jobを完了します。`automaticCompression`に進捗、元／圧縮bytes、削除済み中間WAV bytes、保持WAV数と結果を記録します。生成途中の新規WAVだけを削除候補とし、保存済み補正・他文書の必要性・source hashとMP3のhashを検査します。圧縮と整列はspeech-keyのlockを共有し、読み取り中のWAVを削除しません。詳細な証拠・削除意図・失敗理由は私的`audio-compression-jobs`へ保存します。圧縮中のプロセス停止だけなら次回起動時にcacheを検査して自動再開し、TTSや有料APIを再送しません。補正待ちやcodecエラーでは必要なWAVを保持します。[保存形式と検証](mp3-library.md)を参照してください。
+
+## 音声改善の共通接続口
+
+`GenerationService`の`ServiceDependencies.providers`で任意providerを明示登録します。`SpeechAdapter`のoptional `endpoint`・`capabilities`・`fingerprint(options)`はサーバー側で管理し、`GenerationConfig.providers`へ秘密を含まない利用状態を返します。Irodoriを未登録でも通常のVOICEVOX/Geminiは変わりません。共通coreはモデルの取得やnative runtimeの起動を行いません。
+
+合成要求はoptional `signal`と計画の`providerVersion`を渡します。`capabilities.cancellation='abort'`を明示したadapterだけが同じrunnerからの停止で進行中signalを受けます。未指定の既存adapterは以降の送信を止め、進行中の完成音声を保存する従来動作です。上流の課金取消を意味しません。
+
+`GenerationOptions.chunking`の欠落時は文単位です。`mode='auto'`は明示登録した`planChunks`へ、本文・options・providerVersion・能力・既定の文範囲を渡します。plannerは`{spans, version, settingsFingerprint}`を返し、coreが本文順・全範囲・ルビ境界を検査して安定chunk IDとspeech keyを作ります。planner identityは計画と本のrevisionへ含め、同じ発話本文・合成条件の完成音声は再利用します。`getJobPlan`は保存済み計画の未完了subsetを返す再開用プレビューです。新plannerを実行せず、旧chunkやcache keyを変更しません。
+
+`startGeneration.prioritizedChunkIds`と`prioritizeJobChunks(jobId, chunkIds)`は未来の実行順だけを変えます。指定は重複のない対象IDのsubsetで、残りは本文順です。各jobのrunnerの並行数は1を維持し、進行中requestは置換しません。plan/job/manifestのchunk配列は本文順を保ちます。`GenerationJob.executionOrder`がない旧jobは従来順です。
+
+部分manifestにはoptional `plannedChunkIds`（未保存分を含む本文順）と`generation={jobId,planId,planHash,sequence}`を保存します。`sequence`はbook lock内で公開ごとに増え、音声cacheのrevisionとは別です。これはmanifest公開の識別であり、整列・圧縮の検証を代替しません。`SavedAudioChunk.sourceOrder`は全計画内の位置です。旧本でこれらが欠ける場合は既存配列の順序を使い、閲覧時に保存本や音声を書き換えません。
