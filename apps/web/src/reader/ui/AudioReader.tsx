@@ -23,6 +23,7 @@ import { useScreenWakeLock } from './useScreenWakeLock';
 import { ReadingModeControls } from './ReadingModeControls';
 import { useReaderPreferences } from './useReaderPreferences';
 import { resetDisplaySettings } from '../preferences';
+import { AudioPrefetch, audioAssetKey, browserPrefetchEnvironment } from '../audio-prefetch';
 
 export function AudioReader({ book, onClose, attribution, localTools, demo = false, onRename }: { book: PlayableAudioBook; onClose: () => void; attribution?: string; localTools?: ReactNode; demo?: boolean; onRename?: (title: string) => Promise<void> }) {
   const validation = useMemo(() => {
@@ -31,6 +32,7 @@ export function AudioReader({ book, onClose, attribution, localTools, demo = fal
   }, [book]);
   const segments = useMemo(() => validation.valid ? audioSegments(book) : [], [book, validation.valid]);
   const phraseTargets = useMemo(() => audioPhraseTargets(segments), [segments]);
+  const audioChunks = useMemo(() => segments.map(value => value.chunk), [segments]);
   const mediaRevision = useMemo(() => segments.map(segment => `${segment.chunk.id}:${segment.chunk.audioUrl}:${segment.chunk.durationSeconds}`).join('|'), [segments]);
   const segmentsByBlock = useMemo(() => {
     const result = new Map<string, Array<{ segment: typeof segments[number]; index: number }>>();
@@ -61,8 +63,14 @@ export function AudioReader({ book, onClose, attribution, localTools, demo = fal
   const pendingSeek = useRef(0);
   const positionRef = useRef(0);
   const activeBook = useRef('');
+  const prefetch = useRef<AudioPrefetch | null>(null);
+  const prefetchBook = useRef('');
   const segment = segments[index];
   const storageKey = `rsvp-audio-position:${book.id}:${book.revision}`;
+  const assetIdentity = segment ? `${storageKey}:${audioAssetKey(segment.chunk)}` : storageKey;
+  // Snapshot a ready URL only when changing files. Completing a speculative
+  // fetch must never replace or restart the audio that is currently playing.
+  const audioSource = useMemo(() => segment ? (prefetchBook.current === storageKey ? prefetch.current?.source(segment.chunk) : undefined) ?? segment.chunk.audioUrl : '', [assetIdentity]);
   const display = audioDisplayAt(segment, position - (segment?.startSeconds ?? 0));
   const reading = playing || intent.current;
   const playableUnits = useMemo(() => phraseTargets.flatMap(target => target.cue.units), [phraseTargets]);
@@ -106,7 +114,8 @@ export function AudioReader({ book, onClose, attribution, localTools, demo = fal
     setPlaying(false);
     setBuffering(false);
     persist(sample());
-  }, [persist, sample]);
+    prefetch.current?.update(audioChunks, index, 0, Number(rate), false);
+  }, [persist, sample, segments, index, rate]);
 
   const font = useReadingFont(book.document.blocks, options.fontFamily ?? 'system', pause);
   const fullscreen = useFullscreenReader(pause);
@@ -127,6 +136,7 @@ export function AudioReader({ book, onClose, attribution, localTools, demo = fal
     setPosition(nextPosition);
     persist(nextPosition);
     setError('');
+    prefetch.current?.update(audioChunks, target.index, target.localSeconds, Number(rate), continuePlaying);
     if (target.index === index && audio.current && audio.current.readyState >= 1) {
       audio.current.currentTime = target.localSeconds;
       if (continuePlaying) void audio.current.play().catch(() => { if (attempt !== playRequest.current) return; intent.current = false; setPlaying(false); setError('再生を開始できませんでした。「再生」をもう一度押してください。'); });
@@ -136,7 +146,26 @@ export function AudioReader({ book, onClose, attribution, localTools, demo = fal
       setPlaying(false);
       setBuffering(continuePlaying);
     }
-  }, [index, persist, segments]);
+  }, [index, persist, segments, rate]);
+
+  useLayoutEffect(() => {
+    const owner = new AudioPrefetch(browserPrefetchEnvironment());
+    prefetchBook.current = storageKey;
+    prefetch.current = owner;
+    return () => { owner.dispose(); if (prefetch.current === owner) prefetch.current = null; };
+  }, [storageKey]);
+
+  useEffect(() => {
+    prefetch.current?.update(audioChunks, index, pendingSeek.current, Number(rate), intent.current);
+  }, [segments, index, rate, playing, storageKey]);
+
+  useLayoutEffect(() => {
+    const media = audio.current;
+    return () => {
+      // Removing src and loading also cancels the native media/Range request.
+      media?.pause(); media?.removeAttribute('src'); media?.load();
+    };
+  }, [assetIdentity]);
 
   // Restore before font preparation can pause/persist the reader on mount.
   useLayoutEffect(() => {
@@ -147,6 +176,7 @@ export function AudioReader({ book, onClose, attribution, localTools, demo = fal
     }
     activeBook.current = storageKey;
     intent.current = false;
+    playRequest.current++;
     audio.current?.pause(); setPlaying(false); setBuffering(false);
     const target = locateAudioTime(segments, saved);
     if (target.index !== index) mediaClock.current = null;
@@ -203,6 +233,7 @@ export function AudioReader({ book, onClose, attribution, localTools, demo = fal
     setError('');
     if (position >= total) { seek(0, true); return; }
     intent.current = true;
+    prefetch.current?.update(audioChunks, index, media.currentTime, Number(rate), true);
     try { await media.play(); }
     catch { if (attempt !== playRequest.current || media !== audio.current) return; intent.current = false; setPlaying(false); setBuffering(false); setError('音声を再生できませんでした。音声ファイルと端末の再生設定を確認してください。'); }
   }
@@ -234,7 +265,7 @@ export function AudioReader({ book, onClose, attribution, localTools, demo = fal
       {(options.mode ?? 'flash') === 'flash' && <StoppedContext groups={groups} groupIndex={groupIndex} playing={reading} enabled={options.context ?? true} ruby={ruby} onJump={target => seek(unitTimes.get(playableUnits[target]?.id) ?? 0, false)} />}
       </FullscreenReader>
       <p className="audio-alignment-status" data-testid="audio-precision" data-precision={display.precision} data-method={display.method} data-score={display.score}>{reading ? <>時刻：推定を含む音声同期<span>発話境界の精度を保証するものではありません。区切りごとの詳細は、一時停止すると確認できます。</span></> : <>時刻：{display.method === 'acoustic-estimated' ? '音声補助推定' : display.method === 'estimated' ? '表示用推定（時刻未検証）' : display.method === 'voicevox-mora' ? '音素時計（推定）' : display.precision === 'phrase' ? '整列結果（推定）' : '検査不能'}{display.score !== undefined ? ` · スコア${display.score.toFixed(3)}（時刻精度の確率ではありません）` : ''}<span>{display.method === 'acoustic-estimated' ? '音声の活動区間と整列の手掛かりを使う推定です。文節の発話境界を確定した時刻ではありません。' : display.method === 'estimated' ? '前後の時刻と文字数による表示用の推定です。発話境界を確定した時刻ではありません。' : display.method === 'voicevox-mora' ? display.querySource === 'captured' ? 'VOICEVOXの音素時刻（合成時に保存）を使用しています。' : 'VOICEVOXの音素時刻（再構成による推定）。元queryとの同一性は未確認です。' : display.precision === 'phrase' ? '整列時刻を使用しています。' : audioFallbackMessage(display.reason)}</span></>}</p>
-      <audio key={`${book.revision}:${index}`} ref={bindAudio} src={segment.chunk.audioUrl} preload="auto"
+      <audio key={assetIdentity} ref={bindAudio} src={audioSource} preload="auto"
         onLoadedMetadata={event => {
           if (!audio.current || event.currentTarget !== audio.current) return;
           const attempt = playRequest.current;
@@ -250,10 +281,11 @@ export function AudioReader({ book, onClose, attribution, localTools, demo = fal
           // A delayed pause from seek or natural completion must not cancel continuation.
           if (event.currentTarget !== audio.current || !event.currentTarget.paused || event.currentTarget.ended) return;
           intent.current = false; setPlaying(false); setBuffering(false); persist(sample());
+          prefetch.current?.update(audioChunks, index, 0, Number(rate), false);
         }}
         onWaiting={event => { if (event.currentTarget !== audio.current) return; sample(); setBuffering(true); }}
         onSeeking={event => { if (event.currentTarget === audio.current) sample(); }} onSeeked={event => { if (event.currentTarget !== audio.current) return; sample(); setBuffering(false); }}
-        onTimeUpdate={event => { if (event.currentTarget === audio.current) sample(); }}
+        onTimeUpdate={event => { if (event.currentTarget !== audio.current) return; sample(); prefetch.current?.update(audioChunks, index, event.currentTarget.currentTime, Number(rate), intent.current); }}
         onEnded={event => { if (event.currentTarget !== audio.current) return; if (index + 1 < segments.length) seek(segments[index + 1].startSeconds, intent.current); else { intent.current = false; setPlaying(false); positionRef.current = total; setPosition(total); persist(total); } }}
         onError={event => { if (event.currentTarget !== audio.current) return; intent.current = false; setPlaying(false); setBuffering(false); setError('保存音声を開けませんでした。ローカルサーバーと保存データを確認してください。音声の再生成は行いません。'); }} />
       <div className="audio-progress"><label htmlFor="audio-position">音声の再生位置 <span className="audio-time-label">{reading ? '\u00a0' : `${audioTimeLabel(position)} / ${audioTimeLabel(total)}`}</span></label><input id="audio-position" aria-label="音声の再生位置" type="range" min="0" max={total} step="0.01" value={Math.min(position, total)} onChange={event => seek(Number(event.target.value))} /></div>
