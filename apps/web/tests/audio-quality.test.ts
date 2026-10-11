@@ -106,6 +106,12 @@ test('unavailable and failed ASR remain indeterminate and corrupt audio retains 
   await disk.writeBytes(['audio', `${key}.wav`], new Uint8Array([1]));
   const fatal = await service.inspect(input); assert.equal(fatal.chunks[0].status, 'fatal'); assert.equal(fatal.chunks[0].issues[0].severity, 'fatal');
   assert.equal((await service.read(input.bookId, input.revision))?.chunks[0].status, 'fatal');
+  await disk.removeVerified(['audio', `${key}.wav`], digest(new Uint8Array([1])));
+  const missing = await service.inspect(input); assert.equal(missing.chunks[0].status, 'fatal');
+  assert.equal((await service.read(input.bookId, input.revision))?.chunks[0].status, 'fatal', 'current missing audio diagnostic must survive reopening');
+  await disk.move(['cache', `${key}.json`], ['cache-archive', `${key}.json`]);
+  await service.inspect(input);
+  assert.equal((await service.read(input.bookId, input.revision))?.chunks[0].status, 'fatal', 'missing audio and identity cache remain explicitly fatal');
   assert.ok(await disk.read(['audio-inspections', `${input.bookId}_${input.revision}.json`]));
 });
 
