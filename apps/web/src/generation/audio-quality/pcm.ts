@@ -14,7 +14,7 @@ export function inspectPcm(channels: readonly Float32Array[], sampleRate: number
     let energy = 0, clipped = false;
     for (const channel of channels) {
       const sample = channel[frame];
-      if (!Number.isFinite(sample) || Math.abs(sample) > 1.5) throw new Error('invalid-pcm-sample');
+      if (!Number.isFinite(sample)) throw new Error('invalid-pcm-sample');
       energy += sample * sample; peak = Math.max(peak, Math.abs(sample));
       if (Math.abs(sample) >= .999) { clipped = true; clippedSamples++; }
     }
