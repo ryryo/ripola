@@ -161,11 +161,15 @@ export function AudioReader({ book, onClose, attribution, localTools, demo = fal
 
   useLayoutEffect(() => {
     const media = audio.current;
+    // StrictMode repeats setup after cleanup while retaining the same DOM node.
+    if (media && audioSource && media.getAttribute('src') !== audioSource) {
+      media.src = audioSource; media.load();
+    }
     return () => {
       // Removing src and loading also cancels the native media/Range request.
       media?.pause(); media?.removeAttribute('src'); media?.load();
     };
-  }, [assetIdentity]);
+  }, [assetIdentity, audioSource]);
 
   // Restore before font preparation can pause/persist the reader on mount.
   useLayoutEffect(() => {
