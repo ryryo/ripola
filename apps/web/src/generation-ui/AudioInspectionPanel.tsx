@@ -4,6 +4,10 @@ import type { AudioBookManifest } from '../generation/contracts';
 import type { AudioInspection, AudioInspectionReport } from '../generation/audio-quality/contracts';
 import { getSavedAudioInspections, inspectSavedAudio } from '../generation/audio-quality/functions';
 
+function pauseOtherAudio(active: HTMLAudioElement) {
+  document.querySelectorAll('audio').forEach(audio => { if (audio !== active) audio.pause(); });
+}
+
 export function AudioInspectionResult({ result, audioUrl }: { result: AudioInspection; audioUrl?: string }) {
   const metrics = result.lightweight.metrics;
   return <details data-testid="audio-inspection-result">
@@ -15,7 +19,7 @@ export function AudioInspectionResult({ result, audioUrl }: { result: AudioInspe
     {result.content.candidate !== undefined && <><p>音声のみのASR候補：<q>{result.content.candidate || '空の認識候補'}</q></p><p>許容表記edit distance：{result.content.editDistance ?? '比較不能'} · 一致文字 {result.content.matchedCharacters ?? '未計測'} / {result.content.referenceCharacters ?? '未計測'}。token scoreは認識精度の確率ではありません。</p></>}
     {!!result.content.differences?.length && <ul>{result.content.differences.map((difference, index) => <li key={index}>ASRとの差分（音声異常とは未判定）：{difference.message} · 元範囲 {(result.source?.start ?? 0) + difference.start}–{(result.source?.start ?? 0) + difference.end}</li>)}</ul>}
     {result.issues.length > 0 && <ul>{result.issues.map((issue, index) => <li key={index}>{issue.severity === 'fatal' ? '構造不正' : 'warning'}：{issue.message}{issue.source && <> 元範囲 {issue.source.start}–{issue.source.end}{result.source && `「${result.text.slice(issue.source.start - result.source.start, issue.source.end - result.source.start)}」`}</>}{issue.audio && <> 音声 {issue.audio.startSeconds.toFixed(2)}–{issue.audio.endSeconds.toFixed(2)}秒</>}</li>)}</ul>}
-    {audioUrl && <audio controls preload="none" src={audioUrl} aria-label={`${result.chunkId}の確認用音声`} onPlay={event => { document.querySelectorAll('audio').forEach(audio => { if (audio !== event.currentTarget) audio.pause(); }); }} style={{ maxWidth: '100%', width: '100%' }} />}
+    {audioUrl && <audio controls preload="none" src={audioUrl} aria-label={`${result.chunkId}の確認用音声`} onPlay={event => pauseOtherAudio(event.currentTarget)} style={{ maxWidth: '100%', width: '100%' }} />}
     <details><summary>検査の根拠と版</summary><p>検査版：{result.inspectionVersion} · {result.inspectedAt}</p><p>元音声hash：<code style={{ overflowWrap: 'anywhere' }}>{result.audioHash}</code></p><p>検査した{result.mediaFormat.toUpperCase()} hash：<code style={{ overflowWrap: 'anywhere' }}>{result.mediaHash}</code></p><p>ASR：{result.content.modelVersion ?? '未実行'} · 許容表記：{result.content.spellingVersion}</p></details>
   </details>;
 }
@@ -23,6 +27,11 @@ export function AudioInspectionResult({ result, audioUrl }: { result: AudioInspe
 export function AudioInspectionPanel({ book }: { book: AudioBookManifest }) {
   const [report, setReport] = useState<AudioInspectionReport>();
   const [content, setContent] = useState(false), [busy, setBusy] = useState(false), [error, setError] = useState(''), [page, setPage] = useState(0);
+  useEffect(() => {
+    const play = (event: Event) => { if (event.target instanceof HTMLAudioElement) pauseOtherAudio(event.target); };
+    document.addEventListener('play', play, true);
+    return () => document.removeEventListener('play', play, true);
+  }, []);
   useEffect(() => {
     let active = true;
     setReport(undefined); setPage(0); setError('');
