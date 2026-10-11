@@ -1646,5 +1646,61 @@
       "audio",
       "generation"
     ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "audio-prefetch.spec.ts",
+    "title": "次音声は切替前に取得し、source順とmedia時計を保って連続再生する",
+    "lane": "related",
+    "domains": [
+      "audio"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "audio-prefetch.spec.ts",
+    "title": "slow networkの先読みはseek・停止・book離脱で取消され、遅延音声を再生しない",
+    "lane": "related",
+    "domains": [
+      "audio"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "audio-prefetch.spec.ts",
+    "title": "次音声は切替前に取得し、source順とmedia時計を保って連続再生する",
+    "lane": "related",
+    "domains": [
+      "audio"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "audio-prefetch.spec.ts",
+    "title": "slow networkの先読みはseek・停止・book離脱で取消され、遅延音声を再生しない",
+    "lane": "related",
+    "domains": [
+      "audio"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "audio-prefetch.spec.ts",
+    "title": "旧AACの静的サンプルでmedia時計・倍速・明示seekを保つ",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "distribution"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "audio-prefetch.spec.ts",
+    "title": "旧AACの静的サンプルでmedia時計・倍速・明示seekを保つ",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "distribution"
+    ]
   }
 ]
