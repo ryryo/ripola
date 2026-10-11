@@ -14,8 +14,8 @@ import { AudioInspectionService } from '../../src/generation/audio-quality/servi
 import { QA_TEXT, qaWave } from '../fixtures/audio-quality/fixture';
 
 test('保存音声QAを実local APIで保存・再検査し、元範囲と判定不能を確認する', async ({ page }, testInfo) => {
-  // This case starts its own server; cold SSR and lazy client transforms precede QA assertions.
-  testInfo.setTimeout(300_000);
+  // CI builds the local app before browsers. Test the built server with a private library.
+  testInfo.setTimeout(180_000);
   const root = await mkdtemp(join(tmpdir(), 'ripola-browser-qa-')), disk = new LibraryDisk(join(root, 'library'));
   const portServer = createServer(); await new Promise<void>(resolve => portServer.listen(0, '127.0.0.1', resolve));
   const port = (portServer.address() as { port: number }).port; await new Promise<void>(resolve => portServer.close(() => resolve()));
@@ -28,7 +28,7 @@ test('保存音声QAを実local APIで保存・再検査し、元範囲と判定
   const bookPath = ['books', `${book.id}_${book.revision}.json`];
   await disk.write(bookPath, book); await disk.writeBytes(['audio', `${key}.wav`], bytes); await disk.write(['cache', `${key}.json`], { schemaVersion: 1, status: 'ready', provider: 'gemini', hash: digest(bytes), durationSeconds: 5 });
   const before = await disk.readBytes(bookPath);
-  const child = spawn(process.execPath, [join(repository, 'apps/web/node_modules/vite/bin/vite.js'), '--host', '127.0.0.1', '--port', String(port), '--strictPort'], {
+  const child = spawn(process.execPath, [join(repository, 'apps/web/node_modules/vite/bin/vite.js'), 'preview', '--host', '127.0.0.1', '--port', String(port), '--strictPort'], {
     cwd: join(repository, 'apps/web'), stdio: ['ignore', 'pipe', 'pipe'], detached: process.platform !== 'win32',
     env: { ...process.env, RSVP_LIBRARY_DIR: disk.root, RSVP_LOCAL_ORIGIN: origin, RSVP_ENABLE_PAID_GENERATION: 'false', GEMINI_API_KEY: '', RSVP_ALIGNMENT_PYTHON: '', RSVP_ALIGNMENT_MODEL_DIR: '' },
   });
@@ -38,11 +38,11 @@ test('保存音声QAを実local APIで保存・再検査し、元範囲と判定
   const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
   try {
     const deadline = Date.now() + 60_000; let ready = false;
-    while (!ready && Date.now() < deadline) { try { const response = await fetch(`${origin}/@vite/client`, { signal: AbortSignal.timeout(2000) }); ready = response.ok; await response.body?.cancel(); } catch { /* Wait for the isolated owned server. */ } if (!ready) await delay(100); }
+    while (!ready && Date.now() < deadline) { try { const response = await fetch(origin, { signal: AbortSignal.timeout(2000) }); ready = response.ok; await response.body?.cancel(); } catch { /* Wait for the isolated owned server. */ } if (!ready) await delay(100); }
     expect(ready).toBe(true);
-    await page.goto(`${origin}/library?book=${book.id}&revision=${book.revision}`, { timeout: 120_000 });
+    await page.goto(`${origin}/library?book=${book.id}&revision=${book.revision}`, { timeout: 60_000 });
     const panel = page.locator('section[aria-label="保存音声の品質検査"]');
-    await expect(page.getByRole('heading', { name: '保存音声の品質を確認' })).toBeVisible({ timeout: 120_000 });
+    await expect(page.getByRole('heading', { name: '保存音声の品質を確認' })).toBeVisible({ timeout: 60_000 });
     await page.getByRole('button', { name: '保存音声を検査する', exact: true }).click();
     const result = page.getByTestId('audio-inspection-result'); await expect(result).toContainText('要確認');
     await result.locator('summary').first().click(); await expect(result).toContainText('音声全体が無音'); await expect(result).toContainText('UTF-16 0–26');
