@@ -25,11 +25,14 @@ test('無料生成の確認・停止再開・保存再利用と音声時計に�
   await expect(page.locator('.generation-confirm')).toContainText('127.0.0.1:50021');
   await page.getByText(/正確な送信本文を確認/).click();
   const sending = await page.locator('.generation-confirm pre').innerText();
+  const target = await page.locator('.generation-confirm dd').filter({hasText: '保存音声の再利用'}).innerText();
+  const plannedCount = Number.parseInt(target, 10);
+  expect(plannedCount).toBeGreaterThan(0);
   if (sending) {
-    const spokenSentences = manuscript.replaceAll('窓', 'マド').split('。').filter(Boolean).map(text => `${text}。`);
-    for (const line of sending.split('\n').filter(line => line.trim())) expect(spokenSentences).toContain(line.trim());
+    const spokenText = manuscript.replaceAll('窓', 'マド');
+    for (const line of sending.split('\n').filter(line => line.trim())) expect(spokenText).toContain(line.trim());
   }
-  else await expect(page.locator('.generation-confirm')).toContainText('保存音声の再利用 3文');
+  else await expect(page.locator('.generation-confirm')).toContainText(`保存音声の再利用 ${plannedCount}区間`);
   await expect(page.locator('.generation-confirm')).toContainText('無料');
   await page.screenshot({ path: `docs/validation/screenshots/generation-${mobile ? 'mobile' : 'desktop'}.png`, fullPage: true });
   await page.getByRole('button', { name: '確認した対象を無料生成する', exact: true }).click();
@@ -42,10 +45,10 @@ test('無料生成の確認・停止再開・保存再利用と音声時計に�
     if (await resume.isVisible()) await resume.click();
   }
   await expect(page.locator('.generation-job-heading')).toContainText('完了', { timeout: 60_000 });
-  await expect(page.locator('.generation-job-heading')).toContainText('3 / 3文');
+  await expect(page.locator('.generation-job-heading')).toContainText(`${plannedCount} / ${plannedCount}文`);
   await page.getByRole('link', { name: '保存音声を読む', exact: true }).click();
   await expect(page.getByTestId('audio-stage')).toBeVisible();
-  await expect(page.getByTestId('audio-stage')).toContainText('1 / 3 文');
+  await expect(page.getByTestId('audio-stage')).toContainText(`1 / ${plannedCount} 文`);
   await expect(page.getByText('文内のフレーズ時刻は未検証です。', { exact: false })).toBeVisible();
   await expect(page.getByTestId('audio-phrase')).toBeVisible();
   await expect(page.getByTestId('audio-sentence')).not.toHaveText(manuscript.split('。')[0] + '。');
@@ -57,9 +60,9 @@ test('無料生成の確認・停止再開・保存再利用と音声時計に�
   const paused = await page.locator('audio').evaluate((element: HTMLAudioElement) => element.currentTime);
   await page.waitForTimeout(300);
   expect(await page.locator('audio').evaluate((element: HTMLAudioElement) => element.currentTime)).toBeCloseTo(paused, 1);
-  await page.getByRole('button', { name: '次の文', exact: true }).click();
+  if (plannedCount > 1) await page.getByRole('button', { name: '次の文', exact: true }).click();
   await expect(page.getByTestId('audio-phrase')).toBeVisible();
-  await expect(page.getByTestId('audio-stage')).toContainText('2 / 3 文');
+  await expect(page.getByTestId('audio-stage')).toContainText(`${plannedCount > 1 ? 2 : 1} / ${plannedCount} 文`);
   await page.getByRole('combobox', { name: '音声の速さ', exact: true }).click();
   await page.getByRole('option', { name: '1.5倍', exact: true }).click();
   await expect.poll(() => page.locator('audio').evaluate((element: HTMLAudioElement) => element.playbackRate)).toBe(1.5);
@@ -190,6 +193,8 @@ test('トップの有料生成は送信内容・費用の確認を要求し、�
   await expect(page.getByRole('heading', {name:'開始前に確認',exact:true})).toBeVisible();
   const confirmation=page.locator('.generation-confirm');
   await expect(confirmation).toContainText('Google');
+  await expect(confirmation).toContainText('1区間');
+  await expect(confirmation).toContainText('自然な区切り');
   await expect(confirmation).toContainText('概算費用');
   await confirmation.locator('summary').click();
   await expect(confirmation.locator('pre')).toContainText('朝の図書館は静かです。');

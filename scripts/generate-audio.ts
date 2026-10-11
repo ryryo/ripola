@@ -2,11 +2,12 @@ import { readFile } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
 import { loadGenerationConfig } from '../apps/web/src/generation/core/config.ts';
 import { GenerationService } from '../apps/web/src/generation/core/service.ts';
+import { automaticChunkPlanner } from '../apps/web/src/generation/core/automatic-chunk-planner.ts';
 import type { PrepareGenerationInput } from '../apps/web/src/generation/contracts.ts';
 
 async function main(): Promise<void> {
   const [command, argument, ...flags] = process.argv.slice(2);
-  const service = new GenerationService(await loadGenerationConfig());
+  const service = new GenerationService(await loadGenerationConfig(), { planChunks: automaticChunkPlanner });
   await service.ready();
   if (command === 'alignment-jobs') { console.log(JSON.stringify(await service.listAlignmentJobs(), null, 2)); return; }
   if (command === 'align' && argument) {
