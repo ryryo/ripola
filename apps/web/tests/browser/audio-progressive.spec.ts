@@ -190,3 +190,16 @@ test('遅いmanifest応答をbook切替で取消し、新しい本へ古い時�
     expect(await page.locator('audio').evaluate((media: HTMLAudioElement) => ({ paused: media.paused, seconds: media.currentTime }))).toEqual({ paused: true, seconds: 0 });
   } finally { release(); }
 });
+
+test('閉じている間の前方chunk完成後も、保存したchunk内位置から再開する', async ({ page }) => {
+  await publish([0, 2]); await open(page);
+  await page.getByRole('slider', { name: '音声の再生位置', exact: true }).fill('5');
+  await expect.poll(() => page.locator('audio').evaluate((media: HTMLAudioElement) => media.currentTime)).toBeCloseTo(3, 1);
+  await page.getByRole('button', { name: '本棚へ戻る', exact: true }).click();
+  await publish([0, 1, 2], 'completed');
+  await page.locator('article').filter({ hasText: full.title }).getByRole('button', { name: '保存音声を読む', exact: true }).click();
+  await expect.poll(() => page.getByRole('slider', { name: '音声の再生位置', exact: true }).inputValue()).toBe('17');
+  await expect(page.locator('audio')).toHaveAttribute('src', new RegExp(full.chunks[2].speechKey));
+  await expect.poll(() => page.locator('audio').evaluate((media: HTMLAudioElement) => media.currentTime)).toBeCloseTo(3, 1);
+  expect(await page.locator('audio').evaluate((media: HTMLAudioElement) => media.paused)).toBe(true);
+});
