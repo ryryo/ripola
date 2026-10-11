@@ -57,6 +57,7 @@ export interface ReadingDocument extends DraftDocument {
 export interface SourceAnchor { blockId: string; offset: number }
 export type WritingMode = 'horizontal-tb' | 'vertical-rl';
 export interface ReaderSettings {
+  readingPace?: 'legacy' | 'text-load';
   writingMode?: WritingMode;
   settingsVersion?: 2;
   fontFamily?: 'system' | 'noto-sans-jp' | 'noto-serif-jp' | 'biz-udpgothic';
@@ -72,11 +73,12 @@ export interface ReaderSettings {
   contrast: 'paper' | 'night';
 }
 export const DEFAULT_SETTINGS: ReaderSettings = {
+  readingPace: 'legacy',
   settingsVersion: 2, fontFamily: 'system', groupTarget: 0, groupMinimum: 0, context: true, mode: 'flash', writingMode: 'horizontal-tb',
   cpm: 400, fontSize: 56, punctuationPause: true, ruby: true, guide: true, contrast: 'paper',
 };
 export function migrateReaderSettings(settings: ReaderSettings): ReaderSettings {
-  return { ...DEFAULT_SETTINGS, ...settings, writingMode: settings.writingMode === 'vertical-rl' ? 'vertical-rl' : 'horizontal-tb', settingsVersion: 2 };
+  return { ...DEFAULT_SETTINGS, ...settings, readingPace: settings.readingPace === 'text-load' ? 'text-load' : 'legacy', writingMode: settings.writingMode === 'vertical-rl' ? 'vertical-rl' : 'horizontal-tb', settingsVersion: 2 };
 }
 export const MAX_INPUT_BYTES = 20 * 1024 * 1024;
 export const MAX_TEXT_LENGTH = 1_000_000;
