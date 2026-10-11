@@ -44,6 +44,8 @@ async function open(page: Page) {
   await page.goto(`${origin}/library?book=${full.id}&revision=${full.revision}&job=${jobId}`);
   await expect(page.getByTestId('audio-phrase')).toBeVisible();
   await expect.poll(() => page.locator('audio').evaluate((audio: HTMLAudioElement) => audio.readyState)).toBeGreaterThan(0);
+  await page.getByRole('combobox', { name: '音声の速さ', exact: true }).click();
+  await page.getByRole('option', { name: '1倍', exact: true }).click();
 }
 async function pendingPriority() {
   return (await disk.read<GenerationJob>(['jobs', `${jobId}.json`]))?.executionOrder;
@@ -77,14 +79,17 @@ test.afterAll(async () => { server?.kill('SIGTERM'); if (root) await rm(root, { 
 
 test('生成holeで待機し、次chunk保存後に本文順で再開する', async ({ page }) => {
   await page.addInitScript(() => {
-    const target = window as typeof window & { progressiveEvidence: { offsets: number[]; stopAt?: number } };
+    const target = window as typeof window & { progressiveEvidence: { offsets: number[]; stopNext?: boolean } };
     target.progressiveEvidence = { offsets: [] };
     document.addEventListener('playing', event => {
       const media = event.target as HTMLAudioElement;
       if (media.tagName !== 'AUDIO') return;
-      const offset = Math.round(Number((document.querySelector('#audio-position') as HTMLInputElement).value) - media.currentTime);
-      target.progressiveEvidence.offsets.push(offset);
-      if (offset === target.progressiveEvidence.stopAt) media.pause();
+      if (target.progressiveEvidence.stopNext) {
+        target.progressiveEvidence.stopNext = false;
+        media.pause();
+        // Read after React's native-event handlers have sampled the clock.
+        requestAnimationFrame(() => target.progressiveEvidence.offsets.push(Math.round(Number((document.querySelector('#audio-position') as HTMLInputElement).value) - media.currentTime)));
+      } else target.progressiveEvidence.offsets.push(Math.round(Number((document.querySelector('#audio-position') as HTMLInputElement).value) - media.currentTime));
     }, true);
   });
   await publish([0]); await open(page);
@@ -103,9 +108,9 @@ test('生成holeで待機し、次chunk保存後に本文順で再開する', as
   await expect(page.getByText('保存済み 2 / 3 文を再生します。', { exact: false })).toBeVisible();
   await expect(page.getByTestId('audio-stage')).toContainText('次の音声の生成を待っています');
   expect(await page.locator('audio').getAttribute('src')).toContain(full.chunks[0].speechKey);
-  await page.evaluate(() => { const evidence = (window as typeof window & { progressiveEvidence: { offsets: number[]; stopAt?: number } }).progressiveEvidence; evidence.offsets = []; evidence.stopAt = 2; });
+  await page.evaluate(() => { const evidence = (window as typeof window & { progressiveEvidence: { offsets: number[]; stopNext?: boolean } }).progressiveEvidence; evidence.offsets = []; evidence.stopNext = true; });
   await publish([0, 1, 2], 'completed');
-  await expect.poll(() => page.evaluate(() => (window as typeof window & { progressiveEvidence: { offsets: number[] } }).progressiveEvidence.offsets.includes(2))).toBe(true);
+  await expect.poll(() => page.evaluate(() => (window as typeof window & { progressiveEvidence: { offsets: number[] } }).progressiveEvidence.offsets)).toEqual([2]);
   expect(await page.locator('audio').evaluate((media: HTMLAudioElement) => media.paused)).toBe(true);
   await expect(page.getByTestId('audio-phrase')).toContainText('次の');
 });
@@ -115,11 +120,22 @@ test('追加保存と同sequence整列はnative位置を保ち、MP3差替えは
   await page.getByRole('slider', { name: '音声の再生位置', exact: true }).fill('5');
   await expect.poll(() => page.locator('audio').evaluate((media: HTMLAudioElement) => media.currentTime)).toBeCloseTo(3, 1);
   await page.locator('audio').evaluate(media => media.setAttribute('data-original', 'retained'));
+  await page.evaluate(() => {
+    const slider = document.querySelector('#audio-position') as HTMLInputElement;
+    const evidence = window as typeof window & { insertionEvidence?: { paused: boolean; localSeconds: number; retained: boolean } };
+    const observer = new MutationObserver(() => {
+      if (slider.max !== '26') return;
+      const media = document.querySelector('audio')!;
+      evidence.insertionEvidence = { paused: media.paused, localSeconds: media.currentTime, retained: media.dataset.original === 'retained' };
+      media.pause(); media.currentTime = 3;
+      observer.disconnect();
+    });
+    observer.observe(slider, { attributes: true, attributeFilter: ['max'] });
+  });
   await page.getByRole('button', { name: '再生', exact: true }).click();
   await publish([0, 1, 2], 'running');
-  await expect.poll(async () => Number(await page.getByRole('slider', { name: '音声の再生位置', exact: true }).inputValue())).toBeGreaterThan(17);
-  expect(await page.locator('audio').evaluate((media: HTMLAudioElement) => media.paused)).toBe(false);
-  await page.locator('audio').evaluate((media: HTMLAudioElement) => { media.pause(); media.currentTime = 3; });
+  await expect.poll(() => page.evaluate(() => (window as typeof window & { insertionEvidence?: object }).insertionEvidence)).toEqual({ paused: false, localSeconds: expect.any(Number), retained: true });
+  expect(await page.evaluate(() => (window as typeof window & { insertionEvidence: { localSeconds: number } }).insertionEvidence.localSeconds)).toBeGreaterThanOrEqual(3);
   await expect.poll(() => page.getByRole('slider', { name: '音声の再生位置', exact: true }).inputValue()).toBe('17');
   await expect(page.locator('audio')).toHaveAttribute('data-original', 'retained');
   expect(await page.locator('audio').evaluate((media: HTMLAudioElement) => media.currentTime)).toBeCloseTo(3, 1);
@@ -165,21 +181,20 @@ test('遅いmanifest応答をbook切替で取消し、新しい本へ古い時�
   await open(page);
   await page.getByRole('slider', { name: '音声の再生位置', exact: true }).fill('1');
   await expect.poll(() => page.locator('audio').evaluate((media: HTMLAudioElement) => media.currentTime)).toBeCloseTo(1, 1);
-  let release!: () => void, reached!: () => void, returned!: () => void;
+  let release!: () => void, returned!: () => void;
   const gate = new Promise<void>(resolveGate => { release = resolveGate; });
-  const held = new Promise<void>(resolveHeld => { reached = resolveHeld; });
   const finished = new Promise<void>(resolveFinished => { returned = resolveFinished; });
-  let holding = false;
+  let holding = false, gateReached = false;
   await page.route('**/_serverFn/**', async route => {
     const request = route.request();
     const payload = new URL(request.url()).searchParams.get('payload') ?? '';
     if (holding || request.method() !== 'GET' || !payload.includes('"bookId"') || !payload.includes(full.id)) return route.continue();
     holding = true;
-    const response = await route.fetch(); reached(); await gate;
+    const response = await route.fetch(); gateReached = true; await gate;
     try { await route.fulfill({ response }); } catch { /* The reader aborted this old request. */ } finally { returned(); }
   });
   try {
-    await held;
+    await expect.poll(() => gateReached).toBe(true);
     await page.getByRole('button', { name: '本棚へ戻る', exact: true }).click();
     await page.locator('article').filter({ hasText: other.title }).getByRole('button', { name: '保存音声を読む', exact: true }).click();
     await expect(page.getByRole('heading', { name: other.title, exact: true })).toBeVisible();
