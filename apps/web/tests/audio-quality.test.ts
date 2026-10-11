@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { execFile } from 'node:child_process';
@@ -12,7 +12,7 @@ import { digest, LibraryDisk } from '../src/generation/core/disk';
 import { AUDIO_INSPECTION_VERSION, type AsrCandidate } from '../src/generation/audio-quality/contracts';
 import { compareContent, foldedCharacters, spellingDistance } from '../src/generation/audio-quality/content';
 import { inspectPcm } from '../src/generation/audio-quality/pcm';
-import { decodeWave, InspectionUnavailable, validCandidate, type AsrAdapter } from '../src/generation/audio-quality/runtime';
+import { decodeMp3, decodeWave, InspectionUnavailable, validCandidate, type AsrAdapter } from '../src/generation/audio-quality/runtime';
 import { AudioInspectionService } from '../src/generation/audio-quality/service';
 import { audioCompressionAvailable, encodeVerifiedMp3 } from '../src/generation/core/audio-compression';
 import type { AudioCacheRecord } from '../src/generation/core/audio-cache';
@@ -125,6 +125,19 @@ test('archived WAV inspects verified MP3 with separate media and original hashes
   assert.equal(result.audioHash, digest(bytes)); assert.equal(result.mediaHash, media.hash); assert.equal(result.mediaFormat, 'mp3');
   assert.equal(result.lightweight.status, 'no-warning'); assert.equal(result.content.status, 'indeterminate');
   assert.ok(Math.abs(result.lightweight.metrics!.durationSeconds - 5) < .002);
+});
+
+test('interrupted or memory-limited MP3 inspection is unknown rather than corrupt audio', async t => {
+  const directory = await mkdtemp(join(tmpdir(), 'ripola-qa-media-tools-'));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const originalPath = process.env.PATH;
+  try {
+    process.env.PATH = directory;
+    await writeFile(join(directory, 'ffprobe'), '#!/bin/sh\nkill -TERM $$\n', { mode: 0o700 });
+    await assert.rejects(decodeMp3(join(directory, 'fixture.mp3')), InspectionUnavailable);
+    await writeFile(join(directory, 'ffprobe'), '#!/bin/sh\nprintf \'%s\' \'{"streams":[{"sample_rate":"192000","channels":8,"duration":"120"}]}\'\n', { mode: 0o700 });
+    await assert.rejects(decodeMp3(join(directory, 'fixture.mp3')), /メモリ上限/);
+  } finally { process.env.PATH = originalPath; }
 });
 
 test('selected chunks merge atomically and source offsets remain absolute after saved evidence is reopened', async t => {

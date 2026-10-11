@@ -45,6 +45,7 @@ export async function decodeMp3(path: string): Promise<{ channels: Float32Array[
     const rate = Number(stream?.sample_rate), count = Number(stream?.channels), duration = Number(stream?.duration);
     if (!Number.isInteger(rate) || rate < 8000 || rate > 192000 || !Number.isInteger(count) || count < 1 || count > 8 || !Number.isFinite(duration) || duration <= 0) throw new Error('invalid-media-metadata');
     if (duration > 120) throw new InspectionUnavailable('軽量検査の上限120秒を超えています。');
+    if (duration * rate * count * 4 > 96 * 1024 * 1024) throw new InspectionUnavailable('PCM復号のメモリ上限を超えるため、軽量検査は判定不能です。');
     const { stdout } = await promisify(execFile)('ffmpeg', ['-v', 'error', '-nostdin', '-protocol_whitelist', 'file,pipe', '-f', 'mp3', '-i', path, '-t', '120.1', '-f', 'f32le', 'pipe:1'], { encoding: 'buffer', timeout: 30_000, maxBuffer: 96 * 1024 * 1024 });
     if (stdout.length % (4 * count) || !stdout.length || stdout.length / (4 * count * rate) > 120) throw new Error('invalid-decoded-media');
     const frames = stdout.length / (4 * count), channels = Array.from({ length: count }, () => new Float32Array(frames));
@@ -53,6 +54,8 @@ export async function decodeMp3(path: string): Promise<{ channels: Float32Array[
   } catch (error) {
     if (error instanceof InspectionUnavailable) throw error;
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') throw new InspectionUnavailable('MP3のPCM検査には手元のffmpeg/ffprobeが必要です。');
+    const failure = error as { killed?: boolean; signal?: string; code?: string };
+    if (failure.killed || failure.signal || failure.code === 'ERR_CHILD_PROCESS_STDIO_MAXBUFFER') throw new InspectionUnavailable('復号ツールの中断・時間または出力上限により、PCM検査は判定不能です。');
     throw new Error('MP3を復号できません。', { cause: error });
   }
 }
