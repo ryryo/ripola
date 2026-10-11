@@ -17,17 +17,17 @@ function tone(seconds = 2, frequency = 440) {
 async function fixture(page: Page, slow = false) {
   let releaseSlow!: () => void;
   const slowGate = new Promise<void>(resolve => { releaseSlow = resolve; });
-  const document = await prepareDocument(importText('朝の窓を開きます。次の頁を読みます。最後に本を閉じます。', 'txt', '先読みの自作fixture'));
+  const readingDocument = await prepareDocument(importText('朝の窓を開きます。次の頁を読みます。最後に本を閉じます。', 'txt', '先読みの自作fixture'));
   const id = 'prefetch-fixture'; const revision = 'prefetch-v1';
   const media = [0, 1, 2].map(index => browserMp3(tone(2, 220 + index * 50)));
-  const chunks = document.blocks.flatMap(block => [...new Intl.Segmenter('ja', { granularity: 'sentence' }).segment(block.text)].map((value, i) => ({
+  const chunks = readingDocument.blocks.flatMap(block => [...new Intl.Segmenter('ja', { granularity: 'sentence' }).segment(block.text)].map((value, i) => ({
     id: `c${i}`, audioUrl: `library/books/${id}/${revision}/media/${media[i].sha256}.mp3`, durationSeconds: 2, sourceDurationSeconds: 2,
     mimeType: 'audio/mpeg', sha256: media[i].sha256, bytes: media[i].bytes.length, timing: { verification: 'pcm-correlated' },
     timeline: [{ blockId: block.id, chunkId: `c${i}`, start: value.index, end: value.index + value.segment.length,
-      unitIds: document.units.filter(unit => unit.start >= value.index && unit.end <= value.index + value.segment.length).map(unit => unit.id), startSeconds: 0, endSeconds: 2, precision: 'sentence' }],
+      unitIds: readingDocument.units.filter(unit => unit.start >= value.index && unit.end <= value.index + value.segment.length).map(unit => unit.id), startSeconds: 0, endSeconds: 2, precision: 'sentence' }],
   })));
-  const manifest = JSON.stringify({ schemaVersion: 1, id, revision, title: document.title, updatedAt: '2026-10-12T00:00:00Z', document, chunks, warnings: [], completedChunks: 3, totalChunks: 3, durationSeconds: 6, precision: 'sentence', attribution: '自作文と合成tone' });
-  const catalog = { schemaVersion: 1, target: 'worker', createdAt: '2026-10-12T00:00:00Z', books: [{ id, revision, title: document.title, manifestUrl: `library/books/${id}/${revision}/manifest.json`, manifestSha256: createHash('sha256').update(manifest).digest('hex'), manifestBytes: Buffer.byteLength(manifest), durationSeconds: 6, precision: 'sentence', attribution: '自作文', publicDemo: false }] };
+  const manifest = JSON.stringify({ schemaVersion: 1, id, revision, title: readingDocument.title, updatedAt: '2026-10-12T00:00:00Z', document: readingDocument, chunks, warnings: [], completedChunks: 3, totalChunks: 3, durationSeconds: 6, precision: 'sentence', attribution: '自作文と合成tone' });
+  const catalog = { schemaVersion: 1, target: 'worker', createdAt: '2026-10-12T00:00:00Z', books: [{ id, revision, title: readingDocument.title, manifestUrl: `library/books/${id}/${revision}/manifest.json`, manifestSha256: createHash('sha256').update(manifest).digest('hex'), manifestBytes: Buffer.byteLength(manifest), durationSeconds: 6, precision: 'sentence', attribution: '自作文', publicDemo: false }] };
   await page.route('**/library/index.json', route => route.fulfill({ json: catalog }));
   await page.route('**/manifest.json', route => route.fulfill({ body: manifest, contentType: 'application/json' }));
   const requested: number[] = [];
