@@ -99,3 +99,5 @@ pnpm exec tsx scripts/generate-audio.ts alignment-resume <alignment-job-id>
 表示用の推定時計・120 ms未満のcue・全区切りの到達性と末尾の契約は[再生設計](../development/playback.md#全区切りを表示する推定時計)を参照してください。音響処理の`sentence-fallback`は保存結果の精度で、Readerに文全体を出す指示ではありません。
 
 原稿と全表示単位の検査、検査不能時の停止、生成・配布の自動検査は[品質検査の契約](../development/audio-presentation-quality.md)を参照してください。
+
+常駐Python/modelの寿命、要求queue、取消し・失敗時の終了と復旧、単発CLI互換、音声QAとの境界は[alignment workerの開発契約](../development/alignment-worker.md)を参照してください。通常起動時の追加モデル取得はありません。

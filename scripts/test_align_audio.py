@@ -41,4 +41,6 @@ class CtcTests(unittest.TestCase):
 
 
 if __name__ == '__main__':
+    # CI invokes this entrypoint directly; include the worker lifecycle suite.
+    from test_alignment_worker import WorkerTests
     unittest.main()
