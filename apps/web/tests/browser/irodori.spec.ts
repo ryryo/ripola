@@ -13,11 +13,11 @@ test.afterEach(async ({ page }) => { await page.unrouteAll({ behavior: 'wait' })
 
 test('Irodori未導入は容量と追加入口を示し通常利用では取得しない', async ({ page, context }, testInfo) => {
   const mutations: string[] = []; const downloads: string[] = []; const errors: string[] = [];
+  await page.route('**/_serverFn/**', route => route.request().method() === 'POST' ? route.abort('blockedbyclient') : route.continue());
   context.on('request', request => {
     if (/huggingface\.co|hf\.co|xethub\.hf\.co/.test(request.url())) downloads.push(request.url());
     if (request.method() === 'POST' && request.url().includes('/_serverFn/')) {
-      const encoded = new URL(request.url()).pathname.split('/_serverFn/')[1];
-      if (encoded) { try { const name = JSON.parse(Buffer.from(encoded, 'base64url').toString()).export; if (/installIrodori|startIrodoriRuntime|startGeneration/.test(name)) mutations.push(name); } catch { /* Not a server function identity. */ } }
+      mutations.push(rpcName(request.url()) || 'unknown POST');
     }
   });
   page.on('pageerror', error => errors.push(error.message));
@@ -51,6 +51,8 @@ test('Irodori導入UIはmock進捗・取消し・検証・失敗再開を表示�
       if (actions.length === 1) await installationReply;
       await route.fulfill({ status: 200, contentType: 'application/json', body: template }); return;
     }
+    // Unknown RPC encodings must never let a test download the real model.
+    if (route.request().method() === 'POST') { await route.abort('blockedbyclient'); throw new Error('Unexpected mutation in Irodori UI fixture'); }
     if (!name.startsWith('getIrodoriStatus')) return route.continue();
     const response = await route.fetch(); const body: unknown = await response.json(); const result = property(body, 'result');
     for (const [key, value] of Object.entries({ phase, downloadedBytes: bytes, message: phase === 'failed' ? '通信が中断しました。再開できます。' : 'mock導入状態の検査です。' })) {
