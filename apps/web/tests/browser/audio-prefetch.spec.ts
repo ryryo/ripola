@@ -4,6 +4,7 @@ import { prepareDocument } from '../../src/reader/segmentation';
 import { importText } from '../../src/reader/text-import';
 import { browserMp3 } from '../helpers/browser-media';
 import { AUDIO_DEMOS } from '../../src/reader/audio-demo';
+import { audioSegments, locateAudioTime, type PlayableAudioBook } from '../../src/reader/audio-clock';
 
 function tone(seconds = 2, frequency = 440) {
   const frames = 24000 * seconds; const bytes = Buffer.alloc(44 + frames * 2);
@@ -98,19 +99,23 @@ test('slow networkの先読みはseek・停止・book離脱で取消され、遅
 });
 
 test('旧AACの静的サンプルでmedia時計・倍速・明示seekを保つ', async ({ page }) => {
+  const sample = AUDIO_DEMOS[0];
+  const response = await page.request.get(`/samples/audio/library/books/${sample.id}/${sample.revision}/manifest.json`);
+  expect(response.ok()).toBe(true);
+  const segments = audioSegments(await response.json() as PlayableAudioBook);
   await page.goto(`/demo?sample=${AUDIO_DEMOS[0].key}`);
   await expect(page.getByTestId('audio-phrase')).toBeVisible();
   const slider = page.getByRole('slider', { name: '音声の再生位置', exact: true });
   await slider.fill('10');
-  await expect.poll(() => page.locator('audio').evaluate((media: HTMLAudioElement) => media.currentTime)).toBeCloseTo(10, 1);
+  await expect.poll(() => page.locator('audio').evaluate((media: HTMLAudioElement) => media.currentTime)).toBeCloseTo(locateAudioTime(segments, 10).localSeconds, 1);
   expect(await page.locator('audio').getAttribute('src')).toMatch(/\.m4a$/);
   await page.getByRole('combobox', { name: '音声の速さ', exact: true }).click();
   await page.getByRole('option', { name: '1.5倍', exact: true }).click();
   await page.getByRole('button', { name: '再生', exact: true }).click();
-  await expect.poll(() => page.locator('audio').evaluate((media: HTMLAudioElement) => media.currentTime)).toBeGreaterThan(10.2);
-  await page.locator('audio').evaluate((media: HTMLAudioElement) => media.pause());
+  await expect.poll(async () => Number(await slider.inputValue())).toBeGreaterThan(10.2);
+  await page.getByRole('button', { name: '一時停止', exact: true }).click();
   const clock = await page.locator('audio').evaluate((media: HTMLAudioElement) => ({ local: media.currentTime, rate: media.playbackRate, absolute: Number((document.querySelector('#audio-position') as HTMLInputElement).value) }));
-  expect(clock.rate).toBe(1.5); expect(clock.absolute).toBeCloseTo(clock.local, 1);
+  expect(clock.rate).toBe(1.5); expect(locateAudioTime(segments, clock.absolute).localSeconds).toBeCloseTo(clock.local, 1);
   const previous = await page.getByTestId('audio-phrase').getAttribute('data-unit-id');
   await page.getByRole('button', { name: '次のフレーズ', exact: true }).click();
   await expect(page.getByTestId('audio-phrase')).not.toHaveAttribute('data-unit-id', previous!);
