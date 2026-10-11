@@ -168,8 +168,11 @@ test('owned mock speech process starts from absolute local files and stops clean
   const directory = await temporary(t); const store = new IrodoriModelStore(directory, spec, async () => new Response(modelBytes)); await store.install();
   const voicePath = join(directory, 'test.voice.gguf'); await writeFile(voicePath, 'GGUFtest-voice'); await store.registerVoice({ path: voicePath, label: 'test', source: 'self fixture', license: 'test-only', attribution: 'test', rightsConfirmed: true });
   const executable = join(directory, 'speech'); const metadata = session('http://127.0.0.1:1').model;
+  // The HTTP ID is GGUF's display name, not a catalog alias or an ASCII filename.
+  metadata.id = 'Irodori MF v4.1'; metadata.speech.name = 'Irodori Small';
   await writeFile(executable, `#!${process.execPath}\nimport{createServer}from'node:http';import{writeFileSync}from'node:fs';writeFileSync(${JSON.stringify(join(directory, 'args.json'))},JSON.stringify(process.argv.slice(2)));const server=createServer((req,res)=>{res.setHeader('Content-Type','application/json');res.end(JSON.stringify({data:[${JSON.stringify(metadata)}]}));});server.listen(0,'127.0.0.1',()=>console.error('speech serve: speech.cpp 0.8.3, listening on http://127.0.0.1:'+server.address().port));\n`, { mode: 0o700 });
   const runtime = new IrodoriRuntime(store, executable); t.after(() => runtime.stop()); await runtime.start(); const running = runtime.current(); assert.equal(runtime.status, 'running');
+  assert.equal(running.model.id, metadata.id);
   const args = JSON.parse(await readFile(join(directory, 'args.json'), 'utf8')); assert.deepEqual(args, ['serve', store.modelPath, '--add-voice', `ripola=${voicePath}`, '--host', '127.0.0.1', '--port', '0']);
   await runtime.stop(); assert.equal(runtime.status, 'stopped'); assert.throws(() => runtime.current(), /停止中/); await assert.rejects(fetch(`${running.endpoint}/health`));
 });
