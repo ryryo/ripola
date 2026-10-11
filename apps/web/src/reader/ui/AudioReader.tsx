@@ -24,7 +24,7 @@ import { ReadingModeControls } from './ReadingModeControls';
 import { useReaderPreferences } from './useReaderPreferences';
 import { resetDisplaySettings } from '../preferences';
 import { AudioPrefetch, audioAssetKey, browserPrefetchEnvironment } from '../audio-prefetch';
-import { continuation, contiguousChunks, playbackAnchor, restoreAnchor, type PlaybackAnchor, type ProgressiveBook } from '../audio-progressive';
+import { continuation, contiguousChunks, playbackAnchor, restoreAnchor, savedPlaybackAnchor, serializePlaybackAnchor, type PlaybackAnchor, type ProgressiveBook } from '../audio-progressive';
 import type { JobStatus } from '../../generation/contracts';
 
 export function AudioReader({ book, onClose, attribution, localTools, demo = false, onRename, generationStatus, onPlaybackPosition }: { book: ProgressiveBook; generationStatus?: JobStatus; onPlaybackPosition?: (chunkId: string) => void; onClose: () => void; attribution?: string; localTools?: ReactNode; demo?: boolean; onRename?: (title: string) => Promise<void> }) {
@@ -92,7 +92,11 @@ export function AudioReader({ book, onClose, attribution, localTools, demo = fal
     blockId: segment.chunk.timeline[0]?.blockId ?? '', start: segment.chunk.timeline[0]?.start ?? 0, end: segment.chunk.timeline[0]?.end ?? 0 })), [segments]);
 
   const persist = useCallback((seconds: number) => {
-    try { localStorage.setItem(storageKey, String(seconds)); } catch { /* Playback remains usable without browser storage. */ }
+    if (activeBook.current !== storageKey) return;
+    try {
+      localStorage.setItem(storageKey, String(seconds));
+      if (anchor.current) localStorage.setItem(`${storageKey}:source`, serializePlaybackAnchor(anchor.current));
+    } catch { /* Playback remains usable without browser storage. */ }
   }, [storageKey]);
 
   const bindAudio = useCallback((media: HTMLAudioElement | null) => {
@@ -188,13 +192,15 @@ export function AudioReader({ book, onClose, attribution, localTools, demo = fal
   // New books restore once. Same-book publications retain the native clock.
   useLayoutEffect(() => {
     let saved = 0;
-    try { saved = Number(localStorage.getItem(storageKey) ?? 0); } catch { /* Optional local position only. */ }
+    let stored: PlaybackAnchor | undefined;
+    try { saved = Number(localStorage.getItem(storageKey) ?? 0); stored = savedPlaybackAnchor(localStorage.getItem(`${storageKey}:source`)); } catch { /* Optional local position only. */ }
     activeBook.current = storageKey;
     intent.current = false; playRequest.current++;
     setWaitingFor(null);
     audio.current?.pause(); setPlaying(false); setBuffering(false);
-    const target = locateAudioTime(segments, saved);
+    const target = stored && restoreAnchor(segments, stored) || locateAudioTime(segments, saved);
     const restored = segments[target.index];
+    if (target.index !== index) mediaClock.current = null;
     pendingSeek.current = target.localSeconds;
     anchor.current = restored ? playbackAnchor(restored, target.localSeconds) : null;
     positionRef.current = mediaPosition(restored, target.localSeconds);

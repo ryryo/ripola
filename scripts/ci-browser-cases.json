@@ -1761,5 +1761,25 @@
       "audio",
       "generation"
     ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "audio-progressive.spec.ts",
+    "title": "閉じている間の前方chunk完成後も、保存したchunk内位置から再開する",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "generation"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "audio-progressive.spec.ts",
+    "title": "閉じている間の前方chunk完成後も、保存したchunk内位置から再開する",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "generation"
+    ]
   }
 ]

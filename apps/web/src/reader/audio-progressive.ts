@@ -20,6 +20,16 @@ export function continuation(book: ProgressiveBook, currentId: string): Continua
   return book.completedChunks < book.totalChunks ? { kind: 'waiting' } : { kind: 'end' };
 }
 export interface PlaybackAnchor { chunkId: string; asset: string; localSeconds: number; unitId?: string; fraction: number; ended: boolean }
+export function serializePlaybackAnchor(anchor: PlaybackAnchor): string { return JSON.stringify({ version: 1, ...anchor }); }
+export function savedPlaybackAnchor(value: string | null): PlaybackAnchor | undefined {
+  try {
+    const anchor = JSON.parse(value ?? 'null');
+    if (anchor?.version !== 1 || typeof anchor.chunkId !== 'string' || typeof anchor.asset !== 'string'
+      || !Number.isFinite(anchor.localSeconds) || anchor.localSeconds < 0 || !Number.isFinite(anchor.fraction) || anchor.fraction < 0 || anchor.fraction > 1
+      || typeof anchor.ended !== 'boolean' || anchor.unitId !== undefined && typeof anchor.unitId !== 'string') return;
+    return { chunkId: anchor.chunkId, asset: anchor.asset, localSeconds: anchor.localSeconds, unitId: anchor.unitId, fraction: anchor.fraction, ended: anchor.ended };
+  } catch { return; }
+}
 export function playbackAnchor(segment: AudioSegment, localSeconds: number, ended = false): PlaybackAnchor {
   const display = audioDisplayAt(segment, localSeconds);
   const cue = display.cue;

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { prepareDocument } from '../src/reader/segmentation';
 import { importText } from '../src/reader/text-import';
 import { audioDisplayAt, audioSegments } from '../src/reader/audio-clock';
-import { continuation, contiguousChunks, nearPlaybackPriority, playbackAnchor, restoreAnchor, acceptsManifest, mergeManifest } from '../src/reader/audio-progressive';
+import { continuation, contiguousChunks, nearPlaybackPriority, playbackAnchor, restoreAnchor, savedPlaybackAnchor, serializePlaybackAnchor, acceptsManifest, mergeManifest } from '../src/reader/audio-progressive';
 import { PlaybackPriorityQueue } from '../src/reader/playback-priority';
 import type { AudioBookManifest } from '../src/generation/contracts';
 
@@ -33,6 +33,15 @@ test('completion inserted earlier changes the absolute offset without moving cur
   const anchor = playbackAnchor(partial[1], 1.3);
   const restored = restoreAnchor(audioSegments(full), anchor)!;
   assert.equal(restored.index, 2); assert.equal(restored.localSeconds, 1.3); assert.equal(restored.assetChanged, false);
+});
+
+test('a saved source bookmark survives chunks completed while closed; legacy/corrupt values fall back', async () => {
+  const full = await fixture();
+  const partial = audioSegments({ ...full, chunks: [full.chunks[0], full.chunks[2]], completedChunks: 2 });
+  const original = playbackAnchor(partial[1], 1.3);
+  const saved = savedPlaybackAnchor(serializePlaybackAnchor(original))!;
+  assert.deepEqual(restoreAnchor(audioSegments(full), saved), { index: 2, localSeconds: 1.3, assetChanged: false });
+  for (const value of [null, '4.3', '{bad', JSON.stringify({ version: 0, ...original }), JSON.stringify({ version: 1, ...original, localSeconds: -1 }), JSON.stringify({ version: 1, ...original, fraction: 9 })]) assert.equal(savedPlaybackAnchor(value), undefined);
 });
 
 test('MP3 replacement remaps the same source phrase; cue-only updates preserve the native clock', async () => {
