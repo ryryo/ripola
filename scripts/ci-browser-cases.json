@@ -1625,5 +1625,26 @@
       "audio",
       "layout"
     ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "audio-quality.spec.ts",
+    "title": "保存音声QAを実local APIで保存・再検査し、元範囲と判定不能を確認する",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "generation"
+    ],
+    "quick": true
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "audio-quality.spec.ts",
+    "title": "保存音声QAを実local APIで保存・再検査し、元範囲と判定不能を確認する",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "generation"
+    ]
   }
 ]
