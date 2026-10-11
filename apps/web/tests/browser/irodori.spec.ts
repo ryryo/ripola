@@ -36,7 +36,8 @@ test('Irodori未導入は容量と追加入口を示し通常利用では取得�
 test('Irodori導入UIはmock進捗・取消し・検証・失敗再開を表示する', async ({ page }, testInfo) => {
   testInfo.setTimeout(60_000);
   let phase = 'not-installed', bytes = 0, template = ''; const actions: string[] = [];
-  let expectedAction: 'install' | 'cancel' | undefined;
+  let expectedAction: 'install' | 'cancel' | 'stop' | undefined;
+  let runtime = 'stopped';
   let releaseInstall: () => void = () => undefined;
   const installationReply = new Promise<void>(resolve => { releaseInstall = resolve; });
   await page.route('**/_serverFn/**', async route => {
@@ -45,14 +46,15 @@ test('Irodori導入UIはmock進捗・取消し・検証・失敗再開を表示�
       if (!expectedAction || !template) { await route.abort('blockedbyclient'); throw new Error('Unexpected mutation in Irodori UI fixture'); }
       // Never forward the download mutation to the PC. Reuse only the successful RPC envelope.
       const action = expectedAction; expectedAction = undefined;
-      actions.push(action); phase = action === 'cancel' ? 'cancelled' : actions.length === 1 ? 'downloading' : 'verifying';
-      bytes = phase === 'verifying' ? 1_920_321_792 : 960_000_000;
+      actions.push(action);
+      if (action === 'stop') runtime = 'stopped';
+      else { phase = action === 'cancel' ? 'cancelled' : actions.length === 1 ? 'downloading' : 'verifying'; bytes = phase === 'verifying' ? 1_920_321_792 : 960_000_000; }
       if (actions.length === 1) await installationReply;
       await route.fulfill({ status: 200, contentType: 'application/json', body: template }); return;
     }
     const response = await route.fetch(); const body: unknown = await response.json(); const result = property(body, 'result');
     if (!property(result, 'downloadedBytes') || !property(result, 'totalBytes')) { await route.fulfill({ response }); return; }
-    for (const [key, value] of Object.entries({ phase, downloadedBytes: bytes, message: phase === 'failed' ? '通信が中断しました。再開できます。' : 'mock導入状態の検査です。' })) {
+    for (const [key, value] of Object.entries({ phase, runtime, downloadedBytes: bytes, message: phase === 'failed' ? '通信が中断しました。再開できます。' : 'mock導入状態の検査です。' })) {
       const field = property(result, key); if (field) field.s = value;
     }
     template = JSON.stringify(body); await route.fulfill({ response, json: body });
@@ -68,5 +70,9 @@ test('Irodori導入UIはmock進捗・取消し・検証・失敗再開を表示�
   phase = 'failed'; await expect(panel).toContainText('導入失敗'); await expect(panel.getByRole('button', { name: '途中から導入を再開する', exact: true })).toBeVisible();
   expectedAction = 'install'; await panel.getByRole('button', { name: '途中から導入を再開する', exact: true }).click(); await expect(panel).toContainText('検証中');
   await page.screenshot({ path: `docs/validation/screenshots/irodori-mock-progress-${testInfo.project.name}.png`, fullPage: true });
-  expect(actions).toEqual(['install', 'cancel', 'install', 'install']);
+  // A running owned process must remain stoppable if model/voice/binary assets disappear.
+  phase = 'failed'; runtime = 'running';
+  const stop = panel.getByRole('button', { name: 'このPCのIrodoriを停止', exact: true }); await expect(stop).toBeEnabled();
+  expectedAction = 'stop'; await stop.click(); await expect(stop).toHaveCount(0);
+  expect(actions).toEqual(['install', 'cancel', 'install', 'install', 'stop']);
 });
