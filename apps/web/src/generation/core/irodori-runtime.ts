@@ -51,7 +51,7 @@ export async function nativeModel(endpoint: string, store: IrodoriModelStore): P
   if (!response.ok) throw new Error('Irodori runtimeのモデルを確認できません。');
   const value = JSON.parse(Buffer.from(await boundedBytes(response, 128 * 1024)).toString('utf8')) as { data?: NativeModel[] };
   const model = value.data?.find(value => value.speech?.architecture === 'irodori-tts');
-  if (!model || typeof model.id !== 'string' || !model.id.trim() || model.id.length > 200 || /[\u0000-\u001f\u007f]/u.test(model.id) || typeof model.version !== 'string' || !/^0\.8\.\d+$/.test(model.version) || Number(model.version.split('.')[2]) < 3
+  if (!model || typeof model.id !== 'string' || !model.id.trim() || model.id.length > 200 || [...model.id].some(char => char.codePointAt(0)! < 32 || char.codePointAt(0) === 127) || typeof model.version !== 'string' || !/^0\.8\.\d+$/.test(model.version) || Number(model.version.split('.')[2]) < 3
     || model.speech.task !== 'synthesis' || model.speech.sample_rate !== 48000 || model.speech.file_bytes !== store.spec.bytes || model.speech.weight_type !== 'F16'
     || model.speech.max_text_tokens !== IRODORI_LIMITS.maxTextTokens || !model.speech.voices?.some(voice => voice.name === 'ripola')) throw new Error('Irodori MFモデル・固定voice・対応speech.cpp（0.8.3以降の0.8系）の組合せを確認できません。');
   return model;
@@ -62,7 +62,7 @@ export async function synthesizeIrodori(session: NativeSession, text: string, se
   const endpoint = localEndpoint(session.endpoint);
   const normalized = irodoriSettings(settings);
   if (session.voice !== 'ripola' || !/^[a-f0-9]{64}$/.test(session.voiceHash)) throw new Error('固定voiceがありません。チャンクごとに声が変わる可能性があるため生成を開始できません。');
-  if (!text.trim() || [...text].length > IRODORI_LIMITS.recommendedMaxCharacters) throw new Error('Irodoriは短いチャンクに分けてください（推奨上限90文字、最大256 tokens/30秒）。');
+  if (!text.trim()) throw new Error('Irodoriへ送る本文がありません。');
   const response = await fetch(`${endpoint}/v1/audio/speech`, { method: 'POST', redirect: 'error', signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(120_000)]) : AbortSignal.timeout(120_000),
     headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ model: session.model.id, input: text, voice: session.voice, response_format: 'wav', language: 'ja', ...normalized }) });
   if (!response.ok) { await response.body?.cancel(); throw new Error(`Irodori合成が失敗しました（HTTP ${response.status}）。長さとruntimeを確認してください。`); }

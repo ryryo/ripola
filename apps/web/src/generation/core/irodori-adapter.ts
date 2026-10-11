@@ -16,7 +16,7 @@ export function irodoriAdapter(controller: IrodoriController, session: () => Nat
   };
   return {
     get endpoint() { try { return session().endpoint; } catch { return 'http://127.0.0.1 (Irodori停止中)'; } },
-    capabilities: { local: true, supportsStyle: true, cancellation: 'abort', maxCharacters: IRODORI_LIMITS.recommendedMaxCharacters, ...IRODORI_LIMITS },
+    capabilities: { local: true, supportsStyle: true, cancellation: 'abort', ...IRODORI_LIMITS },
     availability: () => ({ available: controller.runtime.status === 'running', message: controller.runtime.status === 'running' ? undefined : 'Irodoriは任意追加です。モデル・固定voiceを用意し、設定からこのPCで起動してください。' }),
     async voices() { const status = await controller.status(); return status.voiceAvailable ? [{ id: 'ripola', name: status.voiceLabel ?? '固定voice' }] : []; },
     async attribution() { const voice = await controller.store.voice(); return voice?.attribution; },

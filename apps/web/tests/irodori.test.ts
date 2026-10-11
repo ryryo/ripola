@@ -138,6 +138,19 @@ test('native HTTP sends MF settings and receives validated WAV bytes', async t =
   assert.deepEqual(result, wav()); assert.deepEqual(body, { model: 'Irodori-TTS-866M-MF-v4.1', input: '図書館で本を開きます。', voice: 'ripola', response_format: 'wav', language: 'ja', steps: 4, speed: 1, seed: 42, instructions: '' });
 });
 
+test('90 character planning recommendation does not reject valid native speech', async t => {
+  let sent = '';
+  const { adapter } = await serviceFixture(t, (req, res) => {
+    let raw = ''; req.on('data', chunk => { raw += chunk; });
+    req.on('end', () => { sent = (JSON.parse(raw) as { input: string }).input; sendWav(res); });
+  });
+  assert.equal(adapter.capabilities?.maxCharacters, undefined);
+  const text = '朝の図書館で本を開きます。'.repeat(8);
+  assert.ok([...text].length > 90);
+  const result = await adapter.synthesize({ text, options, providerVersion: await adapter.fingerprint!(options) }, async () => undefined);
+  assert.equal(sent, text); assert.deepEqual(result, wav());
+});
+
 test('abort during native synthesis disconnects the request and returns no partial WAV', async t => {
   let began!: () => void; let disconnected!: () => void;
   const ready = new Promise<void>(resolve => { began = resolve; }); const closed = new Promise<void>(resolve => { disconnected = resolve; });
@@ -152,7 +165,7 @@ test('truncated/model-limit/silent WAV and unfixed voice cannot become complete'
   stop = 'complete'; bytes = wav().subarray(0, 100); await assert.rejects(synthesizeIrodori(session(url), '自作文です。', DEFAULT_IRODORI_SETTINGS), /WAV/);
   bytes = wav(); bytes.fill(0, 44); await assert.rejects(synthesizeIrodori(session(url), '自作文です。', DEFAULT_IRODORI_SETTINGS), /無音/);
   await assert.rejects(synthesizeIrodori({ ...session(url), voice: 'none' }, '自作文です。', DEFAULT_IRODORI_SETTINGS), /固定voice/);
-  await assert.rejects(synthesizeIrodori(session(url), 'あ'.repeat(91), DEFAULT_IRODORI_SETTINGS), /チャンク/);
+  bytes = wav(30.02); await assert.rejects(synthesizeIrodori(session(url), '自作文です。', DEFAULT_IRODORI_SETTINGS), /長さ/);
 });
 
 test('fingerprint changes with model/voice/runtime/settings, and excludes ephemeral port', () => {

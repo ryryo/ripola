@@ -15,7 +15,7 @@ HTTP仕様とworker仕様はspeech.cpp `60a8e1ec068280e5e803ee5d7079e90886c323cb
 
 固定voiceは明示同意・取得元・条件・帰属が記録された既存GGUFだけを受け付け、checksumの変化を拒否します。録音・学習・speaker inversion・voice生成は入口に含めません。`none`のチャンク間声変化を隠さないため、未登録状態は利用不可です。製品固定voiceの実資材は未確認です。
 
-MF上限256 tokens/30秒と推奨90文字を共通capabilitiesへ渡します。文字上限はtoken上限の厳密な代用ではなく、nativeの長さ拒否も失敗として扱います。chunk planner統合前の長い文は送信前に拒否します。元source span・chunk ID・旧book・既存WAV/MP3/旧AACを独自形式へ移しません。保存以降は共通alignment・MP3・静的配布処理が所有します。
+MF上限256 tokens/30秒と推奨90文字を共通capabilitiesへ渡します。`recommendedMaxCharacters`はplannerの目安で、`maxCharacters`や送信前の文字数拒否には使いません。token数はnative tokenizerが判断し、nativeの長さ拒否・途中完了header・30秒超の出力を失敗として扱います。元source span・chunk ID・旧book・既存WAV/MP3/旧AACを独自形式へ移しません。保存以降は共通alignment・MP3・静的配布処理が所有します。
 
 分担の先行条件は一次資料・共通契約の固定、独立範囲は専用module・UI・script・tests・guideです。共有可変状態は導入disk lock/cancel markerと所有childで、既存library排他は共通serviceが管理します。担当枠が1つなので主担当が実装し、同じ固定base/headへcorrectnessとcode-qualityを分けて確認します。独立レビューとは記録しません。
 
