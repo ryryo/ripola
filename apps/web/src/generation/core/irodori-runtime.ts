@@ -51,9 +51,9 @@ export async function nativeModel(endpoint: string, store: IrodoriModelStore): P
   if (!response.ok) throw new Error('Irodori runtimeのモデルを確認できません。');
   const value = JSON.parse(Buffer.from(await boundedBytes(response, 128 * 1024)).toString('utf8')) as { data?: NativeModel[] };
   const model = value.data?.find(value => value.speech?.architecture === 'irodori-tts');
-  if (!model || typeof model.id !== 'string' || !/^[\w.+-]{1,200}$/.test(model.id) || typeof model.version !== 'string' || !/^0\.8\.\d+$/.test(model.version) || Number(model.version.split('.')[2]) < 3
+  if (!model || typeof model.id !== 'string' || !model.id.trim() || model.id.length > 200 || /[\u0000-\u001f\u007f]/u.test(model.id) || typeof model.version !== 'string' || !/^0\.8\.\d+$/.test(model.version) || Number(model.version.split('.')[2]) < 3
     || model.speech.task !== 'synthesis' || model.speech.sample_rate !== 48000 || model.speech.file_bytes !== store.spec.bytes || model.speech.weight_type !== 'F16'
-    || !model.speech.name.includes('-MF') || model.speech.max_text_tokens !== IRODORI_LIMITS.maxTextTokens || !model.speech.voices?.some(voice => voice.name === 'ripola')) throw new Error('Irodori MFモデル・固定voice・対応speech.cpp（0.8.3以降の0.8系）の組合せを確認できません。');
+    || model.speech.max_text_tokens !== IRODORI_LIMITS.maxTextTokens || !model.speech.voices?.some(voice => voice.name === 'ripola')) throw new Error('Irodori MFモデル・固定voice・対応speech.cpp（0.8.3以降の0.8系）の組合せを確認できません。');
   return model;
 }
 
