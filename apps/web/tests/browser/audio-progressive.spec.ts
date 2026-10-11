@@ -13,6 +13,7 @@ import { playbackAnchor, restoreAnchor } from '../../src/reader/audio-progressiv
 import { prepareDocument } from '../../src/reader/segmentation';
 import { importText } from '../../src/reader/text-import';
 import { browserMp3 } from '../helpers/browser-media';
+import { audioResponse } from '../../src/server/audio-response';
 
 function tone(seconds: number, frequency: number) {
   const frames = 24000 * seconds; const bytes = Buffer.alloc(44 + frames * 2);
@@ -23,6 +24,13 @@ function tone(seconds: number, frequency: number) {
   return bytes;
 }
 const hash = (value: string | Buffer) => createHash('sha256').update(value).digest('hex');
+async function serveMp3(page: Page, path: string, bytes: Buffer) {
+  await page.route(`**/${path}`, async route => {
+    const request = route.request();
+    const response = audioResponse(bytes, new Request(request.url(), { method: request.method(), headers: request.headers() }), 'audio/mpeg');
+    await route.fulfill({ status: response.status, headers: Object.fromEntries(response.headers), body: Buffer.from(await response.arrayBuffer()) });
+  });
+}
 let root: string, origin: string, server: ChildProcess, disk: LibraryDisk, full: AudioBookManifest;
 const jobId = 'progressive-test-job';
 let job: GenerationJob;
@@ -68,24 +76,37 @@ test.beforeAll(async () => {
 test.afterAll(async () => { server?.kill('SIGTERM'); if (root) await rm(root, { recursive: true, force: true }); });
 
 test('生成holeで待機し、次chunk保存後に本文順で再開する', async ({ page }) => {
+  await page.addInitScript(() => {
+    const target = window as typeof window & { progressiveEvidence: { offsets: number[]; stopAt?: number } };
+    target.progressiveEvidence = { offsets: [] };
+    document.addEventListener('playing', event => {
+      const media = event.target as HTMLAudioElement;
+      if (media.tagName !== 'AUDIO') return;
+      const offset = Math.round(Number((document.querySelector('#audio-position') as HTMLInputElement).value) - media.currentTime);
+      target.progressiveEvidence.offsets.push(offset);
+      if (offset === target.progressiveEvidence.stopAt) media.pause();
+    }, true);
+  });
   await publish([0]); await open(page);
   await page.getByRole('button', { name: '再生', exact: true }).click();
   await expect(page.getByTestId('audio-stage')).toContainText('次の音声の生成を待っています');
   await expect.poll(pendingPriority).toEqual(['c1', 'c2', 'c0']);
+  const playsBefore = await page.evaluate(() => (window as typeof window & { progressiveEvidence: { offsets: number[] } }).progressiveEvidence.offsets.length);
   const replacement = browserMp3(tone(2, 220));
-  await page.route('**/fixture-waiting.mp3', route => route.fulfill({ body: replacement.bytes, contentType: 'audio/mpeg' }));
+  await serveMp3(page, 'fixture-waiting.mp3', replacement.bytes);
   await publish([0], 'running', 1, { chunks: [{ ...full.chunks[0], audioUrl: '/fixture-waiting.mp3', mimeType: 'audio/mpeg' }] });
   await expect(page.locator('audio')).toHaveAttribute('src', '/fixture-waiting.mp3');
   await expect.poll(() => page.locator('audio').evaluate((media: HTMLAudioElement) => media.currentTime)).toBeCloseTo(2, 1);
   expect(await page.locator('audio').evaluate((media: HTMLAudioElement) => media.paused)).toBe(true);
+  expect(await page.evaluate(() => (window as typeof window & { progressiveEvidence: { offsets: number[] } }).progressiveEvidence.offsets.length)).toBe(playsBefore);
   await publish([0, 2]);
   await expect(page.getByText('保存済み 2 / 3 文を再生します。', { exact: false })).toBeVisible();
   await expect(page.getByTestId('audio-stage')).toContainText('次の音声の生成を待っています');
   expect(await page.locator('audio').getAttribute('src')).toContain(full.chunks[0].speechKey);
+  await page.evaluate(() => { const evidence = (window as typeof window & { progressiveEvidence: { offsets: number[]; stopAt?: number } }).progressiveEvidence; evidence.offsets = []; evidence.stopAt = 2; });
   await publish([0, 1, 2], 'completed');
-  await expect.poll(() => page.locator('audio').getAttribute('src')).toMatch(new RegExp(`${full.chunks[1].speechKey}|^blob:`));
-  await expect.poll(() => page.locator('audio').evaluate((media: HTMLAudioElement) => !media.paused && media.currentTime > 0)).toBe(true);
-  await page.locator('audio').evaluate((media: HTMLAudioElement) => media.pause());
+  await expect.poll(() => page.evaluate(() => (window as typeof window & { progressiveEvidence: { offsets: number[] } }).progressiveEvidence.offsets.includes(2))).toBe(true);
+  expect(await page.locator('audio').evaluate((media: HTMLAudioElement) => media.paused)).toBe(true);
   await expect(page.getByTestId('audio-phrase')).toContainText('次の');
 });
 
@@ -104,11 +125,11 @@ test('追加保存と同sequence整列はnative位置を保ち、MP3差替えは
   expect(await page.locator('audio').evaluate((media: HTMLAudioElement) => media.currentTime)).toBeCloseTo(3, 1);
   const chunk = full.chunks[2];
   const cache = await disk.read<{ hash: string }>(['cache', `${chunk.speechKey}.json`]);
-  await publish([0, 1, 2], 'running', 3, { chunks: full.chunks.map(value => value.id === chunk.id ? { ...value, alignment: { schemaVersion: 1, key: hash('fixture-alignment'), audioHash: cache!.hash, normalizeVersion: 'ctc-ja-nfkc-v1', alignerVersion: 'fixture-only', precision: 'sentence', method: 'sentence-fallback', status: 'fallback', cues: [], units: [], warnings: ['更新の証拠'] } } : value) });
-  await expect(page.getByText('更新の証拠', { exact: true })).toBeAttached();
+  await publish([0, 1, 2], 'running', 3, { chunks: full.chunks.map(value => value.id === chunk.id ? { ...value, alignment: { schemaVersion: 1, key: hash('fixture-alignment'), audioHash: cache!.hash, normalizeVersion: 'ctc-ja-nfkc-v1', alignerVersion: 'fixture-only', precision: 'sentence', method: 'sentence-fallback', status: 'fallback', cues: [], units: [], warnings: ['runtime-size-limit'] } } : value) });
+  await expect(page.getByText('整列できる音声の長さの上限を超えています。対応しない部分は表示用の推定時刻を使います。', { exact: true })).toBeAttached();
   await expect(page.locator('audio')).toHaveAttribute('data-original', 'retained');
   const mp3 = browserMp3(tone(12, 320));
-  await page.route('**/fixture-replacement.mp3', route => route.fulfill({ body: mp3.bytes, contentType: 'audio/mpeg' }));
+  await serveMp3(page, 'fixture-replacement.mp3', mp3.bytes);
   const before = playbackAnchor(audioSegments(full)[2], 3);
   const changed = { ...full, chunks: full.chunks.map(value => value.id === chunk.id ? { ...value, audioUrl: '/fixture-replacement.mp3', mimeType: 'audio/mpeg' as const } : value) };
   await publish([0, 1, 2], 'running', 3, { chunks: changed.chunks });
@@ -137,7 +158,9 @@ test('生成失敗・取消しで待機を解除し、旧jobを拒否して停�
 
 test('遅いmanifest応答をbook切替で取消し、新しい本へ古い時計を混ぜない', async ({ page }) => {
   await publish([0]);
-  const other = { ...full, id: `${full.id}-other`, revision: hash('other-revision'), title: '切替先の自作fixture', document: { ...full.document, id: `${full.id}-other`, title: '切替先の自作fixture' }, generation: undefined, plannedChunkIds: undefined, chunks: [full.chunks[0]], completedChunks: 1, totalChunks: 1, durationSeconds: 2 };
+  const document = await prepareDocument(importText('朝の窓を開きます。', 'txt', '切替先の自作fixture'));
+  const saved = { ...full.chunks[0], timeline: [{ ...full.chunks[0].timeline[0], blockId: document.blocks[0].id, end: document.blocks[0].text.length, unitIds: document.units.map(unit => unit.id) }] };
+  const other = { ...full, id: document.id, revision: hash('other-revision'), title: document.title, document, generation: undefined, plannedChunkIds: undefined, chunks: [saved], completedChunks: 1, totalChunks: 1, durationSeconds: 2 };
   await disk.write(['books', `${other.id}_${other.revision}.json`], other);
   await open(page);
   await page.getByRole('slider', { name: '音声の再生位置', exact: true }).fill('1');
@@ -148,10 +171,9 @@ test('遅いmanifest応答をbook切替で取消し、新しい本へ古い時�
   const finished = new Promise<void>(resolveFinished => { returned = resolveFinished; });
   let holding = false;
   await page.route('**/_serverFn/**', async route => {
-    const id = new URL(route.request().url()).pathname.split('/_serverFn/')[1];
-    let name = '';
-    try { name = (JSON.parse(Buffer.from(id, 'base64url').toString()) as { export: string }).export; } catch { /* Other requests pass through. */ }
-    if (holding || !name.startsWith('getBook')) return route.continue();
+    const request = route.request();
+    const payload = new URL(request.url()).searchParams.get('payload') ?? '';
+    if (holding || request.method() !== 'GET' || !payload.includes('"bookId"') || !payload.includes(full.id)) return route.continue();
     holding = true;
     const response = await route.fetch(); reached(); await gate;
     try { await route.fulfill({ response }); } catch { /* The reader aborted this old request. */ } finally { returned(); }
@@ -164,6 +186,7 @@ test('遅いmanifest応答をbook切替で取消し、新しい本へ古い時�
     await expect.poll(() => page.locator('audio').evaluate((media: HTMLAudioElement) => media.readyState)).toBeGreaterThan(0);
     release(); await finished;
     await expect(page.getByRole('heading', { name: other.title, exact: true })).toBeVisible();
+    await expect(page.getByTestId('audio-phrase')).toHaveAttribute('data-unit-id', document.units[0].id);
     expect(await page.locator('audio').evaluate((media: HTMLAudioElement) => ({ paused: media.paused, seconds: media.currentTime }))).toEqual({ paused: true, seconds: 0 });
   } finally { release(); }
 });
