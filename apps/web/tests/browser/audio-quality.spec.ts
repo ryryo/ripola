@@ -43,6 +43,11 @@ test('保存音声QAを実local APIで保存・再検査し、元範囲と判定
     const result = page.getByTestId('audio-inspection-result'); await expect(result).toContainText('要確認');
     await result.locator('summary').first().click(); await expect(result).toContainText('音声全体が無音'); await expect(result).toContainText('UTF-16 0–26');
     await expect(result).toContainText('内容検査：判定不能'); await expect(result).toContainText('元音声hash');
+    const preview = result.locator('audio'); await preview.evaluate((audio: HTMLAudioElement) => audio.play());
+    await expect.poll(() => preview.evaluate((audio: HTMLAudioElement) => audio.paused)).toBe(false);
+    await page.getByRole('button', { name: '再生', exact: true }).click();
+    await expect.poll(() => preview.evaluate((audio: HTMLAudioElement) => audio.paused)).toBe(true);
+    await page.getByRole('button', { name: '一時停止', exact: true }).click();
     await page.getByRole('button', { name: '保存音声を検査する', exact: true }).click(); await expect(panel.getByRole('status')).toContainText('cache再利用 1文');
     await page.getByLabel('手元Reazonモデルで内容の認識候補も比較する').check();
     await page.getByRole('button', { name: '再検査する（再合成なし）', exact: true }).click(); await expect(result).toContainText('手元ASRが未設定');
