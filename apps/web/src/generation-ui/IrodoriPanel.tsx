@@ -4,23 +4,25 @@ import { DEFAULT_IRODORI_SETTINGS, IRODORI_MODEL, type IrodoriSettings, type Iro
 import { cancelIrodoriInstall, getIrodoriSettings, getIrodoriStatus, installIrodori, saveIrodoriSettings, startIrodoriRuntime, stopIrodoriRuntime } from '../generation/irodori-functions';
 
 const label: Record<IrodoriStatus['phase'], string> = { 'not-installed': '未導入', downloading: '取得中', verifying: '検証中', ready: '導入済み', cancelled: '取消し・中断', failed: '導入失敗' };
-export function IrodoriPanel({ onChange, onSettingsChange, disabled = false }: { onChange: () => void; onSettingsChange: (settings: IrodoriSettings) => void; disabled?: boolean }) {
+export function IrodoriPanel({ onChange, onSettingsChange, onBusyChange, disabled = false }: { onChange: () => void; onSettingsChange: (settings: IrodoriSettings) => void; onBusyChange: (busy: boolean) => void; disabled?: boolean }) {
   const [status, setStatus] = useState<IrodoriStatus>();
   const [settings, setSettings] = useState<IrodoriSettings>(DEFAULT_IRODORI_SETTINGS);
   const [error, setError] = useState(''); const [busy, setBusy] = useState(false);
   const refresh = useCallback(async () => {
     try { setStatus(await getIrodoriStatus()); } catch (error) { setError(error instanceof Error ? error.message : '状態を取得できません。'); }
   }, []);
-  useEffect(() => { let active = true; void getIrodoriSettings().then(value => { if (active) { setSettings(value); onSettingsChange(value); } }).catch(() => undefined); void refresh(); const timer = window.setInterval(() => { if (active) void refresh(); }, 1000); return () => { active = false; window.clearInterval(timer); }; }, [refresh, onSettingsChange]);
+  useEffect(() => { let active = true; void getIrodoriSettings().then(value => { if (active) { setSettings(value); onSettingsChange(value); } }).catch(() => { if (active) setError('合成設定を読めません。設定を確認・保存してから計画してください。'); }); void refresh(); const timer = window.setInterval(() => { if (active) void refresh(); }, 1000); return () => { active = false; window.clearInterval(timer); }; }, [refresh, onSettingsChange]);
+  useEffect(() => () => onBusyChange(false), [onBusyChange]);
   const working = status?.phase === 'downloading' || status?.phase === 'verifying';
   async function act(action: () => Promise<unknown>) {
-    setBusy(true); setError('');
+    setBusy(true); onBusyChange(true); setError('');
     try { await action(); await refresh(); onChange(); } catch (error) { setError(error instanceof Error ? error.message : '操作を完了できません。'); }
-    finally { setBusy(false); }
+    finally { setBusy(false); onBusyChange(false); }
   }
   return <section className="generation-card" aria-label="Irodoriの任意追加">
     <h3>Irodori · このPCに任意追加</h3>
     <p>日本語をこのPCで合成します。モデル約1.92GB、新規導入には約2.2GBの空き容量が必要です。通常の起動・音声セットアップでは取得しません。スマホへは完成した音声だけを配ります。</p>
+    <p>利用にはspeech.cppの実行環境と、話者の同意・利用条件を確認した固定voiceが別途必要です。現在は製品voiceを同梱していません。準備ガイドを確認してから追加してください。</p>
     <p role="status">{status ? `${label[status.phase]} · ${status.message}` : '導入状態を確認しています。'}</p>
     {status?.freeBytes !== undefined && <p>空き容量 {(status.freeBytes / 1e9).toFixed(2)}GB · 追加で必要な空き容量 {(status.requiredFreeBytes / 1e9).toFixed(2)}GB</p>}
     {status && (working || status.downloadedBytes > 0 && status.phase !== 'ready') && <><Progress value={status.downloadedBytes / status.totalBytes * 100} aria-label="モデル取得の進捗" /><p>{(status.downloadedBytes / 1e9).toFixed(2)} / {(status.totalBytes / 1e9).toFixed(2)}GB · 途中の資材はまだ利用できません。</p></>}
