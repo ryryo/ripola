@@ -12,7 +12,7 @@ import { digest, LibraryDisk } from '../src/generation/core/disk';
 import { AUDIO_INSPECTION_VERSION, type AsrCandidate } from '../src/generation/audio-quality/contracts';
 import { compareContent, foldedCharacters, spellingDistance } from '../src/generation/audio-quality/content';
 import { inspectPcm } from '../src/generation/audio-quality/pcm';
-import { decodeWave, validCandidate, type AsrAdapter } from '../src/generation/audio-quality/runtime';
+import { decodeWave, InspectionUnavailable, validCandidate, type AsrAdapter } from '../src/generation/audio-quality/runtime';
 import { AudioInspectionService } from '../src/generation/audio-quality/service';
 import { audioCompressionAvailable, encodeVerifiedMp3 } from '../src/generation/core/audio-compression';
 import type { AudioCacheRecord } from '../src/generation/core/audio-cache';
@@ -33,6 +33,8 @@ test('PCM warns on silence, plateau clipping, pauses and extreme rate without ca
   assert.ok(inspectPcm([left, right], 16000, 8).metrics.rms > .09, 'opposite channels must not cancel into silence');
   assert.throws(() => inspectPcm([new Float32Array([NaN])], 16000, 8), /invalid/);
   assert.throws(() => decodeWave(qaWave().slice(0, 50)), /invalid|truncated/);
+  const unsupported = Buffer.from(qaWave()); unsupported.writeUInt16LE(65534, 20); assert.throws(() => decodeWave(unsupported), InspectionUnavailable);
+  assert.ok(inspectPcm([new Float32Array(16000).fill(2)], 16000, 8).issues.some(i => i.code === 'clipping'), 'finite over-range float samples warn rather than becoming structural corruption');
   const pcm = decodeWave(qaWave()); assert.equal(inspectPcm(pcm.channels, pcm.sampleRate, 24, 6).issues[0].severity, 'fatal');
 });
 

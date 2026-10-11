@@ -25,8 +25,10 @@ export function decodeWave(bytes: Uint8Array): { channels: Float32Array[]; sampl
     if (name === 'data') { if (data) throw new Error('duplicate-wave-data'); data = b.subarray(start, start + size); }
     offset = start + size + (size % 2);
   }
-  if (!format || !data?.length || ![1, 3].includes(format.encoding) || ![8, 16, 24, 32].includes(format.bits) || (format.encoding === 3 && format.bits !== 32)
-    || format.channels < 1 || format.channels > 8 || format.rate < 8000 || format.rate > 192000 || format.align !== format.channels * format.bits / 8 || data.length % format.align) throw new Error('unsupported-or-invalid-wave');
+  if (!format || !data?.length || format.channels < 1 || format.rate < 1 || format.align < 1 || data.length % format.align) throw new Error('invalid-wave');
+  if (![1, 3].includes(format.encoding) || ![8, 16, 24, 32].includes(format.bits) || (format.encoding === 3 && format.bits !== 32)
+    || format.channels > 8 || format.rate < 8000 || format.rate > 192000) throw new InspectionUnavailable('このWAV形式・sample rateは軽量検査の対象外です。');
+  if (format.align !== format.channels * format.bits / 8) throw new Error('invalid-wave-frame-size');
   const frames = data.length / format.align;
   if (frames / format.rate > 120) throw new InspectionUnavailable('軽量検査の上限120秒を超えています。');
   const channels = Array.from({ length: format.channels }, () => new Float32Array(frames));

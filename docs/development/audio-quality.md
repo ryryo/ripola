@@ -33,7 +33,7 @@ pnpm inspect:audio --book BOOK_ID --revision REVISION --read
 
 ## 根拠と限界
 
-軽量検査の上限は120秒／chunk。整数PCM WAV（8/16/24/32bit）とfloat32 WAVを直接読み、各channelのenergyを保持します。MP3は手元ffmpeg/ffprobeで復号します。unsupported WAVや破損はfatal、ツール不足・サイズ上限は判定不能です。
+軽量検査の上限は120秒／chunk。整数PCM WAV（8/16/24/32bit）とfloat32 WAVを直接読み、各channelのenergyを保持します。MP3は手元ffmpeg/ffprobeで復号します。破損はfatal、対象外のWAV形式・ツール不足・サイズ上限は判定不能です。
 
 - 20ms RMS。相対的な90th percentileと絶対floorから無音閾値を決めます。RMS < 0.0005または無音比率 > 98%で全体の無音warning。
 - 2秒以上かつ全durationの35%以上の間を長い無音として示します。意図した間を否定しません。
