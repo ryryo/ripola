@@ -15,7 +15,7 @@ import { QA_TEXT, qaWave } from '../fixtures/audio-quality/fixture';
 
 test('保存音声QAを実local APIで保存・再検査し、元範囲と判定不能を確認する', async ({ page }, testInfo) => {
   // CI builds the local app before browsers. Test the built server with a private library.
-  testInfo.setTimeout(180_000);
+  testInfo.setTimeout(300_000);
   const root = await mkdtemp(join(tmpdir(), 'ripola-browser-qa-')), disk = new LibraryDisk(join(root, 'library'));
   const portServer = createServer(); await new Promise<void>(resolve => portServer.listen(0, '127.0.0.1', resolve));
   const port = (portServer.address() as { port: number }).port; await new Promise<void>(resolve => portServer.close(() => resolve()));
@@ -37,8 +37,9 @@ test('保存音声QAを実local APIで保存・再検査し、元範囲と判定
   child.stdout.on('data', log); child.stderr.on('data', log);
   const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
   try {
-    const deadline = Date.now() + 60_000; let ready = false;
-    while (!ready && Date.now() < deadline) { try { const response = await fetch(origin, { signal: AbortSignal.timeout(2000) }); ready = response.ok; await response.body?.cancel(); } catch { /* Wait for the isolated owned server. */ } if (!ready) await delay(100); }
+    const deadline = Date.now() + 120_000; let ready = false;
+    // Probe a built static file instead of repeatedly starting root SSR while it is cold.
+    while (!ready && Date.now() < deadline) { try { const response = await fetch(`${origin}/THIRD-PARTY-LICENSES.md`, { signal: AbortSignal.timeout(2000) }); ready = response.ok; await response.body?.cancel(); } catch { /* Wait for the isolated owned server. */ } if (!ready) await delay(100); }
     expect(ready).toBe(true);
     await page.goto(`${origin}/library?book=${book.id}&revision=${book.revision}`, { timeout: 60_000 });
     const panel = page.locator('section[aria-label="保存音声の品質検査"]');
