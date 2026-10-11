@@ -45,6 +45,8 @@ pnpm inspect:audio --book BOOK_ID --revision REVISION --read
 
 NFKC、かなの表記統一、内部の読み／許容表記DAGとedit distanceで比較します。空候補・サイズ制限・低score・少ない一致anchorは判定不能です。3文字以上の連続欠落、本文に既出の追加部分を、周辺一致とtoken posteriorを条件に抽出します。既存Reazonは正常用fixtureでも一節が認識候補から消えたため、差分を音声異常warningへ採用せず、判定不能と元範囲を表示します。warningへ採用できるのは実評価済みadapterの明示qualificationだけです。mockの`test-only`指定はunit用で、製品設定にはありません。候補との差分は本文範囲を示し、ASRから発話時刻を保証しません。token posteriorは校正された認識確率ではありません。
 
+繰り返し候補の元範囲は、本文中の同じ語句を指します。同じ語句が複数ある場合は最初の一致を示し、どの発話位置で繰り返したかは確定しません。
+
 **この版には品質合格という状態がありません。** 候補一致でもReazonの実用精度が未確立なら判定不能です。warningは必ず聴いて確認してください。ASR誤りや未知表記を「音声が正しい」へ変換しません。[データの版と条件](../licenses/audio-qa-data.md)を参照してください。
 
 ## 検証

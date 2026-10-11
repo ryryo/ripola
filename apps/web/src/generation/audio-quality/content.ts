@@ -112,7 +112,14 @@ export function compareContent(text: string, candidate?: AsrCandidate, reason = 
     const omission = deleted.length === group.length;
     if (!repetition && !omission) continue; // Small spelling/ASR substitutions must not masquerade as skipped speech.
     const message = omission ? `認識候補にない部分: ${deleted.map(e => e.text).join('')}` : `認識候補の追加部分: ${inserted.map(e => e.text).join('')}`;
-    const start = Math.min(...group.map(e => e.start)), end = Math.max(...group.map(e => e.end));
+    let start = Math.min(...group.map(e => e.start)), end = Math.max(...group.map(e => e.end));
+    if (repetition) {
+      const repeated = inserted.map(e => e.text).join(''), index = comparison.reference.indexOf(repeated);
+      const referenceEdits = comparison.edits.filter(e => e.kind !== 'insert');
+      const begin = [...comparison.reference.slice(0, index)].length;
+      const original = referenceEdits.slice(begin, begin + [...repeated].length);
+      start = Math.min(...original.map(e => e.start)); end = Math.max(...original.map(e => e.end));
+    }
     (evidence.differences ??= []).push({ kind: omission ? 'omission' : 'repetition', message, start, end });
     if (qualification !== 'unvalidated') issues.push({ severity: 'warning', code: omission ? 'possible-omission' : 'possible-repetition',
       message: `${omission ? '読み飛ばし' : '繰り返し'}の疑い（${message}）。ASR誤りの可能性があります。`, source: { blockId: '', start, end } });
