@@ -3,20 +3,57 @@ import type { AudioPresentationReport } from '../reader/audio-presentation';
 
 export const GEMINI_MODELS = ['gemini-3.8-flash-lite-tts', 'gemini-3.8-flash-tts'] as const;
 export type GeminiModel = typeof GEMINI_MODELS[number];
-export type SpeechProvider = 'voicevox' | 'gemini';
+export type SpeechProvider = 'voicevox' | 'gemini' | 'irodori';
+export interface SpeechProviderCapabilities {
+  local: boolean;
+  supportsStyle: boolean;
+  cancellation: 'before-send' | 'abort';
+  /** A hard input limit, when the adapter can state one. Not a quality target. */
+  maxCharacters?: number;
+  maxTextTokens?: number;
+  maxAudioSeconds?: number;
+  recommendedMaxCharacters?: number;
+}
+export interface SpeechProviderConfig {
+  id: SpeechProvider;
+  available: boolean;
+  endpoint: string;
+  voices: VoiceOption[];
+  capabilities: SpeechProviderCapabilities;
+  message?: string;
+}
+export interface IrodoriSettings { steps?: number; speed?: number; seed?: number; instructions?: string }
 export interface ReadingOverride { text: string; reading: string }
 export interface GenerationOptions {
   provider: SpeechProvider;
   voice: string;
-  model?: GeminiModel;
+  model?: GeminiModel | 'irodori-tts-mf';
   transport: 'direct' | 'gateway';
   readings: ReadingOverride[];
   style?: string;
   selectedChunkIds?: string[];
+  /** Omitted in old saves: retain sentence planning. */
+  irodori?: IrodoriSettings;
+  chunking?: { mode: 'sentence' | 'auto' };
+}
+export interface GenerationChunkSpan { blockId: string; start: number; end: number }
+export interface GenerationChunkPlanningInput {
+  document: ReadingDocument;
+  options: GenerationOptions;
+  providerVersion: string;
+  capabilities: SpeechProviderCapabilities;
+  defaultSpans: GenerationChunkSpan[];
+}
+export interface GenerationChunkPlanningResult {
+  spans: GenerationChunkSpan[];
+  version: string;
+  settingsFingerprint: string;
 }
 export interface PrepareGenerationInput { document: ReadingDocument; options: GenerationOptions }
 export interface GenerationChunk {
   id: string;
+  /** Position in the full source plan, independent of execution priority. */
+  sourceOrder?: number;
   blockId: string;
   start: number;
   end: number;
@@ -39,6 +76,7 @@ export interface GenerationPlan {
   sendingText: string;
   endpoint: string;
   providerVersion?: string;
+  chunkPlan?: { version: string; settingsFingerprint: string };
   /** Pins the Cloudflare Gateway and adapter version; never a credential. */
   routeIdentity?: string;
   attribution?: string;
@@ -62,6 +100,8 @@ export interface SpeechReceipt {
 }
 export interface VoiceOption { id: string; name: string; speakerName?: string; styleName?: string }
 export interface GenerationConfig {
+  /** Additive provider registry; legacy named entries below remain supported. */
+  providers?: SpeechProviderConfig[];
   voicevox: { available: boolean; endpoint: string; voices: VoiceOption[]; message?: string };
   gemini: { available: boolean; credentialConfigured: boolean; models: readonly GeminiModel[]; voices: VoiceOption[]; endpoint: string; message?: string };
   transports: Array<{ id: 'direct' | 'gateway'; available: boolean; message?: string }>;
@@ -84,13 +124,16 @@ export interface GenerationJob {
   createdAt: string;
   updatedAt: string;
   chunks: JobChunk[];
+  /** Execution preference only. chunks and manifests always retain source order. */
+  executionOrder?: string[];
   completedChunks: number;
   totalChunks: number;
   automaticAlignment?: { status: 'running' | 'completed' | 'unavailable' | 'failed' | 'cancelled'; jobId?: string };
   automaticCompression?: { status: 'running' | 'completed' | 'partial' | 'unavailable' | 'cancelled' | 'failed'; completedFiles: number; totalFiles: number; sourceBytes: number; compressedBytes: number; removedWavBytes: number; retainedWavFiles: number };
   error?: string;
 }
-export interface StartGenerationInput { planId: string; planHash: string; operationId: string; paidConfirmed: boolean }
+export interface StartGenerationInput { planId: string; planHash: string; operationId: string; paidConfirmed: boolean; prioritizedChunkIds?: string[] }
+export interface PrioritizeGenerationInput { jobId: string; chunkIds: string[] }
 export interface ResumeGenerationInput { jobId: string; paidConfirmed?: boolean }
 export interface AudioTimelineEntry {
   chunkId: string;
@@ -104,6 +147,7 @@ export interface AudioTimelineEntry {
 }
 export interface SavedAudioChunk {
   id: string;
+  sourceOrder?: number;
   speechKey: string;
   audioUrl: string;
   mimeType: 'audio/wav' | 'audio/mpeg';
@@ -129,6 +173,10 @@ export interface AudioBookManifest extends AudioBookSummary {
   providerVersion?: string;
   attribution?: string;
   chunks: SavedAudioChunk[];
+  /** Full source order, including not-yet-saved chunks. Omitted in old books. */
+  plannedChunkIds?: string[];
+  /** Publish sequence increases under the book lock; not an audio/cache revision. */
+  generation?: { jobId: string; planId: string; planHash: string; sequence: number };
   warnings: string[];
 }
 export const GENERATION_API_PATH = '/api/local-generation';

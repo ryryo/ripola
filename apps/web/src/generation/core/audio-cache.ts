@@ -1,11 +1,12 @@
 import type { MediaTimingMeasurement } from '../../distribution/library';
+import type { SpeechProvider } from '../contracts';
 import { digest, LibraryDisk, requireKey } from './disk';
 
 /** The original WAV hash and clock remain the generation/alignment identity. */
 export interface AudioCacheRecord {
   schemaVersion: 1;
   status: 'sending' | 'audio-ready' | 'ready' | 'failed' | 'outcome-unknown';
-  provider: 'voicevox' | 'gemini';
+  provider: SpeechProvider;
   hash?: string;
   durationSeconds?: number;
   error?: string;
