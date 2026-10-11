@@ -1625,5 +1625,42 @@
       "audio",
       "layout"
     ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "irodori.spec.ts",
+    "title": "Irodori未導入は容量と追加入口を示し通常利用では取得しない",
+    "lane": "related",
+    "domains": [
+      "audio"
+    ],
+    "quick": true
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "irodori.spec.ts",
+    "title": "Irodori未導入は容量と追加入口を示し通常利用では取得しない",
+    "lane": "manual_full",
+    "domains": [
+      "audio"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "irodori.spec.ts",
+    "title": "Irodori導入UIはmock進捗・取消し・検証・失敗再開を表示する",
+    "lane": "manual_full",
+    "domains": [
+      "audio"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "irodori.spec.ts",
+    "title": "Irodori導入UIはmock進捗・取消し・検証・失敗再開を表示する",
+    "lane": "manual_full",
+    "domains": [
+      "audio"
+    ]
   }
 ]

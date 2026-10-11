@@ -3,11 +3,17 @@ import { randomUUID } from 'node:crypto';
 import { loadGenerationConfig } from '../apps/web/src/generation/core/config.ts';
 import { GenerationService } from '../apps/web/src/generation/core/service.ts';
 import type { PrepareGenerationInput } from '../apps/web/src/generation/contracts.ts';
+import { getIrodoriController, type IrodoriController } from '../apps/web/src/generation/core/irodori-controller.ts';
+import { irodoriAdapter } from '../apps/web/src/generation/core/irodori-adapter.ts';
 
-async function main(): Promise<void> {
+async function execute(irodori: IrodoriController): Promise<void> {
   const [command, argument, ...flags] = process.argv.slice(2);
-  const service = new GenerationService(await loadGenerationConfig());
+  const service = new GenerationService(await loadGenerationConfig(), { providers: { irodori: irodoriAdapter(irodori) } });
   await service.ready();
+  if (flags.includes('--irodori-start')) {
+    if (!['plan', 'start', 'resume'].includes(command)) throw new Error('--irodori-startはplan/start/resume時にだけ使えます。');
+    await irodori.runtime.start();
+  }
   if (command === 'alignment-jobs') { console.log(JSON.stringify(await service.listAlignmentJobs(), null, 2)); return; }
   if (command === 'align' && argument) {
     const revision = flags.find((flag) => flag.startsWith('--revision='))?.slice('--revision='.length);
@@ -39,7 +45,11 @@ async function main(): Promise<void> {
     const job = await service.resumeJob(argument, flags.includes('--paid-confirmed'));
     console.log(JSON.stringify(await service.waitForJob(job.id), null, 2)); return;
   }
-  throw new Error('Usage: pnpm exec tsx scripts/generate-audio.ts config|jobs|books|plan INPUT.json|start PLAN_ID [--operation=ID] [--paid-confirmed]|cancel JOB_ID|resume JOB_ID [--paid-confirmed]|align BOOK_ID --revision=REV [--chunks=ID,ID] [--operation=ID]|alignment-jobs|alignment-cancel JOB_ID|alignment-resume JOB_ID');
+  throw new Error('Usage: pnpm exec tsx scripts/generate-audio.ts config|jobs|books|plan INPUT.json|start PLAN_ID [--operation=ID] [--paid-confirmed]|cancel JOB_ID|resume JOB_ID [--paid-confirmed]|align BOOK_ID --revision=REV [--chunks=ID,ID] [--operation=ID]|alignment-jobs|alignment-cancel JOB_ID|alignment-resume JOB_ID; Irodoriはplan/start/resumeに --irodori-start を付けて明示起動');
+}
+async function main(): Promise<void> {
+  const irodori = await getIrodoriController();
+  try { await execute(irodori); } finally { await irodori.runtime.stop(); }
 }
 main().catch((error: unknown) => {
   console.error(error instanceof Error ? error.message : '生成処理に失敗しました。'); process.exitCode = 1;

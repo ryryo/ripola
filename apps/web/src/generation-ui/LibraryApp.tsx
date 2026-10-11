@@ -57,7 +57,7 @@ function LocalLibraryApp() {
     if (book?.id === value.id && book.revision === value.revision) setBook(renamed);
   }
 
-  if (book) return <AudioReader book={book} onRename={book.id === AUDIO_DEMO_BOOK_ID ? undefined : title => rename(book, title)} demo={book.id === AUDIO_DEMO_BOOK_ID} localTools={<AlignmentPanel key={`${book.id}:${book.revision}`} book={book} onUpdated={refreshBook} />} attribution={book.options.provider === 'voicevox' ? '音声：VOICEVOX' : '音声：Gemini'} onClose={() => { if (book.id === AUDIO_DEMO_BOOK_ID) { window.location.assign(import.meta.env.BASE_URL); return; } setBook(undefined); window.history.replaceState(null, '', '/library'); }} />;
+  if (book) return <AudioReader book={book} onRename={book.id === AUDIO_DEMO_BOOK_ID ? undefined : title => rename(book, title)} demo={book.id === AUDIO_DEMO_BOOK_ID} localTools={<AlignmentPanel key={`${book.id}:${book.revision}`} book={book} onUpdated={refreshBook} />} attribution={book.options.provider === 'voicevox' ? '音声：VOICEVOX' : book.options.provider === 'irodori' ? '音声：Irodori' : '音声：Gemini'} onClose={() => { if (book.id === AUDIO_DEMO_BOOK_ID) { window.location.assign(import.meta.env.BASE_URL); return; } setBook(undefined); window.history.replaceState(null, '', '/library'); }} />;
 
   const listedBooks = books.filter(value => value.id !== AUDIO_DEMO_BOOK_ID);
   return <div className="generation-shell">
