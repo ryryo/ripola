@@ -20,12 +20,13 @@ export function normalizeSettings(value: unknown): ReaderSettings {
   if (isReadingFont(stored.fontFamily)) settings.fontFamily = stored.fontFamily;
   if (stored.writingMode === 'horizontal-tb' || stored.writingMode === 'vertical-rl') settings.writingMode = stored.writingMode;
   if (stored.mode === 'flash' || stored.mode === 'guide') settings.mode = stored.mode;
+  if (stored.readingPace === 'legacy' || stored.readingPace === 'text-load') settings.readingPace = stored.readingPace;
   if (stored.contrast === 'paper' || stored.contrast === 'night') settings.contrast = stored.contrast;
   return settings;
 }
 
 export function resetDisplaySettings(settings: ReaderSettings): ReaderSettings {
-  return { ...DEFAULT_SETTINGS, cpm: settings.cpm, punctuationPause: settings.punctuationPause };
+  return { ...DEFAULT_SETTINGS, cpm: settings.cpm, punctuationPause: settings.punctuationPause, readingPace: settings.readingPace ?? 'legacy' };
 }
 
 export function hasStoredPreferences(): boolean {

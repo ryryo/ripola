@@ -28,6 +28,7 @@ import { InputFormatControl } from './InputFormatControl';
 import { EnvironmentAvailability } from './EnvironmentAvailability';
 import { FullscreenEnterButton, FullscreenReader, ReaderPlayButton, useFullscreenReader } from './FullscreenReader';
 import { ReadingModeControls } from './ReadingModeControls';
+import { ReadingPaceControls } from './ReadingPaceControls';
 import { useReaderPreferences } from './useReaderPreferences';
 import { useScreenWakeLock } from './useScreenWakeLock';
 import { hasStoredPreferences, resetDisplaySettings } from '../preferences';
@@ -344,6 +345,10 @@ export function ReaderApp() {
             <div className="secondary-controls"><Button variant="subtle" onClick={openSource}>原文</Button><Button variant="subtle" onClick={openSettings}>表示設定</Button><Button variant="subtle" onClick={() => void save()} loading={saving} disabled={font.busy}>端末に保存</Button></div>
           </div>
           <p className="keyboard-hint">Space 再生／一時停止 · ← → フレーズ · Shift＋← → 文 · ↑ ↓ 速さ · Home / End</p><ShortcutHelp />
+          <details className="shortcut-help" onToggle={() => controller.pause()}>
+            <summary>黙読ペースを比較（{settings.readingPace === 'text-load' ? '評価' : '従来'}）</summary>
+            <ReadingPaceControls value={settings.readingPace} summary={controller.getTimingSummary()} onChange={readingPace => { controller.pause(); update({ readingPace }); }} />
+          </details>
           <p className="reader-note">まずは400文字/分から。研究を参考にした控えめな初期値です。読みやすさや内容に合わせて調整してください。</p>
           <AozoraInfo value={document.provenance} />
         </NavigationLayout>}
@@ -367,6 +372,7 @@ export function ReaderApp() {
           <p className="muted">長いフレーズは、画面に収まる大きさに調整します。</p><Button variant="light" onClick={() => { controller.pause(); update(resetDisplaySettings(settings)); }}>表示設定をリセット</Button>
         </section>
         <section className="settings-section"><h2>読むリズム</h2>
+          <ReadingPaceControls value={settings.readingPace} summary={controller.getTimingSummary()} onChange={readingPace => { controller.pause(); update({ readingPace }); }} />
           <Switch label="句読点で間をとる" checked={settings.punctuationPause} onChange={e => update({ punctuationPause: e.currentTarget.checked })} />
           <p className="muted">読点100ms・文末250ms・段落400ms・見出し600msを追加します。個別の長さ調整はありません。</p><p className="muted">速度や間の変更は、次のフレーズから反映します。設定を閉じても停止状態が続きます。</p>
         </section>

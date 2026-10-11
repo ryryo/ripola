@@ -1839,5 +1839,46 @@
       "audio",
       "generation"
     ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "reading-options.spec.ts",
+    "title": "黙読ペース評価は同じ速度で比較でき、停止・seek・下限・保存復元が一致する",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ],
+    "quick": true
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "reading-options.spec.ts",
+    "title": "黙読評価の保存設定は音声のmedia時計・倍速・seekへ影響しない",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "reading-options.spec.ts",
+    "title": "黙読ペース評価は同じ速度で比較でき、停止・seek・下限・保存復元が一致する",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "reading-options.spec.ts",
+    "title": "黙読評価の保存設定は音声のmedia時計・倍速・seekへ影響しない",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
   }
 ]

@@ -48,9 +48,9 @@ test('MDファイルはcode/tableで止まり、元入力と同じ本文の位�
   await expect(page.getByRole('button', { name: '再生', exact: true })).toBeVisible();
 });
 test('再生連打・速度変更・戻る・設定・背景停止は単位を飛ばさない', async ({ page }) => {
-  await page.goto('/'); await read(page);
-  // Pause retains elapsed time. Keep this rapid-toggle check well inside one
-  // phrase duration rather than assuming every pause restarts its timer.
+  await page.goto('/'); await read(page, '1'.repeat(1000) + '。\n\n私は朝の電車で本を読んでいます。\n\n立ち止まり、原文を確かめる。');
+  // Pause retains elapsed time. A protected long number keeps the five UI
+  // toggles inside one phrase even when browser automation is slow.
   await page.getByLabel('読む速さ（字/分）').fill('100');
   const before = await page.getByTestId('current-phrase').innerText();
   for (let i = 0; i < 5; i++) { await page.getByRole('button', { name: '再生', exact: true }).click(); await page.getByRole('button', { name: '一時停止', exact: true }).click(); }

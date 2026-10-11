@@ -43,3 +43,19 @@ test('old audio display preferences migrate; reset preserves both speeds and rhy
   assert.deepEqual(readPreferences(local), { audioRate: '4.75', settings: { ...DEFAULT_SETTINGS, cpm: 900, punctuationPause: false } });
   assert.equal(JSON.parse(local.getItem('rsvp-audio-reading-options-v2')!).contrast, 'night');
 });
+
+test('pace choice persists independently of speeds; old or unknown choices keep legacy behavior', () => {
+  const local = storage();
+  writePreferences({ settings: { ...DEFAULT_SETTINGS, readingPace: 'text-load', cpm: 850 } }, local);
+  writePreferences({ audioRate: '1.75' }, local);
+  assert.equal(readPreferences(local).settings.readingPace, 'text-load');
+  assert.equal(readPreferences(local).settings.cpm, 850);
+  assert.equal(readPreferences(local).audioRate, '1.75');
+  assert.equal(resetDisplaySettings(readPreferences(local).settings).readingPace, 'text-load');
+  for (const readingPace of [undefined, null, 'unknown', {}, 1]) {
+    local.setItem(PREFERENCES_KEY, JSON.stringify({ schemaVersion: 1, settings: { cpm: 900, readingPace }, audioRate: '4' }));
+    assert.equal(readPreferences(local).settings.readingPace, 'legacy');
+    assert.equal(readPreferences(local).settings.cpm, 900);
+    assert.equal(readPreferences(local).audioRate, '4');
+  }
+});
