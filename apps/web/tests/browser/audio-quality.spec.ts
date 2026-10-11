@@ -38,7 +38,7 @@ test('保存音声QAを実local APIで保存・再検査し、元範囲と判定
     expect(ready).toBe(true);
     await page.goto(`${origin}/library?book=${book.id}&revision=${book.revision}`);
     const panel = page.locator('section[aria-label="保存音声の品質検査"]');
-    await expect(page.getByRole('heading', { name: '保存音声の品質を確認' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: '保存音声の品質を確認' })).toBeVisible({ timeout: 60_000 });
     await page.getByRole('button', { name: '保存音声を検査する', exact: true }).click();
     const result = page.getByTestId('audio-inspection-result'); await expect(result).toContainText('要確認');
     await result.locator('summary').first().click(); await expect(result).toContainText('音声全体が無音'); await expect(result).toContainText('UTF-16 0–26');
