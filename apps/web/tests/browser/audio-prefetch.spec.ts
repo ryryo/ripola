@@ -114,8 +114,15 @@ test('旧AACの静的サンプルでmedia時計・倍速・明示seekを保つ',
   await page.getByRole('button', { name: '再生', exact: true }).click();
   await expect.poll(async () => Number(await slider.inputValue())).toBeGreaterThan(10.2);
   await page.getByRole('button', { name: '一時停止', exact: true }).click();
-  const clock = await page.locator('audio').evaluate((media: HTMLAudioElement) => ({ local: media.currentTime, rate: media.playbackRate, absolute: Number((document.querySelector('#audio-position') as HTMLInputElement).value) }));
-  expect(clock.rate).toBe(1.5); expect(locateAudioTime(segments, clock.absolute).localSeconds).toBeCloseTo(clock.local, 1);
+  const clock = await page.locator('audio').evaluate((media: HTMLAudioElement) => ({ local: media.currentTime, rate: media.playbackRate, ended: media.ended, duration: media.duration, src: media.src,
+    unitId: document.querySelector('[data-testid="audio-phrase"]')?.getAttribute('data-unit-id'), absolute: Number((document.querySelector('#audio-position') as HTMLInputElement).value) }));
+  const active = segments.find(segment => segment.displayCues.some(cue => cue.unitIds.includes(clock.unitId ?? '')))!;
+  expect(active).toBeDefined(); expect(clock.rate).toBe(1.5);
+  if (!clock.src.startsWith('blob:')) expect(clock.src).toContain(active.chunk.audioUrl.split('/').at(-1)!);
+  // At natural completion the saved boundary is also the next chunk's start.
+  // Match the captured source, including decoder rounding, before inverting it.
+  expect(clock.absolute).toBeCloseTo(clock.ended ? active.endSeconds : active.startSeconds + Math.min(active.chunk.durationSeconds, clock.local), 1);
+  if (clock.ended) expect(clock.local).toBeCloseTo(clock.duration, 1);
   const previous = await page.getByTestId('audio-phrase').getAttribute('data-unit-id');
   await page.getByRole('button', { name: '次のフレーズ', exact: true }).click();
   await expect(page.getByTestId('audio-phrase')).not.toHaveAttribute('data-unit-id', previous!);
