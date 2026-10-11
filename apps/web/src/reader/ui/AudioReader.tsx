@@ -234,7 +234,7 @@ export function AudioReader({ book, onClose, attribution, localTools, demo = fal
     anchor.current = playbackAnchor(current, restored.localSeconds, anchor.current.ended);
     positionRef.current = mediaPosition(current, restored.localSeconds, anchor.current.ended);
     setPosition(positionRef.current);
-    if (waitingFor && intent.current) advance(waitingFor, true);
+    if (waitingFor && intent.current && !generationStopped) advance(waitingFor, true);
   }, [segments]);
 
   useEffect(() => {
