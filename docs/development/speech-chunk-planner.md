@@ -18,6 +18,8 @@ const plan = planSpeechChunks({ blockId: 'paragraph-1', text }, policy);
 
 全文を読み変換する接続では20万文字の本文で既存の配列引数展開がスタック上限を超えました。共有`generation/speech-source.ts`はpushとmin/maxの引数展開だけをループ・集約へ置き換え、読み変換とsource mappingの仕様を維持します。28万文字で途中のルビ・長い末尾を持つ本文と、大きな読み置換を回帰検査します。sourceが読みより長くなる場合も保存coreの3000 UTF-16上限で再分割し、1個の保護範囲自体が上限を超えれば明示エラーにします。
 
+この保存上限の再分割では、親の発話全体がprovider budgetに収まることを既に確認しています。元文字数を発話時間としてsoft targetへ当てはめず、source全体の推定値をtarget/preferredへ置いて保存範囲を均衡させます。4800文字が80個の短い読みに縮むfixtureは2区間となり、不要な細切れを避けます。この方針をprovider policyの`budget-v2`へ固定します。
+
 通常の新規生成は`GenerationApp.prepare`で`chunking: { mode: 'auto' }`を明示し、serverの`planChunks`へ接続します。CLIも同じhookを使えます。mode省略・`sentence`は従来経路です。旧jobの`getJobPlan/resumeJob`は保存されたspan/key/planを読むため、新plannerを呼びません。
 
 planner版・budget・provider版は`chunkPlan`と本のrevisionへ固定します。音声keyはfoundationの`speech-v1`を維持し、確定発話本文・声・合成条件・provider版が同じなら完成音声を再利用します。planner版だけが変わって同じ発話範囲になった場合にもcacheを失わせません。境界変更で送る発話本文が変われば別keyになります。表示版やDirect/Gatewayの経路だけでは音声keyを変えません。

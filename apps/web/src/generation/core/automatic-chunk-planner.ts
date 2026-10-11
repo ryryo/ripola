@@ -11,7 +11,7 @@ function policyFor(input: GenerationChunkPlanningInput): ChunkPlannerPolicy {
   const hardSeconds = Math.min(45, (capabilities.maxAudioSeconds ?? (irodori ? 30 : 45)) * (irodori ? 0.8 * speed : 1));
   const preferred = Math.min(hardSeconds, irodori ? 16 * speed : options.provider === 'gemini' ? 28 : 18,
     capabilities.recommendedMaxCharacters === undefined ? Infinity : capabilities.recommendedMaxCharacters * 0.17);
-  return { version: `ripola-${options.provider}-budget-v1`,
+  return { version: `ripola-${options.provider}-budget-v2`,
     hard: { maxCharacters: Math.min(3000, capabilities.maxCharacters ?? 3000), maxUtf16: 3000, maxEstimatedSeconds: hardSeconds,
       ...(capabilities.maxTextTokens === undefined ? {} : { maxTokenUpperBound: capabilities.maxTextTokens }) },
     soft: { targetSeconds: Math.min(preferred, (irodori ? 12 : options.provider === 'gemini' ? 18 : 12) * speed),
@@ -72,9 +72,13 @@ export function automaticChunkPlanner(input: GenerationChunkPlanningInput): Gene
         // Readings can shorten a large source to a tiny utterance. Subdivide that
         // source under the storage ceiling, keeping each complete replacement.
         const text = block.text.slice(sourceStart, sourceEnd);
+        const sourceSeconds = Math.max(policy.hard.maxEstimatedSeconds, estimateSpeechSeconds(text));
         const sourcePlan = planSpeechChunks({ blockId: block.id, text,
           protectedRanges: sourceProtected.filter(span => span.start >= sourceStart && span.end <= sourceEnd).map(span => ({ start: span.start - sourceStart, end: span.end - sourceStart })) },
-        { ...policy, hard: { maxCharacters: 3000, maxUtf16: 3000, maxEstimatedSeconds: Math.max(policy.hard.maxEstimatedSeconds, estimateSpeechSeconds(text)) } });
+        { ...policy, hard: { maxCharacters: 3000, maxUtf16: 3000, maxEstimatedSeconds: sourceSeconds },
+          // Every child is already inside a fitting utterance. Raw-source duration
+          // only balances storage spans here; it must not reward tiny utterances.
+          soft: { ...policy.soft, targetSeconds: sourceSeconds, preferredMaxSeconds: sourceSeconds } });
         for (const part of sourcePlan.chunks) spans.push({ blockId: block.id, start: sourceStart + part.start, end: sourceStart + part.end });
       } else spans.push({ blockId: block.id, start: sourceStart, end: sourceEnd });
       sourceStart = sourceEnd;
