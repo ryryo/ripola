@@ -36,6 +36,8 @@ def transcribe(request):
     if hashlib.sha256(path.read_bytes()).hexdigest() != request['mediaHash']:
         raise ValueError('Audio hash mismatch')
     manifest = json.loads(Path(__file__).with_name('alignment-model.json').read_text())
+    if manifest['modelId'] != 'reazon-research/japanese-wav2vec2-base-rs35kh' or manifest['revision'] != '46afc596052b612293c8db256b3a69447a2f57dc':
+        raise ValueError('ASR version does not match the pinned model revision')
     from align_audio import verify_model
     model_dir = Path(os.environ['RSVP_ALIGNMENT_MODEL_DIR']).resolve(strict=True)
     verify_model(model_dir, {'alignerVersion': manifest['alignerVersion']})
