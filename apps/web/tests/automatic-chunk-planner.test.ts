@@ -120,10 +120,11 @@ test('indivisible readings that exceed a provider cap fail during planning', asy
   assert.throws(() => automaticChunkPlanner(value), /分割できない/);
 });
 
-test('readings that shorten more than 3000 source characters retain the storage ceiling and all annotations', async () => {
-  const value = await input(('<ruby>' + '甲'.repeat(60) + '<rt>あ</rt></ruby>').repeat(80), 'md');
+test('readings that shorten more than 3000 source characters retain all annotations in few storage-safe chunks', async () => {
+  const text = Array.from({ length: 80 }, (_, index) => '<ruby>' + '甲'.repeat(60) + '<rt>' + String.fromCodePoint(0x3041 + index) + '</rt></ruby>').join('');
+  const value = await input(text, 'md');
   const result = verifySource(value);
-  assert.ok(result.spans.length > 1);
+  assert.equal(result.spans.length, 2, '4800 source characters need only two chunks for this fitting utterance');
 });
 
 test('display units and settings do not change spans or fingerprint; provider and planner budgets do', async () => {
