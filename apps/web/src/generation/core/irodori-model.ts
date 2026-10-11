@@ -74,11 +74,15 @@ export class IrodoriModelStore {
     try { lock = await open(lockPath, 'wx', 0o600); }
     catch (error) {
       if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error;
-      const owner = await json<{ pid: number }>(lockPath);
-      if (!owner || active(owner.pid)) throw new Error('Irodori導入は別の操作で進行中です。', { cause: error });
+      let owner: { pid: number } | undefined;
+      try { owner = await json<{ pid: number }>(lockPath); } catch { /* A crash during lock creation can leave incomplete JSON. */ }
+      if (!Number.isSafeInteger(owner?.pid) || (owner?.pid ?? 0) <= 0) owner = undefined;
+      const fresh = Date.now() - (await lstat(lockPath)).mtimeMs < 30_000;
+      if (owner ? active(owner.pid) : fresh) throw new Error('Irodori導入は別の操作で進行中です。直前の中断なら30秒待って再開してください。', { cause: error });
       await rm(lockPath); lock = await open(lockPath, 'wx', 0o600);
     }
-    await lock.writeFile(JSON.stringify({ pid: process.pid }));
+    try { await lock.writeFile(JSON.stringify({ pid: process.pid })); }
+    catch (error) { await lock.close(); await rm(lockPath, { force: true }); throw new Error('Irodori導入の保存領域を用意できません。空き容量と権限を確認してください。', { cause: error }); }
     const controller = new AbortController();
     const abort = () => controller.abort();
     signal?.addEventListener('abort', abort, { once: true });

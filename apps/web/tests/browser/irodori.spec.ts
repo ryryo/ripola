@@ -27,6 +27,7 @@ test('Irodori未導入は容量と追加入口を示し通常利用では取得�
   await page.getByRole('option', { name: '任意追加 · Irodori（このPC）', exact: true }).click();
   const panel = page.getByRole('region', { name: 'Irodoriの任意追加', exact: true });
   await expect(panel).toContainText('未導入'); await expect(panel).toContainText('約1.92GB'); await expect(panel).toContainText('約2.2GB');
+  await expect(panel).toContainText('固定voiceが別途必要'); await expect(panel).toContainText('製品voiceを同梱していません');
   await expect(panel.getByRole('button', { name: 'Irodoriを追加する（約1.92GB）', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: '生成計画を確認する', exact: true })).toBeDisabled();
   await panel.getByText('合成設定・取得資材の詳細', { exact: true }).click();
@@ -39,12 +40,15 @@ test('Irodori未導入は容量と追加入口を示し通常利用では取得�
 test('Irodori導入UIはmock進捗・取消し・検証・失敗再開を表示する', async ({ page }, testInfo) => {
   testInfo.setTimeout(60_000);
   let phase = 'not-installed', bytes = 0, template = ''; const actions: string[] = [];
+  let releaseInstall: () => void = () => undefined;
+  const installationReply = new Promise<void>(resolve => { releaseInstall = resolve; });
   await page.route('**/_serverFn/**', async route => {
     const name = rpcName(route.request().url());
     if (name.startsWith('installIrodori') || name.startsWith('cancelIrodoriInstall')) {
       // Never forward the download mutation to the PC. Reuse only the successful RPC envelope.
       actions.push(name); phase = name.startsWith('cancel') ? 'cancelled' : actions.length === 1 ? 'downloading' : 'verifying';
       bytes = phase === 'verifying' ? 1_920_321_792 : 960_000_000;
+      if (actions.length === 1) await installationReply;
       await route.fulfill({ status: 200, contentType: 'application/json', body: template }); return;
     }
     if (!name.startsWith('getIrodoriStatus')) return route.continue();
@@ -56,7 +60,9 @@ test('Irodori導入UIはmock進捗・取消し・検証・失敗再開を表示�
   });
   await page.goto('/generate'); await page.getByRole('combobox', { name: '生成手段', exact: true }).click(); await page.getByRole('option', { name: '任意追加 · Irodori（このPC）', exact: true }).click();
   const panel = page.getByRole('region', { name: 'Irodoriの任意追加', exact: true }); await expect(panel).toContainText('未導入');
-  await panel.getByRole('button', { name: 'Irodoriを追加する（約1.92GB）', exact: true }).click(); await expect(panel).toContainText('取得中'); await expect(panel).toContainText('0.96 / 1.92GB');
+  await panel.getByRole('button', { name: 'Irodoriを追加する（約1.92GB）', exact: true }).click();
+  try { await expect(page.getByRole('combobox', { name: '生成手段', exact: true })).toBeDisabled(); } finally { releaseInstall(); }
+  await expect(panel).toContainText('取得中'); await expect(panel).toContainText('0.96 / 1.92GB');
   await panel.getByRole('button', { name: '取得・検証を取り消す', exact: true }).click(); await expect(panel).toContainText('取消し・中断');
   await panel.getByRole('button', { name: '途中から導入を再開する', exact: true }).click(); await expect(panel).toContainText('検証中'); await expect(panel).toContainText('途中の資材はまだ利用できません');
   phase = 'failed'; await expect(panel).toContainText('導入失敗'); await expect(panel.getByRole('button', { name: '途中から導入を再開する', exact: true })).toBeVisible();

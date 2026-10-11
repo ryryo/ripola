@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { mkdtemp, readFile, writeFile, rm, stat, readdir } from 'node:fs/promises';
+import { mkdtemp, readFile, writeFile, rm, stat, readdir, utimes } from 'node:fs/promises';
 import { spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -114,6 +114,14 @@ test('installation lock excludes competing setup and recovers a dead owner', asy
   const directory = await temporary(t); const store = new IrodoriModelStore(directory, spec, async () => new Response(modelBytes));
   await writeFile(join(directory, 'setup.lock'), JSON.stringify({ pid: process.pid })); await assert.rejects(store.install(), /進行中/);
   await writeFile(join(directory, 'setup.lock'), JSON.stringify({ pid: 99999999 })); await store.install(); assert.equal(await store.installed(), true);
+});
+
+test('a crash while creating a setup lock is recoverable without stealing a fresh lock', async t => {
+  const directory = await temporary(t); const store = new IrodoriModelStore(directory, spec, async () => new Response(modelBytes));
+  const lock = join(directory, 'setup.lock'); await writeFile(lock, '{');
+  await assert.rejects(store.install(), /30秒/);
+  const old = new Date(Date.now() - 60_000); await utimes(lock, old, old);
+  await store.install(); assert.equal(await store.installed(), true);
 });
 
 test('rights-confirmed preexisting voice registration verifies identity and never creates a voice', async t => {

@@ -13,7 +13,7 @@ import { InputFormatControl } from '../reader/ui/InputFormatControl';
 import { resolveInputFormat, type InputFormat } from '../reader/input-format';
 import { GeminiCostPreview } from './GeminiCostPreview';
 import { IrodoriPanel } from './IrodoriPanel';
-import { DEFAULT_IRODORI_SETTINGS, type IrodoriSettings } from '../generation/irodori-contracts';
+import type { IrodoriSettings } from '../generation/irodori-contracts';
 import './generation.css';
 
 const SAMPLE = '朝の図書館は静かです。窓辺で本を開きました。今日はゆっくり読んでみましょう。';
@@ -60,13 +60,14 @@ export function GenerationApp({ home }: { home?: HomeGenerationProps }) {
   const [title, setTitle] = useState('');
   const [format, setFormat] = useState<InputFormat>('auto');
   const [provider, setProvider] = useState<GenerationOptions['provider']>('voicevox');
-  const [irodori, setIrodori] = useState<IrodoriSettings>(DEFAULT_IRODORI_SETTINGS);
+  const [irodori, setIrodori] = useState<IrodoriSettings>();
+  const [irodoriBusy, setIrodoriBusy] = useState(false);
   const [voice, setVoice] = useState('');
   const [model, setModel] = useState<typeof GEMINI_MODELS[number]>(GEMINI_MODELS[0]);
   const [transport, setTransport] = useState<GenerationOptions['transport']>('direct');
   const [readings, setReadings] = useState('');
   const [style, setStyle] = useState('');
-  const selectedProviderAvailable = provider === 'voicevox' ? config?.voicevox.available : provider === 'irodori' ? config?.providers?.find(value => value.id === 'irodori')?.available : Boolean(config?.gemini.available && config.transports.find(value => value.id === transport)?.available);
+  const selectedProviderAvailable = provider === 'voicevox' ? config?.voicevox.available : provider === 'irodori' ? Boolean(irodori && !irodoriBusy && config?.providers?.find(value => value.id === 'irodori')?.available) : Boolean(config?.gemini.available && config.transports.find(value => value.id === transport)?.available);
   const selectedTransportMessage = config?.transports.find(value => value.id === transport)?.message;
   const [selected, setSelected] = useState<string[]>();
   const [plan, setPlan] = useState<GenerationPlan>();
@@ -130,6 +131,7 @@ export function GenerationApp({ home }: { home?: HomeGenerationProps }) {
   function changeProvider(value: string | null) {
     if (value !== 'voicevox' && value !== 'gemini' && value !== 'irodori') return;
     setProvider(value);
+    if (value === 'irodori') setIrodori(undefined);
     if (value !== 'gemini') setTransport('direct');
     setVoice(value === 'voicevox' ? defaultVoicevoxVoice(config?.voicevox.voices ?? []) : voicesFor(config, value)?.[0]?.id ?? '');
     invalidate(true);
@@ -263,8 +265,8 @@ export function GenerationApp({ home }: { home?: HomeGenerationProps }) {
         <div className="audio-disclosure-heading"><div><strong>音声も生成する</strong><span className="advanced-label">アドバンスド設定</span><p>声や読みを選んで、同じ文章に音声を付けます。</p></div><Switch role="switch" aria-label="音声も生成する" aria-controls="home-audio-settings" checked={audioEnabled} disabled={Boolean(busy) || home.textBusy} onChange={event => home.onToggle(event.currentTarget.checked)} size="md" /></div>
       </div>}
       {audioEnabled && <section id={home ? 'home-audio-settings' : undefined} className={home ? 'home-audio-settings' : 'generation-card'}>{!home && <h2>2. 読みと声</h2>}
-        <Select label={home ? "生成方法" : "生成手段"} value={provider} onChange={changeProvider} data={[{ value: 'voicevox', label: '無料 · VOICEVOX' }, { value: 'gemini', label: '有料 · Gemini' }, { value: 'irodori', label: '任意追加 · Irodori（このPC）' }]} allowDeselect={false} disabled={Boolean(busy)} />
-        {provider === 'irodori' && <IrodoriPanel onSettingsChange={irodoriSettingsChanged} onChange={() => { invalidate(true); void refreshConfig(); }} disabled={Boolean(busy) || Boolean(job && ['queued', 'running', 'cancel-requested'].includes(job.status))} />}
+        <Select label={home ? "生成方法" : "生成手段"} value={provider} onChange={changeProvider} data={[{ value: 'voicevox', label: '無料 · VOICEVOX' }, { value: 'gemini', label: '有料 · Gemini' }, { value: 'irodori', label: '任意追加 · Irodori（このPC）' }]} allowDeselect={false} disabled={Boolean(busy) || irodoriBusy} />
+        {provider === 'irodori' && <IrodoriPanel onSettingsChange={irodoriSettingsChanged} onBusyChange={setIrodoriBusy} onChange={() => { invalidate(true); void refreshConfig(); }} disabled={Boolean(busy) || Boolean(job && ['queued', 'running', 'cancel-requested'].includes(job.status))} />}
         <div className="generation-connection" role="region" aria-label="音声生成の利用状態"><div className="environment-heading"><Badge color="gray" variant="light">ローカルPC版</Badge><span role="status">{configState === 'checking' ? '確認中…' : configState === 'error' ? '状態を確認できませんでした' : provider === 'voicevox' ? config?.voicevox.available ? '最終確認：VOICEVOXに接続あり' : '最終確認：VOICEVOX未接続' : selectedProviderAvailable ? '選択経路のサーバー設定あり' : 'サーバー設定が必要'}</span></div>
           {configCheckedAt && <p className="connection-time">最終確認：<time dateTime={configCheckedAt.toISOString()}>{configCheckedAt.toLocaleTimeString()}</time> · {provider === 'voicevox' ? '確認時点の結果です。' : '設定の確認です。合成接続の成功を意味しません。'}</p>}
           {configState === 'error' ? <p className="muted">{configError} 原稿を保ったまま再確認できます。</p> : provider === 'voicevox' ? <p className="muted">{configState === 'checking' ? 'このPCのVOICEVOX Engineを確認しています。' : config?.voicevox.available ? 'このPCのEngineを利用できます。音声合成はまだ開始していません。' : 'このPCでVOICEVOX Engineを起動してから再確認してください。'} 黙読と準備済み音声は、接続なしでも使えます。</p> : provider === 'irodori' ? <p className="muted">{config?.providers?.find(value => value.id === 'irodori')?.message ?? 'このPCの任意追加Irodoriを使います。'} 本文をクラウドへ送信しません。</p> : <p className="muted">{config?.gemini.message} {selectedTransportMessage} {home ? transport === 'direct' ? '本文をGoogleに送信します。内容と費用を確認してから生成します。' : '本文をCloudflareに送信し、Googleモデルで合成します。課金元はGatewayの設定に従います。' : '認証情報の値はブラウザへ渡しません。'}</p>}
@@ -292,6 +294,7 @@ export function GenerationApp({ home }: { home?: HomeGenerationProps }) {
       </div>
       {!home && selection}
       {audioEnabled && plan && <section className="generation-card generation-confirm"><h2>{home ? '開始前に確認' : '4. 開始前に確認'}</h2><dl><dt>送信先</dt><dd>{plan.options.provider === 'voicevox' ? 'VOICEVOX · このPC' : plan.options.provider === 'irodori' ? 'Irodori MF · このPC' : `${plan.options.transport === 'gateway' ? 'Cloudflare · Googleモデル' : 'Google'} · ${plan.options.model}`}</dd><dt>接続先</dt><dd>{plan.endpoint}</dd><dt>課金先</dt><dd>{plan.options.provider !== 'gemini' ? '無料 · このPC' : plan.options.transport === 'gateway' ? 'Cloudflare Gatewayの設定に従います' : 'Googleアカウント'}</dd><dt>対象</dt><dd>{plan.chunks.length}文 · 保存音声の再利用 {plan.chunks.filter(chunk => chunk.cacheHit).length}文</dd><dt>音声の長さ（目安）</dt><dd>約{Math.ceil(plan.estimatedSeconds / 60)}分</dd><dt>概算費用</dt><dd>{plan.options.provider !== 'gemini' ? '無料' : `$${plan.estimatedOutputUsd.toFixed(4)} + 入力等`}<p className="muted">{plan.estimateNote}</p></dd></dl>
+        {plan.options.provider === 'irodori' && <p>固定voice: {plan.options.voice} · MF {plan.options.irodori?.steps ?? 4} steps · 速度 {plan.options.irodori?.speed ?? 1} · seed {plan.options.irodori?.seed ?? 42}。{plan.options.irodori?.instructions && `読み上げ指示: ${plan.options.irodori.instructions}`}</p>}
         <details><summary>正確な送信本文を確認（{plan.sendingText.length.toLocaleString()}文字）</summary><pre>{plan.sendingText}</pre>{plan.options.style && <p>読み上げ指示：{plan.options.style}</p>}</details>
         {!plan.sendingText && plan.chunks.length > 0 && <p className="muted">すべて保存音声を再利用するため、今回APIへ送る本文はありません。</p>}
         {plan.warnings.map((warning, i) => <p className="muted" key={i}>{warning}</p>)}
