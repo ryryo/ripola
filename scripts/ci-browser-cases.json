@@ -1702,5 +1702,65 @@
       "audio",
       "distribution"
     ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "audio-progressive.spec.ts",
+    "title": "生成holeで待機し、次chunk保存後に本文順で再開する",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "generation"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "audio-progressive.spec.ts",
+    "title": "追加保存と同sequence整列はnative位置を保ち、MP3差替えは同じsourceへ戻る",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "generation"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "audio-progressive.spec.ts",
+    "title": "生成失敗・取消しで待機を解除し、旧jobを拒否して停止位置を保持する",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "generation"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "audio-progressive.spec.ts",
+    "title": "生成holeで待機し、次chunk保存後に本文順で再開する",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "generation"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "audio-progressive.spec.ts",
+    "title": "追加保存と同sequence整列はnative位置を保ち、MP3差替えは同じsourceへ戻る",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "generation"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "audio-progressive.spec.ts",
+    "title": "生成失敗・取消しで待機を解除し、旧jobを拒否して停止位置を保持する",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "generation"
+    ]
   }
 ]
