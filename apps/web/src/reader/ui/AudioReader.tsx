@@ -330,7 +330,7 @@ export function AudioReader({ book, onClose, attribution, localTools, demo = fal
           audio.current.currentTime = Math.min(pendingSeek.current, audio.current.duration || segment.chunk.durationSeconds);
           audio.current.playbackRate = Number(rate);
           sample();
-          if (intent.current) void audio.current.play().catch(() => { if (attempt !== playRequest.current) return; intent.current = false; setPlaying(false); setBuffering(false); setError('「再生」を押して音声を開始してください。'); });
+          if (intent.current && !waitingFor) void audio.current.play().catch(() => { if (attempt !== playRequest.current) return; intent.current = false; setPlaying(false); setBuffering(false); setError('「再生」を押して音声を開始してください。'); });
         }}
         onPlay={event => { if (event.currentTarget !== audio.current) return; setPlaying(true); setBuffering(false); }}
         onPlaying={event => { if (event.currentTarget !== audio.current) return; setPlaying(true); setBuffering(false); }}

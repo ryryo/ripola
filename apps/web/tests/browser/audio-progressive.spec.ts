@@ -72,6 +72,12 @@ test('生成holeで待機し、次chunk保存後に本文順で再開する', as
   await page.getByRole('button', { name: '再生', exact: true }).click();
   await expect(page.getByTestId('audio-stage')).toContainText('次の音声の生成を待っています');
   await expect.poll(pendingPriority).toEqual(['c1', 'c2', 'c0']);
+  const replacement = browserMp3(tone(2, 220));
+  await page.route('**/fixture-waiting.mp3', route => route.fulfill({ body: replacement.bytes, contentType: 'audio/mpeg' }));
+  await publish([0], 'running', 1, { chunks: [{ ...full.chunks[0], audioUrl: '/fixture-waiting.mp3', mimeType: 'audio/mpeg' }] });
+  await expect(page.locator('audio')).toHaveAttribute('src', '/fixture-waiting.mp3');
+  await expect.poll(() => page.locator('audio').evaluate((media: HTMLAudioElement) => media.currentTime)).toBeCloseTo(2, 1);
+  expect(await page.locator('audio').evaluate((media: HTMLAudioElement) => media.paused)).toBe(true);
   await publish([0, 2]);
   await expect(page.getByText('保存済み 2 / 3 文を再生します。', { exact: false })).toBeVisible();
   await expect(page.getByTestId('audio-stage')).toContainText('次の音声の生成を待っています');
@@ -97,7 +103,8 @@ test('追加保存と同sequence整列はnative位置を保ち、MP3差替えは
   await expect(page.locator('audio')).toHaveAttribute('data-original', 'retained');
   expect(await page.locator('audio').evaluate((media: HTMLAudioElement) => media.currentTime)).toBeCloseTo(3, 1);
   const chunk = full.chunks[2];
-  await publish([0, 1, 2], 'running', 3, { chunks: full.chunks.map(value => value.id === chunk.id ? { ...value, alignment: { precision: 'sentence', method: 'sentence-fallback', status: 'fallback', cues: [], warnings: ['更新の証拠'] } } : value) });
+  const cache = await disk.read<{ hash: string }>(['cache', `${chunk.speechKey}.json`]);
+  await publish([0, 1, 2], 'running', 3, { chunks: full.chunks.map(value => value.id === chunk.id ? { ...value, alignment: { schemaVersion: 1, key: hash('fixture-alignment'), audioHash: cache!.hash, normalizeVersion: 'ctc-ja-nfkc-v1', alignerVersion: 'fixture-only', precision: 'sentence', method: 'sentence-fallback', status: 'fallback', cues: [], units: [], warnings: ['更新の証拠'] } } : value) });
   await expect(page.getByText('更新の証拠', { exact: true })).toBeAttached();
   await expect(page.locator('audio')).toHaveAttribute('data-original', 'retained');
   const mp3 = browserMp3(tone(12, 320));
