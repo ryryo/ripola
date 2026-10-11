@@ -169,7 +169,8 @@ export function AudioReader({ book, onClose, attribution, localTools, demo = fal
   }, [storageKey]);
 
   useEffect(() => {
-    prefetch.current?.update(audioChunks, 0, pendingSeek.current, Number(rate), intent.current);
+    const localSeconds = audio.current && audio.current.readyState >= 1 ? audio.current.currentTime : pendingSeek.current;
+    prefetch.current?.update(audioChunks, 0, localSeconds, Number(rate), intent.current);
   }, [segments, index, rate, playing, storageKey]);
 
   useLayoutEffect(() => {
