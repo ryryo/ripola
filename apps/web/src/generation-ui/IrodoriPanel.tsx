@@ -30,11 +30,12 @@ export function IrodoriPanel({ onChange, onSettingsChange, onBusyChange, disable
     <div className="generation-actions">
       {status && status.phase !== 'ready' && !working && <Button disabled={busy || disabled || status.freeBytes !== undefined && status.freeBytes < status.requiredFreeBytes} onClick={() => void act(() => installIrodori())}>{status.downloadedBytes > 0 ? '途中から導入を再開する' : status.phase === 'failed' ? '導入を再試行する（約1.92GB）' : 'Irodoriを追加する（約1.92GB）'}</Button>}
       {working && <Button color="gray" variant="light" disabled={busy} onClick={() => void act(() => cancelIrodoriInstall())}>取得・検証を取り消す</Button>}
-      {status?.phase === 'ready' && <Button disabled={busy || disabled || !status.executableAvailable || !status.voiceAvailable || status.runtime === 'starting'} onClick={() => void act(() => status.runtime === 'running' ? stopIrodoriRuntime() : startIrodoriRuntime())}>{status.runtime === 'running' ? 'このPCのIrodoriを停止' : status.runtime === 'starting' ? '起動中' : 'このPCで起動'}</Button>}
+      {status?.runtime === 'running' && <Button disabled={busy || disabled} onClick={() => void act(() => stopIrodoriRuntime())}>このPCのIrodoriを停止</Button>}
+      {status?.phase === 'ready' && status.runtime !== 'running' && <Button disabled={busy || disabled || !status.executableAvailable || !status.voiceAvailable || status.runtime === 'starting'} onClick={() => void act(() => startIrodoriRuntime())}>{status.runtime === 'starting' ? '起動中' : 'このPCで起動'}</Button>}
     </div>
     {status?.phase === 'ready' && !status.voiceAvailable && <p>同じ声で読み続けるには、話者の同意と利用条件を確認した固定voice資材が必要です。現在は製品voiceを同梱していません。voiceがない状態では声が変わる可能性があるため生成を開始できません。</p>}
     {status?.voiceLabel && <p>固定voice: {status.voiceLabel} · {status.voiceAttribution}</p>}
-    <p><a href="https://github.com/ryryo/ripola/blob/codex/speech-irodori/docs/guides/irodori.md" target="_blank" rel="noreferrer">実行環境・固定voiceの準備ガイド</a> · <a href={`https://huggingface.co/${IRODORI_MODEL.repository}/tree/${IRODORI_MODEL.revision}`} target="_blank" rel="noreferrer">モデルの取得元と利用条件</a></p>
+    <p><a href="https://github.com/ryryo/ripola/blob/main/docs/guides/irodori.md" target="_blank" rel="noreferrer">実行環境・固定voiceの準備ガイド</a> · <a href={`https://huggingface.co/${IRODORI_MODEL.repository}/tree/${IRODORI_MODEL.revision}`} target="_blank" rel="noreferrer">モデルの取得元と利用条件</a></p>
     <details><summary>合成設定・取得資材の詳細</summary>
       <p>MFのstepsは合成の計算回数です。減らしてもモデルの保存容量は減りません。長文は短いチャンクに分けます。音質・速度はPCと原稿によって変わります。</p>
       <NumberInput label="MF steps" min={1} max={16} value={settings.steps} disabled={busy || disabled} onChange={value => { if (typeof value === 'number') setSettings(previous => ({ ...previous, steps: value })); }} />
