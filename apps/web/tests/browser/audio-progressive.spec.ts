@@ -134,3 +134,36 @@ test('生成失敗・取消しで待機を解除し、旧jobを拒否して停�
   await expect(page.getByText('古い生成結果の更新を停止しました。保存済み音声は保持します。')).toBeVisible();
   expect(await page.locator('audio').getAttribute('src')).toContain(full.chunks[0].speechKey);
 });
+
+test('遅いmanifest応答をbook切替で取消し、新しい本へ古い時計を混ぜない', async ({ page }) => {
+  await publish([0]);
+  const other = { ...full, id: `${full.id}-other`, revision: hash('other-revision'), title: '切替先の自作fixture', document: { ...full.document, id: `${full.id}-other`, title: '切替先の自作fixture' }, generation: undefined, plannedChunkIds: undefined, chunks: [full.chunks[0]], completedChunks: 1, totalChunks: 1, durationSeconds: 2 };
+  await disk.write(['books', `${other.id}_${other.revision}.json`], other);
+  await open(page);
+  await page.getByRole('slider', { name: '音声の再生位置', exact: true }).fill('1');
+  await expect.poll(() => page.locator('audio').evaluate((media: HTMLAudioElement) => media.currentTime)).toBeCloseTo(1, 1);
+  let release!: () => void, reached!: () => void, returned!: () => void;
+  const gate = new Promise<void>(resolveGate => { release = resolveGate; });
+  const held = new Promise<void>(resolveHeld => { reached = resolveHeld; });
+  const finished = new Promise<void>(resolveFinished => { returned = resolveFinished; });
+  let holding = false;
+  await page.route('**/_serverFn/**', async route => {
+    const id = new URL(route.request().url()).pathname.split('/_serverFn/')[1];
+    let name = '';
+    try { name = (JSON.parse(Buffer.from(id, 'base64url').toString()) as { export: string }).export; } catch { /* Other requests pass through. */ }
+    if (holding || !name.startsWith('getBook')) return route.continue();
+    holding = true;
+    const response = await route.fetch(); reached(); await gate;
+    try { await route.fulfill({ response }); } catch { /* The reader aborted this old request. */ } finally { returned(); }
+  });
+  try {
+    await held;
+    await page.getByRole('button', { name: '本棚へ戻る', exact: true }).click();
+    await page.locator('article').filter({ hasText: other.title }).getByRole('button', { name: '保存音声を読む', exact: true }).click();
+    await expect(page.getByRole('heading', { name: other.title, exact: true })).toBeVisible();
+    await expect.poll(() => page.locator('audio').evaluate((media: HTMLAudioElement) => media.readyState)).toBeGreaterThan(0);
+    release(); await finished;
+    await expect(page.getByRole('heading', { name: other.title, exact: true })).toBeVisible();
+    expect(await page.locator('audio').evaluate((media: HTMLAudioElement) => ({ paused: media.paused, seconds: media.currentTime }))).toEqual({ paused: true, seconds: 0 });
+  } finally { release(); }
+});
