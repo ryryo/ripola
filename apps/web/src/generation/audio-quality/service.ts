@@ -55,12 +55,14 @@ export class AudioInspectionService {
       try {
         const input = sourceText(book, chunk);
         const audio = await readReadyAudio(this.disk, chunk.speechKey, 'wav');
-        if (audio && validCached(result, audio.sourceAudioHash, digest(audio.bytes), this.textHash(input, chunk.durationSeconds)) && result.text === input.text && JSON.stringify(result.source) === JSON.stringify(input.source)) chunks.push(result);
+        if (!audio) throw new Error('保存済み音声がありません。');
+        if (validCached(result, audio.sourceAudioHash, digest(audio.bytes), this.textHash(input, chunk.durationSeconds)) && result.text === input.text && JSON.stringify(result.source) === JSON.stringify(input.source)) chunks.push(result);
       } catch {
         // Retain a current fatal diagnostic, but never stale PCM/ASR evidence for corrupt bytes.
         const cache = await this.disk.read<{ hash?: string }>(['cache', `${chunk.speechKey}.json`]);
         const bytes = await this.disk.readBytes(['audio', `${chunk.speechKey}.${result.mediaFormat}`]);
-        if (result.status === 'fatal' && result.audioHash === cache?.hash && result.mediaHash === digest(bytes ?? 'unavailable')) chunks.push(result);
+        const hash = typeof cache?.hash === 'string' && /^[a-f0-9]{64}$/.test(cache.hash) ? cache.hash : digest('unavailable');
+        if (result.status === 'fatal' && result.audioHash === hash && result.mediaHash === digest(bytes ?? 'unavailable')) chunks.push(result);
       }
     }
     return { ...report, chunks };
