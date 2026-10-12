@@ -38,7 +38,7 @@ const audioSamples = [
 ];
 for (const sample of audioSamples) test(`音声サンプル ${sample.key} は1クリックで開き、戻る・連打でも生成しない`, async ({ page }, testInfo) => {
   let generationCalls = 0;
-  page.on('request', request => { if (/\/api\/local-generation|\/_serverFn\//.test(request.url())) generationCalls++; });
+  page.on('request', request => { if (/\/api\/local-generation/.test(request.url()) || /\/_serverFn\//.test(request.url()) && request.method() === 'POST') generationCalls++; });
   const open = page.getByRole('link', { name: `${sample.label}で読む`, exact: true });
   await page.goto('/');
   await expect(page.getByLabel('読む文章', { exact: true })).toBeVisible();

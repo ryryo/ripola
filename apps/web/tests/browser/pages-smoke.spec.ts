@@ -8,6 +8,7 @@ test('完成Pagesの初期本文・読書・明示保存前の再読み込み', 
   context.on('request', request => { if (/^https?:/.test(request.url()) && new URL(request.url()).origin !== new URL(baseURL!).origin) external.push(request.url()); });
   await page.emulateMedia({ colorScheme: 'dark' });
   await page.goto('./');
+  await expect(page.getByRole('region', { name: '続きを読む', exact: true })).toHaveCount(0);
   await expect(page.locator('html')).toHaveAttribute('data-mantine-color-scheme', 'dark');
   await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(20, 33, 44)');
   await chooseTheme(page, 'ライト');

@@ -40,6 +40,8 @@ import { initialReadingDraft, PAGES_DEMO } from '../pages-demo';
 const CAPABILITIES = readerCapabilities(import.meta.env.VITE_RSVP_PROFILE);
 const LocalGeneration = import.meta.env.VITE_RSVP_PROFILE === 'local' ? lazy(() => import('../../generation-ui/GenerationApp').then(module => ({ default: module.GenerationApp }))) : null;
 
+const LocalContinueReading = import.meta.env.VITE_RSVP_PROFILE === 'local' ? lazy(() => import('./HomeContinueReading')) : null;
+
 const SAMPLE = '# 朝の図書館\n\n静かな朝、私は<ruby>図書館<rt>としょかん</rt></ruby>へ向かった。窓辺で一冊の本を開く。\n\n今日は2026年10月5日。温かいお茶は1,200円でした。👩‍💻が書いたが、まだ終わっていない文章もある。\n\n急がず、ひとつずつ。分からないところでは立ち止まり、原文を読み返そう。';
 
 export function ReaderApp() {
@@ -315,6 +317,7 @@ export function ReaderApp() {
         {loading && <div className="loading-card" role="status"><strong>{phase}</strong><Progress value={progress} mt="sm" /><Button variant="subtle" mt="sm" onClick={cancel}>読み込みを取り消す</Button></div>}
         {!document ? <>
           {saved && <div className="saved-card"><div><strong>{saved.document.title}</strong><p>このブラウザに保存した文章があります。</p></div><Button variant="light" onClick={() => void restore()}>続きから開く</Button></div>}
+          {LocalContinueReading && <Suspense fallback={null}><LocalContinueReading /></Suspense>}
           {importPanel}
           <button type="button" className="text-link" disabled={saving} onClick={() => void removeSaved()}>保存を削除</button>
         </> : <NavigationLayout key={document.id} entries={sentences} current={sentenceIndex} playing={playback.status === 'playing'} chapters={chapters} onPause={() => controller.pause()} onResume={() => { if (font.busy) return; if (playback.status === 'completed') controller.seek(0); controller.play(); }} onJump={index => controller.seek(index)}>
