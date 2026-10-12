@@ -19,7 +19,6 @@ const localRequire = createRequire(import.meta.url);
 const routerRequire = createRequire(localRequire.resolve('@tanstack/react-router'));
 const serializer = createRequire(routerRequire.resolve('@tanstack/router-core'))('seroval') as {
   fromCrossJSON<T>(value: unknown, options: { refs: Map<number, unknown> }): T;
-  toCrossJSON(value: unknown, options: { refs: Map<number, unknown> }): unknown;
 };
 
 test('保存音声QAを実local APIで保存・再検査し、元範囲と判定不能を確認する', async ({ page }, testInfo) => {
@@ -37,6 +36,7 @@ test('保存音声QAを実local APIで保存・再検査し、元範囲と判定
   const bookPath = ['books', `${book.id}_${book.revision}.json`];
   await disk.write(bookPath, book); await disk.writeBytes(['audio', `${key}.wav`], bytes); await disk.write(['cache', `${key}.json`], { schemaVersion: 1, status: 'ready', provider: 'gemini', hash: digest(bytes), durationSeconds: 5 });
   const before = await disk.readBytes(bookPath);
+  const initialInspection = await new AudioInspectionService(disk).inspect({ bookId: book.id, revision: book.revision, content: false, refresh: true });
   const child = spawn(process.execPath, [join(repository, 'apps/web/node_modules/vite/bin/vite.js'), 'preview', '--host', '127.0.0.1', '--port', String(port), '--strictPort'], {
     cwd: join(repository, 'apps/web'), stdio: ['ignore', 'pipe', 'pipe'], detached: process.platform !== 'win32',
     env: { ...process.env, RSVP_LIBRARY_DIR: disk.root, RSVP_LOCAL_ORIGIN: origin, RSVP_ENABLE_PAID_GENERATION: 'false', GEMINI_API_KEY: '', RSVP_ALIGNMENT_PYTHON: '', RSVP_ALIGNMENT_MODEL_DIR: '' },
@@ -56,17 +56,14 @@ test('保存音声QAを実local APIで保存・再検査し、元範囲と判定
     const initial = new Promise<void>(resolve => { releaseInitial = resolve; releaseHeldGet = resolve; });
     const started = new Promise<void>(resolve => { initialStarted = resolve; });
     let initialUrl = '', latest: AudioInspectionReport | undefined;
-    const oldText = '再検査前の古い判定';
     await page.route('**/_serverFn/**', async route => {
       const response = await route.fetch();
       const envelope = serializer.fromCrossJSON<Record<string, unknown>>(await response.json(), { refs: new Map() });
       const value = envelope.result;
-      if (route.request().method() === 'GET' && value === undefined && !initialUrl) {
+      if (route.request().method() === 'GET' && value && typeof value === 'object' && 'inspectionVersion' in value && 'bookId' in value && value.bookId === book.id && !initialUrl) {
         initialUrl = route.request().url(); initialStarted();
         await initial;
-        if (!latest) { await route.fulfill({ response }); return; }
-        const older: AudioInspectionReport = { ...latest, inspectedAt: '2000-01-01T00:00:00Z', chunks: latest.chunks.map(chunk => ({ ...chunk, text: oldText, inspectedAt: '2000-01-01T00:00:00Z' })) };
-        await route.fulfill({ response, json: serializer.toCrossJSON({ ...envelope, result: older }, { refs: new Map() }) });
+        await route.fulfill({ response });
         return;
       }
       if (route.request().method() === 'POST' && value && typeof value === 'object' && 'inspectionVersion' in value && 'chunks' in value) latest = value as AudioInspectionReport;
@@ -78,14 +75,17 @@ test('保存音声QAを実local APIで保存・再検査し、元範囲と判定
     await expect(page.getByRole('heading', { name: '保存音声の品質を確認' })).toBeVisible({ timeout: 60_000 });
     await page.getByRole('button', { name: '保存音声を検査する', exact: true }).click();
     const result = page.getByTestId('audio-inspection-result'); await expect(result).toContainText('要確認');
+    expect(latest?.reusedChunks).toBe(1);
+    expect(latest?.chunks[0].inspectedAt).toBe(initialInspection.chunks[0].inspectedAt);
     await page.getByRole('button', { name: '再検査する（再合成なし）', exact: true }).click();
     await expect(page.getByRole('button', { name: '再検査する（再合成なし）', exact: true })).toBeEnabled();
     expect(latest).toBeDefined();
     const refreshedAt = latest!.chunks[0].inspectedAt;
+    expect(refreshedAt).not.toBe(initialInspection.chunks[0].inspectedAt);
     const oldResponse = page.waitForResponse(response => response.url() === initialUrl && response.request().method() === 'GET');
     releaseInitial(); await (await oldResponse).finished();
     await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
-    await expect(result).not.toContainText(oldText);
+    await expect(result).not.toContainText(initialInspection.chunks[0].inspectedAt);
     await expect(result).toContainText(refreshedAt);
     await expect(panel.getByRole('alert')).toHaveCount(0);
     await page.unrouteAll({ behavior: 'wait' });
