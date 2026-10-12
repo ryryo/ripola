@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import { expect, test, type Page } from '@playwright/test';
+import { chooseTheme } from './theme-helpers';
 import { inspectGuides } from './guide-inspection';
 import { browserMp3 } from '../helpers/browser-media';
 
@@ -235,12 +236,15 @@ test('sentence lists pause on opening/selection and close on every explicit resu
 
 test('audio fullscreen keeps the media clock, remembers rate and shares display reset with silent reading', async ({ page }, info) => {
   await audioFixture(page);
+  await chooseTheme(page, 'ダーク');
   await page.getByRole('combobox', { name: '音声の速さ', exact: true }).click();
+  await expect(page.locator('.mantine-Select-dropdown')).toHaveCSS('background-color', 'rgb(29, 47, 61)');
   await page.getByRole('option', { name: '4.75倍', exact: true }).click();
   await page.getByRole('slider', { name: '音声の再生位置', exact: true }).fill('3');
   await page.getByRole('button', { name: '全画面で読む', exact: true }).click();
   const full = page.locator('.fullscreen-reader[data-fullscreen="true"]');
   await expect(full).toBeVisible();
+  await expect(full.locator('.audio-stage')).toHaveCSS('background-color', 'rgb(29, 47, 61)');
   await expect(full.getByRole('combobox', { name: '音声の速さ', exact: true })).toHaveValue('4.75');
   await full.getByRole('combobox', { name: '音声の速さ', exact: true }).selectOption('1.25');
   await expect.poll(() => page.locator('audio').evaluate((element: HTMLAudioElement) => element.playbackRate)).toBe(1.25);
@@ -275,14 +279,16 @@ test('audio fullscreen keeps the media clock, remembers rate and shares display 
   await slider.fill('14');
   await full.getByRole('button', { name: '全画面を終了', exact: true }).click();
   await settings(page);
-  await page.getByLabel('暗い背景', { exact: true }).check();
+  await page.getByRole('button', { name: '閉じる', exact: true }).click();
+  await chooseTheme(page, 'ダーク');
+  await page.getByRole('button', { name: '表示設定', exact: true }).click();
   await page.getByLabel('文字サイズ', { exact: true }).fill('72');
   await close(page);
   await page.reload();
   await expect(page.getByRole('combobox', { name: '音声の速さ', exact: true })).toHaveValue('1.25倍');
   await expect.poll(async () => Number(await page.getByRole('slider', { name: '音声の再生位置', exact: true }).inputValue())).toBeCloseTo(14, 2);
   await settings(page);
-  await expect(page.getByLabel('暗い背景', { exact: true })).toBeChecked();
+  await expect(page.locator('html')).toHaveAttribute('data-mantine-color-scheme', 'dark');
   await expect(page.getByLabel('文字サイズ', { exact: true })).toHaveValue('72');
   await page.getByRole('button', { name: '表示設定をリセット', exact: true }).click();
   await expect(page.getByLabel('文字サイズ', { exact: true })).toHaveValue('56');
@@ -292,7 +298,7 @@ test('audio fullscreen keeps the media clock, remembers rate and shares display 
   await read(page);
   await settings(page);
   await expect(page.getByLabel('文字サイズ', { exact: true })).toHaveValue('56');
-  await expect(page.getByLabel('暗い背景', { exact: true })).not.toBeChecked();
+  await expect(page.locator('html')).toHaveAttribute('data-mantine-color-scheme', 'dark');
 });
 
 test('vertical phrases fit ruby and guides, retain position and restore/reset the writing direction', async ({ page }) => {
@@ -455,14 +461,16 @@ test('黙読ペース評価は同じ速度で比較でき、停止・seek・下�
   const failures: string[] = [];
   page.on('pageerror', error => failures.push(error.message));
   await read(page, 'あいうえ。\n\n1234。\n\n（ABCD）を読む。\n\n𠮷が👩‍💻と、長い句の続きを落ち着いて確認する。\n\n' + '最後の文を落ち着いて確かめる。'.repeat(20));
-  await page.getByText('黙読ペースを比較（従来）', { exact: true }).click();
+  await page.getByLabel('読む速さ（字/分）', { exact: true }).fill('600');
+  await expect(page.getByTestId('reading-pace-controls')).toHaveCount(0);
+  await settings(page);
   const controls = page.getByTestId('reading-pace-controls').first();
   const select = controls.getByRole('combobox', { name: '黙読ペース', exact: true });
   await expect(select).toHaveValue('legacy');
-  await page.getByLabel('読む速さ（字/分）', { exact: true }).fill('600');
   const budget = await controls.getByTestId('pace-budget').innerText();
   await select.selectOption('text-load');
   await expect(controls.getByTestId('pace-budget')).toHaveText(budget);
+  await close(page);
   await expect(page.getByLabel('読む速さ（字/分）', { exact: true })).toHaveValue('600');
   await expect(page.getByRole('button', { name: '再生', exact: true })).toBeVisible();
   const track = page.getByRole('progressbar', { name: '読書の進捗' });
@@ -476,7 +484,7 @@ test('黙読ペース評価は同じ速度で比較でき、停止・seek・下�
   await expect.poll(fraction).toBeGreaterThan(frozen);
   await page.getByRole('button', { name: '1つ進む', exact: true }).click();
   const position = await page.getByTestId('current-phrase').innerText();
-  await select.selectOption('legacy'); await select.selectOption('text-load');
+  await settings(page); await select.selectOption('legacy'); await select.selectOption('text-load'); await close(page);
   await expect(page.getByTestId('current-phrase')).toHaveText(position);
   await page.locator('.document-heading h1').click(); await page.keyboard.press('Home');
   await expect(page.getByTestId('current-phrase')).toContainText('あいうえ');
@@ -485,19 +493,18 @@ test('黙読ペース評価は同じ速度で比較でき、停止・seek・下�
   await expect(page.getByTestId('current-phrase')).toContainText('1234');
   expect(await fraction()).toBeGreaterThan(0);
   await page.getByLabel('読む速さ（字/分）', { exact: true }).fill('3000');
-  await expect(controls.getByTestId('pace-constraint')).toBeVisible();
+  await settings(page); await expect(controls.getByTestId('pace-constraint')).toBeVisible(); await close(page);
   await page.getByRole('button', { name: '端末に保存', exact: true }).click();
   await expect(page.getByRole('status')).toContainText('保存しました');
   await page.reload(); await page.getByRole('button', { name: '続きから開く', exact: true }).click();
   await expect(page.getByTestId('current-phrase')).toContainText('1234');
-  await page.getByText('黙読ペースを比較（評価）', { exact: true }).click();
-  await expect(select).toHaveValue('text-load');
+  await settings(page); await expect(select).toHaveValue('text-load'); await close(page);
   await expect(page.getByLabel('読む速さ（字/分）', { exact: true })).toHaveValue('3000');
   await settings(page); await page.getByRole('button', { name: '表示設定をリセット', exact: true }).click();
   await expect(page.getByTestId('reading-pace-controls').last().getByRole('combobox', { name: '黙読ペース', exact: true })).toHaveValue('text-load');
   await close(page);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 2)).toBe(true);
-  const box = await select.boundingBox(); expect(box!.height).toBeGreaterThanOrEqual(44);
+  await settings(page); const box = await select.boundingBox(); expect(box!.height).toBeGreaterThanOrEqual(44);
   await info.attach('pace-controls', { body: await page.screenshot({ fullPage: true }), contentType: 'image/png' });
   expect(failures).toEqual([]);
 });

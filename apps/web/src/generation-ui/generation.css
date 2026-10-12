@@ -24,7 +24,7 @@
 .chunk-selection { display: grid; gap: 16px; margin-top: 20px; }
 .chunk-selection .mantine-Checkbox-label { overflow-wrap: anywhere; line-height: 1.8; }
 .generation-job-heading { display: flex; gap: 16px; flex-wrap: wrap; margin: 20px 0 12px; }
-.generation-resume { padding: 18px; margin-top: 20px; border: 1px solid #dbba7c; border-radius: 12px; background: #fffcf6; overflow-wrap: anywhere; }
+.generation-resume { padding: 18px; margin-top: 20px; border: 1px solid var(--warning-line); border-radius: 12px; background: var(--warning-soft); overflow-wrap: anywhere; }
 .generation-shell details ol { max-height: 350px; overflow: auto; }
 .audio-reader main { max-width: 1000px; }
 .audio-stage { position: relative; border: 1px solid var(--line); border-radius: var(--radius-panel); background: var(--panel); height: 300px; min-height: 300px; overflow: auto; margin: 24px 0; display: flex; flex-direction: column; }
@@ -52,25 +52,25 @@
 @media (max-width: 700px) { .generation-grid, .library-grid { grid-template-columns: 1fr; gap: 0; } .generation-shell main { padding: 26px 16px 48px; } .generation-header { padding: 18px 16px; } .generation-header nav { gap: 12px; } .generation-title { flex-direction: column; } .generation-card { padding: 20px 16px; } .generation-shell dl { grid-template-columns: 1fr; gap: 6px; } .generation-shell dd { margin-bottom: 12px; } .audio-stage { height: 250px; min-height: 250px; } .audio-stage .phrase-container { padding: 18px 20px 20px; } .audio-controls { gap: 8px; } .audio-controls button { padding-inline: 12px; } .audio-options { gap: 16px; } }
 
 .home-generation { min-height: 0; background: transparent; color: var(--ink); }
-.home-generation .audio-disclosure { margin-top: 18px; padding: 16px 18px; background: #f3f9fc; border: 1px solid #d4ebf5; border-left: 4px solid #69c6e8; border-radius: 10px; }
+.home-generation .audio-disclosure { margin-top: 18px; padding: 16px 18px; background: var(--accent-soft); border: 1px solid var(--line); border-left: 4px solid var(--brand); border-radius: 10px; }
 .audio-disclosure-heading { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
 .audio-disclosure-heading strong { font-size: 17px; }
 .audio-disclosure-heading p { color: var(--muted); font-size: 12px; line-height: 1.7; margin: 5px 0 0; }
-.advanced-label { display: inline-block; font-size: 10px; padding: 3px 8px; margin-left: 12px; border-radius: 8px; color: #156b98; background: #e2f2fb; vertical-align: middle; }
+.advanced-label { display: inline-block; font-size: 10px; padding: 3px 8px; margin-left: 12px; border-radius: 8px; color: var(--accent-ink); background: var(--accent-hover); vertical-align: middle; }
 .home-generation .audio-disclosure.is-open { border-bottom: 0; border-radius: 10px 10px 0 0; padding-bottom: 10px; }
-.home-audio-settings { padding: 6px 18px 16px; border: 1px solid #d4ebf5; border-left: 4px solid #69c6e8; border-top: 0; background: #f3f9fc; border-radius: 0 0 10px 10px; }
+.home-audio-settings { padding: 6px 18px 16px; border: 1px solid var(--line); border-left: 4px solid var(--brand); border-top: 0; background: var(--accent-soft); border-radius: 0 0 10px 10px; }
 .home-audio-settings > .mantine-InputWrapper-root { margin-bottom: 10px; }
 .home-audio-settings > .muted { font-size: 11px; margin: 0 0 10px; }
-.home-generation .home-advanced-row { border: 1px solid #dde9f0; border-radius: 8px; background: var(--panel); margin-top: 10px; font-size: 13px; }
+.home-generation .home-advanced-row { border: 1px solid var(--line); border-radius: 8px; background: var(--panel); margin-top: 10px; font-size: 13px; }
 .home-advanced-row > summary { min-height: 44px; cursor: pointer; padding: 12px; color: var(--ink); font-weight: 600; }
 .home-advanced-row > summary span { margin-left: 10px; color: var(--accent); font-weight: 400; font-size: 11px; }
 .home-advanced-row > .mantine-InputWrapper-root, .home-advanced-row > .muted { margin: 4px 12px 12px; }
 .home-advanced-row .generation-card { border: 0; padding: 12px; margin-bottom: 0; }
 .home-advanced-row .generation-card h2 { display: none; }
 .home-generation > .home-generation-content > .generation-card { margin-top: 24px; border-color: var(--line); }
-.home-generation pre { background: #f5f9fb; }
+.home-generation pre { background: var(--paper); }
+.home-generation .generation-busy { background: var(--accent-soft); border-color: var(--line); }
 .home-generation .generation-confirm dl { grid-template-columns: 140px minmax(0,1fr); gap: 12px; }
-.home-generation .generation-busy { background: #eff8fc; border-color: #cbe5f1; }
 @media(max-width:600px) {
   .audio-disclosure-heading { align-items: flex-start; gap: 8px; }
   .audio-disclosure-heading strong { font-size: 15px; }
@@ -95,11 +95,6 @@
 .audio-options { padding: 20px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius-panel); }
 .audio-source mark { color: var(--accent-ink); border-radius: 3px; }
 .audio-source button:hover { background: var(--accent-hover); }
-.home-generation .audio-disclosure, .home-audio-settings { background: var(--accent-soft); border-color: var(--line); border-left-color: var(--brand); }
-.advanced-label { color: var(--accent-ink); background: var(--accent-hover); }
-.home-generation .home-advanced-row { border-color: var(--line); }
-.home-generation pre { background: var(--paper); }
-.home-generation .generation-busy { background: var(--accent-soft); border-color: var(--line); }
 @media(max-width:700px) {
   .generation-header { min-height: 64px; padding: 15px 16px; }
   .generation-header .brand-lockup { width: 117px; height: 30px; }

@@ -1,5 +1,6 @@
 import { AudioSampleReader } from '../reader/ui/AudioSampleReader';
 import { Brand } from '../ui/Brand';
+import { ThemeControl } from '../ui/ThemeControl';
 import { AUDIO_DEMO_BOOK_ID } from '../reader/audio-demo';
 import { Alert, Badge, Button, Loader } from '@mantine/core';
 import { useCallback, useEffect, useState } from 'react';
@@ -62,7 +63,7 @@ function LocalLibraryApp() {
 
   const listedBooks = books.filter(value => value.id !== AUDIO_DEMO_BOOK_ID);
   return <div className="generation-shell">
-    <header className="generation-header"><Brand /><nav><a href="/">黙読</a><a href="/generate">音声を生成</a></nav></header>
+    <header className="generation-header"><Brand /><div className="header-actions"><ThemeControl /><nav><a href="/">黙読</a><a href="/generate">音声を生成</a></nav></div></header>
     <main>
       <div className="generation-title"><div><span className="eyebrow">LOCAL LIBRARY</span><h1>このPCの本棚</h1><p>保存した音声を選んで、文章と一緒に読みます。</p></div><Badge variant="light" color="ripola">保存音声</Badge></div>
       {error && <Alert color="red" role="alert" mb="md">{error}</Alert>}

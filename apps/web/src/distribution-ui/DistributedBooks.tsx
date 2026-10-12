@@ -1,5 +1,6 @@
 import { AudioSampleReader } from '../reader/ui/AudioSampleReader';
 import { Brand } from '../ui/Brand';
+import { ThemeControl } from '../ui/ThemeControl';
 import { Alert, Badge, Button, Stack, Text, Title } from '@mantine/core';
 import { useEffect, useState } from 'react';
 import { distributionLoadError, loadDistributedBook, loadDistributionLibrary, type PublicAudioBookManifest, type PublicBookEntry } from '../distribution/library';
@@ -45,7 +46,7 @@ function DistributedLibrary() {
     const isDemo = books.some(entry => entry.id === book.id && entry.revision === book.revision && entry.publicDemo);
     return <AudioReader book={book} demo={isDemo} onClose={() => { if (isDemo) { location.assign(import.meta.env.BASE_URL); return; } setBook(undefined); history.replaceState(null, '', location.pathname); }} />;
   }
-  return <div className="generation-shell"><header className="generation-header"><Brand /><nav><a href={import.meta.env.BASE_URL}>黙読</a></nav></header><main><Stack gap="lg">
+  return <div className="generation-shell"><header className="generation-header"><Brand /><div className="header-actions"><ThemeControl /><nav><a href={import.meta.env.BASE_URL}>黙読</a></nav></div></header><main><Stack gap="lg">
     <Button component="a" href={import.meta.env.BASE_URL} variant="subtle" style={{ alignSelf: 'start' }}>黙読リーダーへ</Button>
     <div className="generation-title"><div><Badge variant="light">{demo ? '音声デモ' : '保存音声'}</Badge><Title order={1}>{demo ? '音声に合わせて、読む。' : '本棚'}</Title><Text c="dimmed">保存した音声を選んで、文章と一緒に読みます。</Text></div></div>
     {error && <Alert color="red" role="alert">{error}</Alert>}

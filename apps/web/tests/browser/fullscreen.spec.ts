@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { chooseTheme } from './theme-helpers';
 import { installWakeLock } from '../helpers/screen-wake-lock';
 
 const manuscript = '静かな朝に図書館で本を読みます。窓の向こうに青い空が広がっています。次の頁をゆっくりめくります。'.repeat(5);
@@ -247,7 +248,9 @@ test('display and silent speed persist across reload; reset keeps speed and save
   const phrase = await page.getByTestId('current-phrase').innerText();
   await page.getByRole('button', { name: '表示設定', exact: true }).click();
   await page.getByLabel('文字サイズ', { exact: true }).fill('72');
-  await page.getByLabel('暗い背景', { exact: true }).check();
+  await page.getByRole('button', { name: '閉じる', exact: true }).click();
+  await chooseTheme(page, 'ダーク');
+  await page.getByRole('button', { name: '表示設定', exact: true }).click();
   await page.getByLabel('ルビを表示', { exact: true }).uncheck();
   await page.getByLabel('まとめる', { exact: true }).selectOption('8');
   await page.getByRole('button', { name: '閉じる', exact: true }).click();
@@ -257,12 +260,12 @@ test('display and silent speed persist across reload; reset keeps speed and save
   await expect(page.getByLabel('読む速さ（字/分）', { exact: true })).toHaveValue('900');
   await page.getByRole('button', { name: '表示設定', exact: true }).click();
   await expect(page.getByLabel('文字サイズ', { exact: true })).toHaveValue('72');
-  await expect(page.getByLabel('暗い背景', { exact: true })).toBeChecked();
+  await expect(page.locator('html')).toHaveAttribute('data-mantine-color-scheme', 'dark');
   await expect(page.getByLabel('ルビを表示', { exact: true })).not.toBeChecked();
   await expect(page.getByLabel('まとめる', { exact: true })).toHaveValue('8');
   await page.getByRole('button', { name: '表示設定をリセット', exact: true }).click();
   await expect(page.getByLabel('文字サイズ', { exact: true })).toHaveValue('56');
-  await expect(page.getByLabel('暗い背景', { exact: true })).not.toBeChecked();
+  await expect(page.locator('html')).toHaveAttribute('data-mantine-color-scheme', 'dark');
   await page.getByRole('button', { name: '閉じる', exact: true }).click();
   await expect(page.getByTestId('current-phrase')).toHaveText(phrase);
   await expect(page.getByLabel('読む速さ（字/分）', { exact: true })).toHaveValue('900');
