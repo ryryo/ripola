@@ -32,11 +32,11 @@ export function prepareSpeech(block: TextBlock, start: number, end: number, read
   for (const ruby of [...block.ruby].sort((a, b) => a.start - b.start)) {
     if (ruby.annotationKind && ruby.annotationKind !== 'reading') continue;
     if (ruby.start < cursor || ruby.end > end) continue;
-    pieces.push(...characterPieces(block.text.slice(cursor, ruby.start), cursor, ruby.start, 'identity'));
-    pieces.push(...characterPieces(ruby.reading, ruby.start, ruby.end, 'ruby'));
+    for (const piece of characterPieces(block.text.slice(cursor, ruby.start), cursor, ruby.start, 'identity')) pieces.push(piece);
+    for (const piece of characterPieces(ruby.reading, ruby.start, ruby.end, 'ruby')) pieces.push(piece);
     cursor = ruby.end;
   }
-  pieces.push(...characterPieces(block.text.slice(cursor, end), cursor, end, 'identity'));
+  for (const piece of characterPieces(block.text.slice(cursor, end), cursor, end, 'identity')) pieces.push(piece);
   const beforeDictionary = pieces.map((piece) => piece.text).join('');
   const positions: Array<{ piece: Piece; start: number; end: number }> = [];
   let offset = 0;
@@ -53,7 +53,9 @@ export function prepareSpeech(block: TextBlock, start: number, end: number, read
     const overlapping: Piece[] = [];
     while (position < positions.length && positions[position].start < finish) overlapping.push(positions[position++].piece);
     if (!overlapping.length) continue;
-    transformed.push(...characterPieces(byText.get(replacement[0])!, Math.min(...overlapping.map((piece) => piece.start)), Math.max(...overlapping.map((piece) => piece.end)), 'dictionary'));
+    const sourceStart = overlapping.reduce((minimum, piece) => Math.min(minimum, piece.start), Infinity);
+    const sourceEnd = overlapping.reduce((maximum, piece) => Math.max(maximum, piece.end), 0);
+    for (const piece of characterPieces(byText.get(replacement[0])!, sourceStart, sourceEnd, 'dictionary')) transformed.push(piece);
   }
   while (position < positions.length) transformed.push(positions[position++].piece);
   // Match String.trim() without losing the offsets of the remaining characters.

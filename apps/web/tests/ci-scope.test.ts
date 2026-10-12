@@ -43,13 +43,19 @@ test('full preserves every registered case; selection is a union', () => {
 });
 
 test('reader UI and preferences do not opt into generation/setup or Python; unknown sources retain every focused smoke', () => {
-  for (const path of ['apps/web/src/reader/preferences.ts', 'apps/web/src/reader/ui/ReaderApp.tsx', 'apps/web/src/reader/ui/FullscreenReader.tsx', 'apps/web/src/reader/ui/useReaderPreferences.ts']) {
+  for (const path of ['apps/web/src/reader/preferences.ts', 'apps/web/src/reader/pace.ts', 'apps/web/src/reader/ui/ReaderApp.tsx', 'apps/web/src/reader/ui/FullscreenReader.tsx', 'apps/web/src/reader/ui/useReaderPreferences.ts']) {
     const scope = classifyChanges([path]);
     assert.equal(scope.mode, 'normal', path);
     assert.deepEqual(scope.domains, ['import', 'audio', 'layout'], path);
     assert.equal(scope.python, false, path);
   }
   assert.deepEqual(classifyChanges(['apps/web/src/styles.css']).domains, ['layout']);
+  for (const size of ['desktop', 'mobile']) {
+    const evidence = classifyChanges([`docs/development/reading-pace/${size}.png`]);
+    assert.deepEqual(evidence.domains, ['layout']);
+    assert.equal(evidence.python, false);
+  }
+  assert.equal(classifyChanges(['docs/development/reading-pace/unknown.png']).python, true);
   const browser = classifyChanges(['apps/web/tests/browser/reading-options.spec.ts', 'apps/web/tests/preferences.test.ts']);
   assert.deepEqual(browser.domains, ['audio', 'layout']);
   assert.equal(browser.python, false);

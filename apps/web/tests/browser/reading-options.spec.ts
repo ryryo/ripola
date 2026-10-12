@@ -14,7 +14,11 @@ async function read(page: Page, text = manuscript) {
   await expect(page.getByRole('button', { name: '再生', exact: true })).toBeEnabled();
 }
 async function settings(page: Page) { await page.getByRole('button', { name: '表示設定', exact: true }).click(); }
-async function close(page: Page) { await page.getByRole('button', { name: '閉じる', exact: true }).click(); }
+async function bookActions(page: Page) { await page.getByRole('button', { name: '本の操作', exact: true }).click(); }
+async function close(page: Page) {
+  await page.getByRole('button', { name: '閉じる', exact: true }).click();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+}
 
 test('optional fonts load from the same origin only, keep anchor paused and fit ruby at both sizes', async ({ page, baseURL }, info) => {
   const transfers: Array<Promise<{ url: string; bytes: number }>> = [];
@@ -163,18 +167,19 @@ function tone(seconds: number, frequency = 220) {
   for (let i = 0; i < samples; i++) output.writeInt16LE(Math.round(Math.sin(i * 2 * Math.PI * frequency / 8000) * 500), 44 + i * 2);
   return output;
 }
-async function audioFixture(page: Page) {
+async function audioFixture(page: Page, seconds: 12 | 60 = 12) {
   const revision = 'c'.repeat(64); const id = 'reading-options-fixture';
   const pieces = ['私は', '図書館へ。', '今日は', '静かに', '読む。'];
   let offset = 0;
   const units = pieces.map((text, index) => { const start = offset; offset += text.length; return { id: `u${index}`, blockId: 'b', kind: 'text', text, start, end: offset, ruby: index === 1 ? [{ start: 0, end: 3, reading: 'としょかん' }] : [], sources: [{ kind: 'text', start, end: offset }], mapping: 'exact', characters: text.length, cumulativeCharacters: start, pause: text.endsWith('。') ? 'sentence' : 'none' }; });
   const text = pieces.join('');
-  const media = [0, 1].map(index => browserMp3(tone(12, 220 + index * 30)));
-  const chunks = [[0, 2], [2, 5]].map(([from, to], index) => ({ id: `c${index}`, audioUrl: `library/books/${id}/${revision}/media/${media[index].sha256}.mp3`, mimeType: 'audio/mpeg', sha256: media[index].sha256, bytes: media[index].bytes.length, durationSeconds: 12, timing: { verification: 'pcm-correlated' },
+  const media = [0, 1].map(index => browserMp3(tone(seconds, 220 + index * 30)));
+  // The last cue absorbs extra time; existing seek targets stay at 6/12 seconds.
+  const chunks = [[0, 2], [2, 5]].map(([from, to], index) => ({ id: `c${index}`, audioUrl: `library/books/${id}/${revision}/media/${media[index].sha256}.mp3`, mimeType: 'audio/mpeg', sha256: media[index].sha256, bytes: media[index].bytes.length, durationSeconds: seconds, timing: { verification: 'pcm-correlated' },
     timeline: [{ blockId: 'b', start: units[from].start, end: units[to - 1].end, unitIds: units.slice(from, to).map(unit => unit.id) }],
-    alignment: { precision: 'phrase', method: 'forced-alignment', status: 'aligned', score: .95, alignerVersion: 'ui-fixture-only', cues: units.slice(from, to).map((unit, i) => ({ unitId: unit.id, unitIds: [unit.id], blockId: 'b', start: unit.start, end: unit.end, startSeconds: i * 12 / (to - from), endSeconds: (i + 1) * 12 / (to - from), score: .95 })) } }));
-  const manifest = JSON.stringify({ schemaVersion: 1, id, revision, title: '自作・読書設定検証', document: { blocks: [{ id: 'b', kind: 'paragraph', text, ruby: [{ start: 2, end: 5, reading: 'としょかん' }], runs: [] }], units, versions: { parser: 'fixture', model: 'fixture', rules: 'fixture' } }, chunks, warnings: [], totalChunks: 2, completedChunks: 2, durationSeconds: 24, precision: 'sentence', attribution: 'Self-authored text and synthetic tone. Not an acoustic accuracy test.' });
-  await page.route('**/library/index.json', route => route.fulfill({ json: { schemaVersion: 1, target: 'worker', createdAt: '2026-10-06T00:00:00Z', books: [{ id, revision, title: '自作・読書設定検証', manifestUrl: `library/books/${id}/${revision}/manifest.json`, manifestSha256: createHash('sha256').update(manifest).digest('hex'), manifestBytes: Buffer.byteLength(manifest), durationSeconds: 24, precision: 'sentence', attribution: 'Self-authored UI fixture', publicDemo: true }] } }));
+    alignment: { precision: 'phrase', method: 'forced-alignment', status: 'aligned', score: .95, alignerVersion: 'ui-fixture-only', cues: units.slice(from, to).map((unit, i) => ({ unitId: unit.id, unitIds: [unit.id], blockId: 'b', start: unit.start, end: unit.end, startSeconds: i * 12 / (to - from), endSeconds: i === to - from - 1 ? seconds : (i + 1) * 12 / (to - from), score: .95 })) } }));
+  const manifest = JSON.stringify({ schemaVersion: 1, id, revision, title: '自作・読書設定検証', document: { blocks: [{ id: 'b', kind: 'paragraph', text, ruby: [{ start: 2, end: 5, reading: 'としょかん' }], runs: [] }], units, versions: { parser: 'fixture', model: 'fixture', rules: 'fixture' } }, chunks, warnings: [], totalChunks: 2, completedChunks: 2, durationSeconds: seconds * 2, precision: 'sentence', attribution: 'Self-authored text and synthetic tone. Not an acoustic accuracy test.' });
+  await page.route('**/library/index.json', route => route.fulfill({ json: { schemaVersion: 1, target: 'worker', createdAt: '2026-10-06T00:00:00Z', books: [{ id, revision, title: '自作・読書設定検証', manifestUrl: `library/books/${id}/${revision}/manifest.json`, manifestSha256: createHash('sha256').update(manifest).digest('hex'), manifestBytes: Buffer.byteLength(manifest), durationSeconds: seconds * 2, precision: 'sentence', attribution: 'Self-authored UI fixture', publicDemo: true }] } }));
   await page.route(`**/library/books/${id}/${revision}/manifest.json`, route => route.fulfill({ body: manifest, contentType: 'application/json' }));
   for (const audio of media) await page.route(`**/media/${audio.sha256}.mp3`, route => route.fulfill({ body: audio.bytes, contentType: 'audio/mpeg', headers: { 'Accept-Ranges': 'bytes' } }));
   await page.goto(`/books?book=${id}&revision=${revision}`); await expect(page.getByTestId('audio-phrase')).toBeVisible();
@@ -226,10 +231,17 @@ test('sentence lists pause on opening/selection and close on every explicit resu
   await page.locator('.sentence-row').nth(1).click();
   await expect.poll(async () => Number(await page.getByRole('slider', { name: '音声の再生位置', exact: true }).inputValue())).toBeCloseTo(12, 2);
   if (mobile) await page.getByRole('button', { name: '文一覧を開く', exact: true }).click();
-  if (mobile) { await page.getByRole('button', { name: '一覧を閉じて再生', exact: true }).focus(); await page.keyboard.press('Space'); }
+  if (mobile) {
+    const resume = page.getByRole('button', { name: '一覧を閉じて再生', exact: true });
+    await resume.click({ trial: true });
+    await resume.focus();
+    await expect(resume).toBeFocused();
+    await page.keyboard.press('Space');
+  }
   else { await page.locator('.generation-title h1').click(); await page.keyboard.press('Space'); }
   await expect(page.getByRole('button', { name: '一時停止', exact: true })).toBeVisible();
   await expect(page.getByTestId('sentence-list')).toHaveCount(0);
+  await expect.poll(async () => Number(await page.getByRole('slider', { name: '音声の再生位置', exact: true }).inputValue())).toBeGreaterThan(12);
   await page.getByRole('button', { name: '一時停止', exact: true }).click();
 });
 
@@ -415,7 +427,7 @@ test('vertical Guide virtualizes right-to-left columns, follows search and prese
 });
 
 test('audio vertical layout keeps timing, works fullscreen and restores direction after reload', async ({ page }) => {
-  await audioFixture(page);
+  await audioFixture(page, 60);
   const slider = page.getByRole('slider', { name: '音声の再生位置', exact: true });
   await slider.fill('6');
   await settings(page); await page.getByLabel('本文の向き', { exact: true }).selectOption('vertical-rl'); await close(page);
@@ -455,6 +467,86 @@ test('audio vertical layout keeps timing, works fullscreen and restores directio
   await full.getByRole('button', { name: '全画面を終了', exact: true }).click();
   await settings(page); await page.getByLabel('本文の向き', { exact: true }).selectOption('horizontal-tb'); await close(page);
   await expect(page.getByTestId('audio-sentence')).toHaveCSS('writing-mode', 'horizontal-tb');
+});
+
+test('黙読ペース評価は同じ速度で比較でき、停止・seek・下限・保存復元が一致する', async ({ page }, info) => {
+  const failures: string[] = [];
+  page.on('pageerror', error => failures.push(error.message));
+  await read(page, 'あいうえ。\n\n1234。\n\n（ABCD）を読む。\n\n𠮷が👩‍💻と、長い句の続きを落ち着いて確認する。\n\n' + '最後の文を落ち着いて確かめる。'.repeat(20));
+  await page.getByLabel('読む速さ（字/分）', { exact: true }).fill('600');
+  await expect(page.getByTestId('reading-pace-controls')).toHaveCount(0);
+  await bookActions(page);
+  await expect(page.getByRole('heading', { name: '黙読のペース', exact: true })).toBeVisible();
+  const controls = page.getByTestId('reading-pace-controls');
+  await expect(controls).toHaveCount(1);
+  const select = controls.getByRole('combobox', { name: '黙読ペース', exact: true });
+  await expect(select).toHaveValue('legacy');
+  const budget = await controls.getByTestId('pace-budget').innerText();
+  await select.selectOption('text-load');
+  await expect(controls.getByTestId('pace-budget')).toHaveText(budget);
+  await close(page);
+  await expect(page.getByLabel('読む速さ（字/分）', { exact: true })).toHaveValue('600');
+  await expect(page.getByRole('button', { name: '再生', exact: true })).toBeVisible();
+  const track = page.getByRole('progressbar', { name: '読書の進捗' });
+  const fraction = () => track.evaluate(element => Number((element as HTMLElement).dataset.progress));
+  await page.getByRole('button', { name: '再生', exact: true }).click();
+  await expect.poll(fraction).toBeGreaterThan(0);
+  await page.getByRole('button', { name: '一時停止', exact: true }).click();
+  const frozen = await fraction();
+  await page.waitForTimeout(150); expect(await fraction()).toBe(frozen);
+  await page.getByRole('button', { name: '再生', exact: true }).click();
+  await expect.poll(fraction).toBeGreaterThan(frozen);
+  await page.getByRole('button', { name: '1つ進む', exact: true }).click();
+  const position = await page.getByTestId('current-phrase').innerText();
+  await bookActions(page); await select.selectOption('legacy'); await select.selectOption('text-load'); await close(page);
+  await expect(page.getByTestId('current-phrase')).toHaveText(position);
+  await page.locator('.document-heading h1').click(); await page.keyboard.press('Home');
+  await expect(page.getByTestId('current-phrase')).toContainText('あいうえ');
+  await page.getByRole('button', { name: '原文', exact: true }).click();
+  await page.locator('.source-unit').filter({ hasText: '1234' }).first().click(); await close(page);
+  await expect(page.getByTestId('current-phrase')).toContainText('1234');
+  expect(await fraction()).toBeGreaterThan(0);
+  await page.getByLabel('読む速さ（字/分）', { exact: true }).fill('3000');
+  await bookActions(page); await expect(controls.getByTestId('pace-constraint')).toBeVisible(); await close(page);
+  await page.getByRole('button', { name: '端末に保存', exact: true }).click();
+  await expect(page.getByRole('status')).toContainText('保存しました');
+  await page.reload(); await page.getByRole('button', { name: '続きから開く', exact: true }).click();
+  await expect(page.getByTestId('current-phrase')).toContainText('1234');
+  await bookActions(page); await expect(select).toHaveValue('text-load'); await close(page);
+  await expect(page.getByLabel('読む速さ（字/分）', { exact: true })).toHaveValue('3000');
+  await settings(page); await page.getByRole('button', { name: '表示設定をリセット', exact: true }).click();
+  await expect(controls).toHaveCount(0);
+  await close(page);
+  await bookActions(page); await expect(select).toHaveValue('text-load'); await close(page);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 2)).toBe(true);
+  await bookActions(page); const box = await select.boundingBox(); expect(box!.height).toBeGreaterThanOrEqual(44);
+  await info.attach('pace-controls', { body: await page.screenshot({ fullPage: true }), contentType: 'image/png' });
+  expect(failures).toEqual([]);
+});
+
+test('黙読評価の保存設定は音声のmedia時計・倍速・seekへ影響しない', async ({ page }) => {
+  await read(page, '数字1234と英字ABCDを確認する。');
+  await bookActions(page);
+  await page.getByRole('dialog').getByRole('combobox', { name: '黙読ペース', exact: true }).selectOption('text-load'); await close(page);
+  await page.getByLabel('読む速さ（字/分）', { exact: true }).fill('3000');
+  await audioFixture(page, 60);
+  await expect(page.getByRole('combobox', { name: '黙読ペース', exact: true })).toHaveCount(0);
+  const slider = page.getByRole('slider', { name: '音声の再生位置', exact: true });
+  await slider.fill('6');
+  const audio = page.locator('audio');
+  await expect.poll(() => audio.evaluate(element => (element as HTMLAudioElement).currentTime)).toBeCloseTo(6, 2);
+  await expect.poll(() => audio.evaluate(element => (element as HTMLAudioElement).playbackRate)).toBe(2.5);
+  await page.getByRole('button', { name: '再生', exact: true }).click();
+  await expect.poll(async () => Number(await slider.inputValue())).toBeGreaterThan(6);
+  await page.getByRole('button', { name: '一時停止', exact: true }).click();
+  const frozen = await audio.evaluate(element => (element as HTMLAudioElement).currentTime);
+  await page.waitForTimeout(150);
+  expect(await audio.evaluate(element => (element as HTMLAudioElement).currentTime)).toBe(frozen);
+  await slider.fill('6');
+  await expect(page.getByTestId('audio-phrase')).toContainText('図書館');
+  await page.reload(); await slider.fill('6');
+  await expect.poll(() => audio.evaluate(element => (element as HTMLAudioElement).currentTime)).toBeCloseTo(6, 2);
+  await expect(page.getByRole('combobox', { name: '音声の速さ', exact: true })).toHaveValue('2.5倍');
 });
 
 for (const kind of ['silent', 'audio'] as const) {
