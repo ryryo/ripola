@@ -1922,5 +1922,65 @@
       "audio",
       "generation"
     ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "irodori.spec.ts",
+    "title": "Irodoriの設定保存後に古い初期設定GETの成功応答で設定と計画を戻さない",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "generation"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "irodori.spec.ts",
+    "title": "Irodoriの設定保存後に古い初期設定GETのエラーを表示しない",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "generation"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "irodori.spec.ts",
+    "title": "Irodoriの古い設定保存完了は停止と再表示後の設定を次の計画へ戻さない",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "generation"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "irodori.spec.ts",
+    "title": "Irodoriの設定保存後に古い初期設定GETの成功応答で設定と計画を戻さない",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "generation"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "irodori.spec.ts",
+    "title": "Irodoriの設定保存後に古い初期設定GETのエラーを表示しない",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "generation"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "irodori.spec.ts",
+    "title": "Irodoriの古い設定保存完了は停止と再表示後の設定を次の計画へ戻さない",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "generation"
+    ]
   }
 ]
