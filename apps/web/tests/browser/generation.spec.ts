@@ -382,7 +382,12 @@ for (const route of ['/', '/generate']) test(`Gemini文字数費用は入力中�
   await availableAudio(page, true);
   const paid: string[] = [];
   const unexpected: string[] = [];
-  page.on('request', request => { const name = rpcName(request.url()); if (/^(startGeneration|resumeJob)/.test(name)) paid.push(name); if(name && !/^(getGenerationConfig|listJobs)/.test(name)) unexpected.push(name); });
+  page.on('request', request => {
+    const name = rpcName(request.url());
+    if (/^(startGeneration|resumeJob)/.test(name)) paid.push(name);
+    const readOnly = request.method() === 'GET' && (/^(getGenerationConfig|listJobs)/.test(name) || route === '/' && name.startsWith('listLibrary'));
+    if (name && !readOnly) unexpected.push(name);
+  });
   await page.goto(route);
   const home = route === '/';
   const text = page.getByLabel(home ? '読む文章' : '原稿を貼り付け', {exact: true});

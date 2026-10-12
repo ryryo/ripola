@@ -35,12 +35,12 @@ test('sample discovery excludes unselected revisions, private entries and unrela
   assert.deepEqual(await loadAudioDemos('/', async () => new Response(JSON.stringify({schemaVersion:1,target:'worker',createdAt:'now',books:[{...entry,publicDemo:false}]}))), []);
 });
 
-test('bundled samples contain verified unchanged AAC and current correction with all 96 phrases', async () => {
+test('bundled AAC and MP3 samples retain verified media and all 96 displayed phrases', async () => {
   const root = new URL('../public/samples/audio/', import.meta.url);
   const index = JSON.parse(await readFile(new URL('library/index.json', root), 'utf8')) as PublicLibraryManifest;
-  assert.equal(index.books.length, 3);
+  assert.equal(index.books.length, 5);
   const audit = await auditDistribution(new URL('../public/', import.meta.url).pathname);
-  assert.equal(audit.audioBooks, 3);
+  assert.equal(audit.audioBooks, 5);
   for (const [position, sample] of AUDIO_DEMOS.entries()) {
     const entry = index.books.find(entry => entry.id === sample.id && entry.revision === sample.revision)!;
     assert.equal(entry.publicDemo, true);
@@ -49,7 +49,7 @@ test('bundled samples contain verified unchanged AAC and current correction with
     assert.equal(loaded.presentation!.status, 'valid');
     assert.equal(loaded.presentation!.expectedUnits, 96);
     assert.equal(loaded.presentation!.displayedUnits, 96);
-    assert.equal(loaded.presentation!.acousticEstimatedUnits, [25,66,63][position]);
+    assert.equal(loaded.presentation!.acousticEstimatedUnits ?? 0, [25,66,63,0,0][position]);
     assert.deepEqual(loaded.presentation!.missingUnitIds, []);
     assert.deepEqual(loaded.presentation!.duplicateUnitIds, []);
     assert.equal(loaded.chunks.length, 13);

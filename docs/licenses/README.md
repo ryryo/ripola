@@ -67,4 +67,4 @@ Python runtime・モデル・個人のWAV/原稿を公開Pages/Worker出力へ�
 
 ## 同梱の本文・音声サンプル
 
-夏目漱石『吾輩は猫である』の青空文庫本文、VOICEVOX:ずんだもん、Google Gemini Puck／Koreの保存音声を使います。[サンプルNOTICE](../../apps/web/public/samples/audio/NOTICE.md)をlocal／Worker／Pagesに同梱し、catalog・manifest・音声Readerの帰属も保持します。VOICEVOXの再利用・再配布ではクレジットと音源利用条件を引き継いでください。Engineやキャラクター画像は配布していません。
+夏目漱石『吾輩は猫である』の青空文庫本文、VOICEVOX:ずんだもん、Google Gemini Puck／Kore、Irodori-TTS男声／女声の保存音声を使います。[サンプルNOTICE](../../apps/web/public/samples/audio/NOTICE.md)をlocal／Worker／Pagesに同梱し、catalog・manifest・音声Readerの帰属も保持します。VOICEVOXの再利用・再配布ではクレジットと音源利用条件を引き継いでください。Engineやキャラクター画像は配布していません。
