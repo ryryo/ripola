@@ -326,7 +326,7 @@ export function AudioReader({ book, onClose, attribution, localTools, demo = fal
       <NavigationLayout key={`${book.id}:${book.revision}`} entries={sentenceEntries} current={index} playing={reading} onPause={pause} onResume={() => void play()} onJump={target => seek(segments[target].startSeconds, false)}>
       <div className="generation-title"><div><span className="eyebrow">{demo ? '音声付きデモ' : 'SAVED AUDIO'}</span><h1>{book.title}</h1></div><Badge color="ripola" variant="light">表示：{options.groupTarget || options.groupMinimum ? 'まとめ表示' : '1区切り'}</Badge></div>
       <p className="muted">{phraseTargets.length ? '文章の区切りを一つずつ表示します。推定部分は利用できる音声情報と前後の時刻、文字数から補います。' : '保存データに区切り情報がありません。原文を確認してください。'}</p>
-      {book.completedChunks < book.totalChunks && <Alert color="yellow" mb="md">保存済み {book.completedChunks} / {book.totalChunks} 文を再生します。次の音声が完成すると、本文の順に続きを再生できます。</Alert>}
+      {book.completedChunks < book.totalChunks && <Alert color="yellow" mb="md">保存済み {book.completedChunks} / {book.totalChunks} 音声を再生します。次の音声が完成すると、本文の順に続きを再生できます。</Alert>}
       {generationStopped && <Alert color="yellow" mb="md" role="status">{generationStatus === 'failed' || generationStatus === 'outcome-unknown' ? '生成が完了していません。保存済み音声は再生できます。生成画面で状態を確認してください。' : '生成の停止が要求されています。保存済み音声は再生できます。続きは生成画面から再開してください。'}</Alert>}
       {error && <Alert color="red" role="alert" mb="md">{error}<Button variant="subtle" onClick={() => { pendingSeek.current = audio.current?.currentTime ?? 0; audio.current?.load(); setError(''); }}>保存音声を再読込</Button></Alert>}
       <ReadingModeControls mode={options.mode} onChange={mode => updateOptions({ mode })} />

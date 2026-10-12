@@ -107,7 +107,7 @@ test('生成holeで待機し、次chunk保存後に本文順で再開する', as
   expect(await page.locator('audio').evaluate((media: HTMLAudioElement) => media.paused)).toBe(true);
   expect(await page.evaluate(() => (window as typeof window & { progressiveEvidence: { offsets: number[] } }).progressiveEvidence.offsets.length)).toBe(playsBefore);
   await publish([0, 2]);
-  await expect(page.getByText('保存済み 2 / 3 文を再生します。', { exact: false })).toBeVisible();
+  await expect(page.getByText('保存済み 2 / 3 音声を再生します。', { exact: false })).toBeVisible();
   await expect(page.getByTestId('audio-stage')).toContainText('次の音声の生成を待っています');
   expect(await page.locator('audio').getAttribute('src')).toContain(full.chunks[0].speechKey);
   await page.evaluate(() => { const evidence = (window as typeof window & { progressiveEvidence: { offsets: number[]; stopNext?: boolean } }).progressiveEvidence; evidence.offsets = []; evidence.stopNext = true; });
@@ -167,7 +167,7 @@ test('生成失敗・取消しで待機を解除し、旧jobを拒否して停�
     await expect(page.getByTestId('audio-stage')).not.toContainText('次の音声の生成を待っています');
     expect(await page.locator('audio').evaluate((media: HTMLAudioElement) => media.paused)).toBe(true);
     await publish([0, 1], 'running');
-    await expect(page.getByText('保存済み 2 / 3 文を再生します。', { exact: false })).toBeVisible();
+    await expect(page.getByText('保存済み 2 / 3 音声を再生します。', { exact: false })).toBeVisible();
     expect(await page.locator('audio').getAttribute('src')).toContain(full.chunks[0].speechKey);
     expect(await page.locator('audio').evaluate((media: HTMLAudioElement) => media.currentTime)).toBeCloseTo(2, 1);
   }
