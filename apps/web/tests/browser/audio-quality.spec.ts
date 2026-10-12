@@ -42,6 +42,7 @@ test('保存音声QAを実local APIで保存・再検査し、元範囲と判定
     while (!ready && Date.now() < deadline) { try { const response = await fetch(`${origin}/THIRD-PARTY-LICENSES.md`, { signal: AbortSignal.timeout(2000) }); ready = response.ok; await response.body?.cancel(); } catch { /* Wait for the isolated owned server. */ } if (!ready) await delay(100); }
     expect(ready).toBe(true);
     await page.goto(`${origin}/library?book=${book.id}&revision=${book.revision}`, { timeout: 60_000 });
+    await page.getByRole('button', { name: '本の操作', exact: true }).click();
     const panel = page.locator('section[aria-label="保存音声の品質検査"]');
     await expect(page.getByRole('heading', { name: '保存音声の品質を確認' })).toBeVisible({ timeout: 60_000 });
     await page.getByRole('button', { name: '保存音声を検査する', exact: true }).click();
@@ -50,14 +51,18 @@ test('保存音声QAを実local APIで保存・再検査し、元範囲と判定
     await expect(result).toContainText('内容検査：未検査'); await expect(result).toContainText('元音声hash');
     const preview = result.locator('audio'); await preview.evaluate((audio: HTMLAudioElement) => { audio.loop = true; return audio.play(); });
     await expect.poll(() => preview.evaluate((audio: HTMLAudioElement) => audio.paused)).toBe(false);
+    const previewMedia = await preview.elementHandle();
+    expect(previewMedia).not.toBeNull();
     await page.locator('audio').first().evaluate((audio: HTMLAudioElement) => { audio.loop = true; });
+    await page.getByRole('button', { name: '閉じる', exact: true }).click();
     await page.getByRole('button', { name: '再生', exact: true }).click();
-    await expect.poll(() => preview.evaluate((audio: HTMLAudioElement) => audio.paused)).toBe(true);
+    await expect.poll(() => previewMedia!.evaluate(media => (media as HTMLAudioElement).paused)).toBe(true);
     await page.getByRole('button', { name: '一時停止', exact: true }).click();
+    await page.getByRole('button', { name: '本の操作', exact: true }).click();
     await page.getByRole('button', { name: '保存音声を検査する', exact: true }).click(); await expect(panel.getByRole('status')).toContainText('cache再利用 1文');
     await expect(page.getByLabel('手元Reazonモデルで内容の認識候補も比較する')).toHaveCount(0);
     await page.getByRole('button', { name: '再検査する（再合成なし）', exact: true }).click(); await expect(result).toContainText('内容検査は実行していません');
-    await page.reload(); await result.locator('summary').first().click(); await expect(result).toContainText('内容検査は実行していません');
+    await page.reload(); await page.getByRole('button', { name: '本の操作', exact: true }).click(); await result.locator('summary').first().click(); await expect(result).toContainText('内容検査は実行していません');
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     const saved = await new AudioInspectionService(disk).read(book.id, book.revision); expect(saved?.chunks[0].audioHash).toBe(digest(bytes));
     expect(await disk.readBytes(bookPath)).toEqual(before); expect(await disk.readBytes(['audio', `${key}.wav`])).toEqual(bytes); expect(await disk.list('jobs')).toEqual([]); expect(await disk.list('receipts')).toEqual([]); expect(errors).toEqual([]);
