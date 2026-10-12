@@ -1,3 +1,4 @@
+export const SPEECH_DURATION_EPSILON_MS = 1e-9;
 const opening = new Set([...'「『（([【〈《〔｛{“‘']);
 const closing = new Set([...'」』）)]】〉》〕｝}”’']);
 const sentence = /^[。！？!?]$/u;
