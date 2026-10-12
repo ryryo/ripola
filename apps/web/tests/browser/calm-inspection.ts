@@ -23,7 +23,7 @@ export async function inspectCalmPlayback(page: Page, durationMs = 2200) {
       }
       return values.join('\u001f');
     };
-    const geometry = () => ['.audio-stage', '.reader-stage', '.audio-progress', '.reading-progress', '.audio-controls', '.reader-controls'].flatMap(selector => {
+    const geometry = () => ['.audio-stage', '.reader-stage', '.audio-progress', '.reading-progress', '.reader-player', '.reader-player-transport'].flatMap(selector => {
       const node = document.querySelector(selector); if (!node) return []; const box = node.getBoundingClientRect(); return [box.top, box.height];
     });
     const phrase = () => document.querySelector('[data-testid="audio-phrase"], [data-testid="current-phrase"]')?.textContent ?? '';

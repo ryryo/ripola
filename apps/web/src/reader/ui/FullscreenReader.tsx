@@ -114,20 +114,25 @@ export function ReaderPlayButton({ playing, disabled = false, label = '再生', 
   </button>;
 }
 
-export function FullscreenReader({ fullscreen, playing, children, seek, speed, modes, toggle, pause, disabled = false, playLabel = '再生' }: {
-  fullscreen: ReturnType<typeof useFullscreenReader>; playing: boolean; children: ReactNode; seek: ReactNode; speed: ReactNode; modes: ReactNode;
+export function FullscreenReader({ fullscreen, playing, children, context, seek, speed, modes, toggle, pause, disabled = false, playLabel = '再生' }: {
+  fullscreen: ReturnType<typeof useFullscreenReader>; playing: boolean; children: ReactNode; context?: ReactNode; seek: ReactNode; speed: ReactNode; modes: ReactNode;
   toggle: () => void; pause: () => void; disabled?: boolean; playLabel?: string;
 }) {
   const footerRef = useRef<HTMLDivElement>(null);
+  const hasContext = Boolean(context);
   useEffect(() => {
     const element = fullscreen.containerRef.current; const footer = footerRef.current;
     if (!fullscreen.active || !element || !footer) return;
     // Wrapped controls must leave room for the stopped context on small screens.
-    const measure = () => element.style.setProperty('--fullscreen-footer-height', `${footer.getBoundingClientRect().height}px`);
+    const preview = element.querySelector<HTMLElement>(':scope > .stopped-context');
+    const measure = () => {
+      element.style.setProperty('--fullscreen-footer-height', `${footer.getBoundingClientRect().height}px`);
+      element.style.setProperty('--fullscreen-context-height', `${preview?.getBoundingClientRect().height ?? 0}px`);
+    };
     measure();
-    const observer = new ResizeObserver(measure); observer.observe(footer);
-    return () => { observer.disconnect(); element.style.removeProperty('--fullscreen-footer-height'); };
-  }, [fullscreen.active, fullscreen.containerRef]);
+    const observer = new ResizeObserver(measure); observer.observe(footer); if (preview) observer.observe(preview);
+    return () => { observer.disconnect(); element.style.removeProperty('--fullscreen-footer-height'); element.style.removeProperty('--fullscreen-context-height'); };
+  }, [fullscreen.active, fullscreen.containerRef, hasContext]);
   return <div ref={fullscreen.containerRef} className="fullscreen-reader" data-fullscreen={fullscreen.active} data-playing={playing} tabIndex={-1} role={fullscreen.active ? 'region' : undefined} aria-label={fullscreen.active ? '全画面の読書' : undefined}
     onClick={event => {
       if (!fullscreen.active || !playing || !(event.target instanceof HTMLElement) || !event.target.closest('.reader-stage, .audio-stage') || event.target.closest('button, input, select, a')) return;
@@ -135,6 +140,7 @@ export function FullscreenReader({ fullscreen, playing, children, seek, speed, m
     }}>
     {fullscreen.active && <div className="fullscreen-mode-controls" hidden={playing}>{modes}</div>}
     {children}
+    {fullscreen.active && context}
     {fullscreen.active && <div ref={footerRef} className="fullscreen-footer">
       <div className="fullscreen-seek">{seek}</div>
       <div className="fullscreen-actions" hidden={playing}>

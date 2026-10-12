@@ -12,7 +12,7 @@
   {
     "project": "desktop-chromium",
     "file": "audio-alignment.spec.ts",
-    "title": "low-score でも全区切りを表示し推定時刻を明示する",
+    "title": "low-score でも全区切りを表示し推定時計を使う",
     "lane": "related",
     "domains": [
       "audio",
@@ -40,7 +40,7 @@
   {
     "project": "desktop-chromium",
     "file": "audio-alignment.spec.ts",
-    "title": "silence でも全区切りを表示し推定時刻を明示する",
+    "title": "silence でも全区切りを表示し推定時計を使う",
     "lane": "related",
     "domains": [
       "audio",
@@ -50,7 +50,7 @@
   {
     "project": "desktop-chromium",
     "file": "audio-alignment.spec.ts",
-    "title": "reading-mismatch でも全区切りを表示し推定時刻を明示する",
+    "title": "reading-mismatch でも全区切りを表示し推定時計を使う",
     "lane": "related",
     "domains": [
       "audio",
@@ -482,7 +482,7 @@
   {
     "project": "desktop-chromium",
     "file": "reader.spec.ts",
-    "title": "最後の1フレーズは時間を確保してから読了し、再読は停止状態",
+    "title": "最後の1フレーズは時間を確保してから読了し、再読も1クリックで開始",
     "lane": "related",
     "domains": [
       "import",
@@ -729,7 +729,7 @@
   {
     "project": "mobile-chromium",
     "file": "audio-alignment.spec.ts",
-    "title": "low-score でも全区切りを表示し推定時刻を明示する",
+    "title": "low-score でも全区切りを表示し推定時計を使う",
     "lane": "manual_full",
     "domains": [
       "audio",
@@ -739,7 +739,7 @@
   {
     "project": "mobile-chromium",
     "file": "audio-alignment.spec.ts",
-    "title": "silence でも全区切りを表示し推定時刻を明示する",
+    "title": "silence でも全区切りを表示し推定時計を使う",
     "lane": "manual_full",
     "domains": [
       "audio",
@@ -767,7 +767,7 @@
   {
     "project": "mobile-chromium",
     "file": "audio-alignment.spec.ts",
-    "title": "reading-mismatch でも全区切りを表示し推定時刻を明示する",
+    "title": "reading-mismatch でも全区切りを表示し推定時計を使う",
     "lane": "manual_full",
     "domains": [
       "audio",
@@ -1745,6 +1745,46 @@
     "domains": [
       "audio",
       "import",
+      "layout"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "reading-options.spec.ts",
+    "title": "silent reader exposes common display controls and separates book actions from appearance",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "reading-options.spec.ts",
+    "title": "audio reader exposes common display controls and separates book actions from appearance",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "reading-options.spec.ts",
+    "title": "silent reader exposes common display controls and separates book actions from appearance",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "reading-options.spec.ts",
+    "title": "audio reader exposes common display controls and separates book actions from appearance",
+    "lane": "related",
+    "domains": [
+      "audio",
       "layout"
     ]
   }

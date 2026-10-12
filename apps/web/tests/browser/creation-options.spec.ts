@@ -49,7 +49,7 @@ for (const sample of audioSamples) test(`音声サンプル ${sample.key} は1�
   await open.click();
   await expect(page.getByTestId('audio-stage')).toBeVisible();
   expect(new URL(page.url()).searchParams.get('sample')).toBe(sample.key);
-  await expect(page.getByTestId('audio-presentation-report')).toContainText('表示 96 / 96');
+  await expect(page.getByTestId('audio-presentation-report')).toHaveCount(0);
   await expect(page.locator('audio')).toHaveAttribute('src', /\/samples\/audio\//);
   expect(await page.locator('audio').evaluate((audio: HTMLAudioElement) => audio.paused)).toBe(true);
   await page.getByRole('button', { name: 'トップへ戻る', exact: true }).click();

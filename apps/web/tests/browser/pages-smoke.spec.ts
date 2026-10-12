@@ -46,7 +46,7 @@ test('完成Pagesの全音声サンプル・直リンク・seek・公開API境�
     await expect(page.locator('html')).toHaveAttribute('data-mantine-color-scheme', 'dark');
     await page.reload(); await expect(page.getByTestId('audio-phrase')).toBeVisible();
     await expect(page.locator('html')).toHaveAttribute('data-mantine-color-scheme', 'dark');
-    await expect(page.getByTestId('audio-presentation-report')).toContainText('欠落 0 · 重複 0');
+    await expect(page.getByTestId('audio-presentation-report')).toHaveCount(0);
     const slider = page.getByRole('slider', { name: '音声の再生位置', exact: true });
     await slider.fill('10'); await expect(slider).toHaveValue('10');
     await page.getByRole('button', { name: '再生', exact: true }).click();
