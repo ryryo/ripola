@@ -72,12 +72,14 @@ export function acceptsManifest(current: AudioBookManifest, incoming: AudioBookM
   if (owner && (!next || owner.jobId !== next.jobId || owner.planId !== next.planId || owner.planHash !== next.planHash || next.sequence < owner.sequence)) return false;
   if (job && (job.bookId !== incoming.id || job.revision !== incoming.revision || next && (next.jobId !== job.id || next.planId !== job.planId))) return false;
   if (!Number.isSafeInteger(incoming.completedChunks) || incoming.completedChunks !== incoming.chunks.length || incoming.completedChunks > incoming.totalChunks) return false;
-  if (current.chunks.some(chunk => !incoming.chunks.some(saved => saved.id === chunk.id))) return false;
+  const savedIds = new Set(incoming.chunks.map(chunk => chunk.id));
+  if (current.chunks.some(chunk => !savedIds.has(chunk.id))) return false;
   if (current.plannedChunkIds && JSON.stringify(current.plannedChunkIds) !== JSON.stringify(incoming.plannedChunkIds)) return false;
   if (incoming.plannedChunkIds) {
     const ids = incoming.plannedChunkIds;
-    if (ids.length !== incoming.totalChunks || new Set(ids).size !== ids.length) return false;
-    const order = incoming.chunks.map(chunk => ids.indexOf(chunk.id));
+    const positions = new Map(ids.map((id, index) => [id, index]));
+    if (ids.length !== incoming.totalChunks || positions.size !== ids.length) return false;
+    const order = incoming.chunks.map(chunk => positions.get(chunk.id) ?? -1);
     if (order.some((value, i) => value < 0 || i > 0 && value <= order[i - 1])) return false;
   }
   return true;
