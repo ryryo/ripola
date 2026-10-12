@@ -22,7 +22,21 @@ async function viewportSurface(page: Page) {
   expect(bounds.height).toBeCloseTo(bounds.viewportHeight, 0);
   const play = await full.locator('.reader-play-overlay').boundingBox();
   expect(play!.x + play!.width / 2).toBeCloseTo(bounds.viewportWidth / 2, 0);
-  expect(play!.y + play!.height / 2).toBeCloseTo(bounds.viewportHeight / 2, 0);
+  if (await full.locator('.guide-viewport').count()) {
+    const viewport = await full.locator('.guide-viewport').boundingBox();
+    const toolbar = await full.locator('.guide-toolbar').boundingBox();
+    const footer = await full.locator('.fullscreen-footer').boundingBox();
+    expect(play!.y).toBeGreaterThanOrEqual(viewport!.y);
+    expect(play!.y).toBeGreaterThanOrEqual(toolbar!.y + toolbar!.height);
+    expect(play!.y + play!.height).toBeLessThanOrEqual(Math.min(viewport!.y + viewport!.height, footer!.y));
+    if (await full.getByTestId('stopped-context').count()) {
+      const context = await full.getByTestId('stopped-context').boundingBox();
+      expect(play!.y + play!.height).toBeLessThanOrEqual(context!.y);
+    }
+  } else {
+    const phrase = await full.locator('.phrase-container').boundingBox();
+    expect(play!.y + play!.height / 2).toBeCloseTo(phrase!.y + phrase!.height / 2, 0);
+  }
   return full;
 }
 test('screen wake lock follows silent playback in normal and fullscreen views; hidden return stays paused', async ({ page }) => {

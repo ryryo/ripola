@@ -11,16 +11,6 @@
   },
   {
     "project": "desktop-chromium",
-    "file": "audio-alignment.spec.ts",
-    "title": "low-score でも全区切りを表示し推定時計を使う",
-    "lane": "related",
-    "domains": [
-      "audio",
-      "layout"
-    ]
-  },
-  {
-    "project": "desktop-chromium",
     "file": "aozora.spec.ts",
     "title": "青空文庫全文のルビ・仮想文一覧・章移動・保存設定",
     "lane": "related",
@@ -35,26 +25,6 @@
     "lane": "local_opt_in",
     "domains": [
       "import"
-    ]
-  },
-  {
-    "project": "desktop-chromium",
-    "file": "audio-alignment.spec.ts",
-    "title": "silence でも全区切りを表示し推定時計を使う",
-    "lane": "related",
-    "domains": [
-      "audio",
-      "layout"
-    ]
-  },
-  {
-    "project": "desktop-chromium",
-    "file": "audio-alignment.spec.ts",
-    "title": "reading-mismatch でも全区切りを表示し推定時計を使う",
-    "lane": "related",
-    "domains": [
-      "audio",
-      "layout"
     ]
   },
   {
@@ -274,6 +244,30 @@
   },
   {
     "project": "desktop-chromium",
+    "file": "creation-options.spec.ts",
+    "title": "音声サンプル irodori-male は1クリックで開き、戻る・連打でも生成しない",
+    "lane": "related",
+    "domains": [
+      "generation",
+      "import",
+      "distribution",
+      "layout"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "creation-options.spec.ts",
+    "title": "音声サンプル irodori-female は1クリックで開き、戻る・連打でも生成しない",
+    "lane": "related",
+    "domains": [
+      "generation",
+      "import",
+      "distribution",
+      "layout"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
     "file": "generation.spec.ts",
     "title": "C ignores an older delayed configuration after closing and reopening audio settings",
     "lane": "related",
@@ -302,7 +296,7 @@
   {
     "project": "desktop-chromium",
     "file": "creation-options.spec.ts",
-    "title": "音声サンプルはTab・Shift+TabとEnterで3種類を直接開ける",
+    "title": "音声サンプルはTab・Shift+TabとEnterで5種類を直接開ける",
     "lane": "related",
     "domains": [
       "generation",
@@ -476,17 +470,6 @@
     "lane": "related",
     "domains": [
       "import",
-      "audio"
-    ]
-  },
-  {
-    "project": "desktop-chromium",
-    "file": "reader.spec.ts",
-    "title": "最後の1フレーズは時間を確保してから読了し、再読も1クリックで開始",
-    "lane": "related",
-    "domains": [
-      "import",
-      "layout",
       "audio"
     ]
   },
@@ -728,26 +711,6 @@
   },
   {
     "project": "mobile-chromium",
-    "file": "audio-alignment.spec.ts",
-    "title": "low-score でも全区切りを表示し推定時計を使う",
-    "lane": "manual_full",
-    "domains": [
-      "audio",
-      "layout"
-    ]
-  },
-  {
-    "project": "mobile-chromium",
-    "file": "audio-alignment.spec.ts",
-    "title": "silence でも全区切りを表示し推定時計を使う",
-    "lane": "manual_full",
-    "domains": [
-      "audio",
-      "layout"
-    ]
-  },
-  {
-    "project": "mobile-chromium",
     "file": "aozora.spec.ts",
     "title": "青空文庫全文のルビ・仮想文一覧・章移動・保存設定",
     "lane": "manual_full",
@@ -762,16 +725,6 @@
     "lane": "local_opt_in",
     "domains": [
       "import"
-    ]
-  },
-  {
-    "project": "mobile-chromium",
-    "file": "audio-alignment.spec.ts",
-    "title": "reading-mismatch でも全区切りを表示し推定時計を使う",
-    "lane": "manual_full",
-    "domains": [
-      "audio",
-      "layout"
     ]
   },
   {
@@ -989,6 +942,30 @@
   },
   {
     "project": "mobile-chromium",
+    "file": "creation-options.spec.ts",
+    "title": "音声サンプル irodori-male は1クリックで開き、戻る・連打でも生成しない",
+    "lane": "manual_full",
+    "domains": [
+      "generation",
+      "import",
+      "distribution",
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "creation-options.spec.ts",
+    "title": "音声サンプル irodori-female は1クリックで開き、戻る・連打でも生成しない",
+    "lane": "manual_full",
+    "domains": [
+      "generation",
+      "import",
+      "distribution",
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
     "file": "generation.spec.ts",
     "title": "C ignores an older delayed configuration after closing and reopening audio settings",
     "lane": "manual_full",
@@ -1008,7 +985,7 @@
   {
     "project": "mobile-chromium",
     "file": "creation-options.spec.ts",
-    "title": "音声サンプルはTab・Shift+TabとEnterで3種類を直接開ける",
+    "title": "音声サンプルはTab・Shift+TabとEnterで5種類を直接開ける",
     "lane": "manual_full",
     "domains": [
       "generation",
@@ -1750,46 +1727,6 @@
   },
   {
     "project": "desktop-chromium",
-    "file": "reading-options.spec.ts",
-    "title": "silent reader exposes common display controls and separates book actions from appearance",
-    "lane": "related",
-    "domains": [
-      "audio",
-      "layout"
-    ]
-  },
-  {
-    "project": "desktop-chromium",
-    "file": "reading-options.spec.ts",
-    "title": "audio reader exposes common display controls and separates book actions from appearance",
-    "lane": "related",
-    "domains": [
-      "audio",
-      "layout"
-    ]
-  },
-  {
-    "project": "mobile-chromium",
-    "file": "reading-options.spec.ts",
-    "title": "silent reader exposes common display controls and separates book actions from appearance",
-    "lane": "related",
-    "domains": [
-      "audio",
-      "layout"
-    ]
-  },
-  {
-    "project": "mobile-chromium",
-    "file": "reading-options.spec.ts",
-    "title": "audio reader exposes common display controls and separates book actions from appearance",
-    "lane": "related",
-    "domains": [
-      "audio",
-      "layout"
-    ]
-  },
-  {
-    "project": "desktop-chromium",
     "file": "home-continue-reading.spec.ts",
     "title": "本棚の読書位置はバーで表示し、途中生成・再開・別タブ・保存拒否を区別する",
     "lane": "related",
@@ -1803,6 +1740,117 @@
     "project": "mobile-chromium",
     "file": "home-continue-reading.spec.ts",
     "title": "本棚の読書位置はバーで表示し、途中生成・再開・別タブ・保存拒否を区別する",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "audio-alignment.spec.ts",
+    "title": "low-score でも全区切りを表示し推定時計を使う",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "audio-alignment.spec.ts",
+    "title": "silence でも全区切りを表示し推定時計を使う",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "audio-alignment.spec.ts",
+    "title": "reading-mismatch でも全区切りを表示し推定時計を使う",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "reader.spec.ts",
+    "title": "最後の1フレーズは時間を確保してから読了し、再読も1クリックで開始",
+    "lane": "related",
+    "domains": [
+      "import",
+      "layout",
+      "audio"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "audio-alignment.spec.ts",
+    "title": "low-score でも全区切りを表示し推定時計を使う",
+    "lane": "manual_full",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "audio-alignment.spec.ts",
+    "title": "silence でも全区切りを表示し推定時計を使う",
+    "lane": "manual_full",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "audio-alignment.spec.ts",
+    "title": "reading-mismatch でも全区切りを表示し推定時計を使う",
+    "lane": "manual_full",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "reading-options.spec.ts",
+    "title": "silent reader exposes common display controls and separates book actions from appearance",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "reading-options.spec.ts",
+    "title": "audio reader exposes common display controls and separates book actions from appearance",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "reading-options.spec.ts",
+    "title": "silent reader exposes common display controls and separates book actions from appearance",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "reading-options.spec.ts",
+    "title": "audio reader exposes common display controls and separates book actions from appearance",
     "lane": "related",
     "domains": [
       "audio",
