@@ -1795,5 +1795,25 @@
       "import",
       "layout"
     ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "home-continue-reading.spec.ts",
+    "title": "本棚の読書位置はバーで表示し、途中生成・再開・別タブ・保存拒否を区別する",
+    "lane": "normal",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "home-continue-reading.spec.ts",
+    "title": "本棚の読書位置はバーで表示し、途中生成・再開・別タブ・保存拒否を区別する",
+    "lane": "normal",
+    "domains": [
+      "audio",
+      "layout"
+    ]
   }
 ]

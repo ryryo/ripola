@@ -137,3 +137,59 @@ test('保存黙読もトップから保存位置で開ける', async ({ page }) 
   await page.getByRole('button', { name: '続きから開く', exact: true }).click();
   await expect(page.getByTestId('current-phrase')).toHaveText(silentPosition);
 });
+
+test('本棚の読書位置はバーで表示し、途中生成・再開・別タブ・保存拒否を区別する', async ({ page }, testInfo) => {
+  test.setTimeout(60000);
+  await publish();
+  await page.addInitScript(({ id, revision }) => {
+    localStorage.setItem(`rsvp-audio-position:${id}:${revision}`, '5');
+    localStorage.setItem(`rsvp-audio-position:home-other-1:older-revision`, '26');
+    localStorage.setItem(`rsvp-audio-position:home-other-2:${revision}`, '13');
+    localStorage.setItem(`rsvp-audio-position:home-other-3:${revision}`, '999');
+    localStorage.setItem(`rsvp-audio-position:home-other-4:${revision}`, 'NaN');
+  }, { id: full.id, revision: full.revision });
+  const mediaRequests: string[] = [];
+  page.on('request', request => { if (/\/api\/local-audio\//.test(request.url()) || /\/_serverFn\//.test(request.url()) && request.method() === 'POST') mediaRequests.push(request.url()); });
+  await page.goto(`${origin}/library`);
+  const card = (title: string) => page.getByRole('article').filter({ has: page.getByRole('heading', { name: title, exact: true }) });
+  const partial = card(full.title);
+  await expect(partial.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '35');
+  await expect(partial).toContainText('保存済み音声内の位置');
+  await expect(partial).toContainText('生成途中');
+  await expect(card('保存音声 1').getByRole('progressbar')).toHaveAttribute('aria-valuenow', '0');
+  await expect(card('保存音声 1')).toContainText('保存位置なし');
+  await expect(card('保存音声 2').getByRole('progressbar')).toHaveAttribute('aria-valuenow', '50');
+  await expect(card('保存音声 3').getByRole('progressbar')).toHaveAttribute('aria-valuenow', '100');
+  await expect(card('保存音声 4')).toContainText('保存位置を取得できません');
+  await expect(card('保存音声 4').getByRole('progressbar')).not.toHaveAttribute('aria-valuenow');
+  await expect(card('音声がまだない本')).toContainText('音声を準備中');
+  expect(mediaRequests).toEqual([]);
+  await page.screenshot({ path: resolve(evidence, `${testInfo.project.name}-bookshelf-light.png`), fullPage: true });
+  await partial.getByRole('button', { name: '保存音声を読む', exact: true }).click();
+  await expect(page.getByLabel('音声の再生位置', { exact: true })).toHaveValue('5');
+  await page.getByLabel('音声の再生位置', { exact: true }).evaluate((element: HTMLInputElement) => {
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(element, '14');
+    element.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+  await page.getByRole('button', { name: '本棚へ戻る', exact: true }).click();
+  await expect(partial.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '100');
+  await expect(partial).toContainText('生成途中');
+  await expect(partial).not.toContainText('読了');
+  const otherTab = await page.context().newPage();
+  await otherTab.goto(`${origin}/library`);
+  await otherTab.evaluate(({ id, revision }) => localStorage.setItem(`rsvp-audio-position:${id}:${revision}`, '7'), { id: full.id, revision: full.revision });
+  await otherTab.close();
+  await expect(partial.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '50');
+  await page.getByRole('button', { name: '配色を変更', exact: true }).click();
+  await page.getByRole('menuitem', { name: /^ダーク/ }).click();
+  await page.getByRole('button', { name: 'グリッド', exact: true }).click();
+  await page.setViewportSize({ width: 320, height: 844 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+  await page.screenshot({ path: resolve(evidence, `${testInfo.project.name}-bookshelf-dark.png`), fullPage: true });
+  await page.evaluate(() => {
+    Object.defineProperty(window, 'localStorage', { get() { throw new DOMException('Denied', 'SecurityError'); } });
+    document.dispatchEvent(new Event('visibilitychange'));
+  });
+  await expect(partial).toContainText('保存位置を取得できません');
+  await expect(partial.getByRole('progressbar')).not.toHaveAttribute('aria-valuenow');
+});
