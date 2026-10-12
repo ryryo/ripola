@@ -1,6 +1,13 @@
 .bookshelf { min-width: 0; }
 .bookshelf-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
 .bookshelf-count { margin: 0; color: var(--muted); font-size: 14px; }
+.bookshelf-progress-help { margin: 0 0 18px; color: var(--muted); font-size: 12px; line-height: 1.7; }
+.bookshelf-progress { margin-top: 18px; max-width: 480px; }
+.bookshelf-progress-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 7px; color: var(--muted); font-size: 12px; }
+.bookshelf-progress-heading strong { color: var(--ink); font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.bookshelf-progress-track { height: 8px; overflow: hidden; border-radius: 4px; background: var(--accent-soft); }
+.bookshelf-progress-track > span { display: block; height: 100%; background: var(--accent); border-radius: inherit; }
+.bookshelf .bookshelf-progress-note { margin: 7px 0 0; color: var(--muted); font-size: 11px; line-height: 1.7; font-variant-numeric: tabular-nums; }
 .bookshelf-view { display: flex; gap: 4px; padding: 3px; border: 1px solid var(--line); border-radius: var(--radius-control); background: var(--panel); }
 .bookshelf-view .bookshelf-view-button { min-height: 44px; padding-inline: 14px; font-size: 13px; }
 .bookshelf .bookshelf-items { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; margin: 0; padding: 0; list-style: none; }
