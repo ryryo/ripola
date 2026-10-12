@@ -114,13 +114,13 @@ export function GuideReader({ blocks, units, currentIndices, playing, ruby, fami
       if (offset < 0) continue;
       let target = blockUnits.get(block.id) ?? 0;
       while (target < units.length - 1 && units[target].blockId === block.id && units[target].end <= offset) target++;
-      setFollow(true); onJump(target); setMessage('検索位置へ移動して停止しました。'); return;
+      setFollow(true); onJump(target); setMessage('検索位置へ移動しました。'); return;
     }
     setMessage('一致する文字列がありません。');
   };
   return <div className="guide-reader" data-testid="guide-reader" style={{ '--reading-font': family } as CSSProperties}>
-    <div className="guide-toolbar"><label>本文を検索<input aria-label="Guide本文を検索" value={query} onChange={event => setQuery(event.target.value)} onKeyDown={event => { if (event.key === 'Enter' && !event.nativeEvent.isComposing) search(); }} /></label><button type="button" onClick={search}>検索して移動</button><button type="button" aria-pressed={follow} onClick={() => setFollow(value => !value)}>{follow ? '追従を止める' : '現在位置を追従'}</button></div>
-    <div ref={viewport} className="guide-viewport" data-testid="guide-viewport" data-writing-mode={writingMode} tabIndex={0} aria-label="全文Guide" aria-live="off" data-reader-shortcuts="off"
+    <div className="guide-toolbar"><label>本文を検索<input aria-label="本文を検索" value={query} onChange={event => setQuery(event.target.value)} onKeyDown={event => { if (event.key === 'Enter' && !event.nativeEvent.isComposing) search(); }} /></label><button type="button" onClick={search}>検索して移動</button><button type="button" aria-pressed={follow} onClick={() => setFollow(value => !value)}>{follow ? '追従を止める' : '現在位置を追従'}</button></div>
+    <div ref={viewport} className="guide-viewport" data-testid="guide-viewport" data-writing-mode={writingMode} tabIndex={0} aria-label="全文表示" aria-live="off" data-reader-shortcuts="off"
       onScroll={event => setScroll(vertical ? -event.currentTarget.scrollLeft : event.currentTarget.scrollTop)} onWheel={() => setFollow(false)} onTouchMove={() => setFollow(false)}
       onPointerDown={event => { if (event.target === viewport.current) setFollow(false); }}
       onKeyDown={event => { if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'PageUp', 'PageDown', 'Home', 'End', 'Space'].includes(event.code)) setFollow(false); }}>
@@ -128,8 +128,8 @@ export function GuideReader({ blocks, units, currentIndices, playing, ruby, fami
       {rows.slice(first, end).map(row => <MeasuredRow key={row.id} row={row} onMeasure={measure} vertical={vertical}>{row.units.map(({ unit, index }) => <button key={unit.id} type="button" className={`guide-unit ${active.has(index) ? 'active' : ''}`} aria-current={active.has(index) ? 'location' : undefined} data-unit-id={unit.id} onClick={() => { setFollow(true); onJump(index); }} title="ここへ移動して停止"><RubyText unit={unit} show={ruby} /></button>)}</MeasuredRow>)}
       <div style={{ blockSize: (prefix.at(-1) ?? 0) - (prefix[end] ?? 0) }} aria-hidden="true" />
     </div>
-    <p className="guide-status" role="status">{message || (follow ? '現在位置を追従します。スクロール操作で追従を止められます。' : '自由にスクロールできます。読書位置は変わりません。')}</p>
-    <details className="guide-static-text" onToggle={onPause}><summary>全文を静止表示・コピー</summary><textarea aria-label="Guide静止全文" value={blocks.map(block => block.text).join('\n\n')} readOnly rows={8} /></details>
+    <p className="guide-status" role="status">{message || (follow ? '読んでいる位置を追います。' : '自由にスクロールできます。')}</p>
+    <details className="guide-static-text" onToggle={onPause}><summary>全文を静止表示・コピー</summary><textarea aria-label="コピーする全文" value={blocks.map(block => block.text).join('\n\n')} readOnly rows={8} /></details>
   </div>;
 }
 
