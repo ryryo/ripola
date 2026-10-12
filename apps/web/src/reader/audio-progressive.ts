@@ -57,12 +57,6 @@ export function contiguousChunks(book: ProgressiveBook, currentId: string) {
   return result;
 }
 
-/** Pending priority affects execution only; the manifest stays in source order. */
-export function nearPlaybackPriority(ids: readonly string[], currentId: string, maximum = 6): string[] {
-  const at = ids.indexOf(currentId);
-  return at < 0 ? [] : ids.slice(at + 1, at + 1 + Math.max(1, Math.min(6, maximum)));
-}
-
 export function acceptsManifest(current: AudioBookManifest, incoming: AudioBookManifest, job?: GenerationJob): boolean {
   if (current.id !== incoming.id || current.revision !== incoming.revision || current.totalChunks !== incoming.totalChunks) return false;
   if (current.document.contentHash !== incoming.document.contentHash || JSON.stringify(current.document.versions) !== JSON.stringify(incoming.document.versions)) return false;

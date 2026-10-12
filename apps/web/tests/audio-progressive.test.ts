@@ -3,8 +3,7 @@ import assert from 'node:assert/strict';
 import { prepareDocument } from '../src/reader/segmentation';
 import { importText } from '../src/reader/text-import';
 import { audioDisplayAt, audioSegments } from '../src/reader/audio-clock';
-import { continuation, contiguousChunks, nearPlaybackPriority, playbackAnchor, restoreAnchor, savedPlaybackAnchor, serializePlaybackAnchor, acceptsManifest, mergeManifest } from '../src/reader/audio-progressive';
-import { PlaybackPriorityQueue } from '../src/reader/playback-priority';
+import { continuation, contiguousChunks, playbackAnchor, restoreAnchor, savedPlaybackAnchor, serializePlaybackAnchor, acceptsManifest, mergeManifest } from '../src/reader/audio-progressive';
 import type { AudioBookManifest } from '../src/generation/contracts';
 
 async function fixture(): Promise<AudioBookManifest> {
@@ -62,13 +61,6 @@ test('old jobs, plan hashes, revisions and monotonic sequence regressions cannot
   assert.equal(acceptsManifest(book, { ...book, completedChunks: 99 }), false);
 });
 
-test('near-position priority is bounded and leaves source order untouched', async () => {
-  const book = await fixture(); const ids = Array.from({ length: 30 }, (_, i) => `c${i}`);
-  assert.deepEqual(nearPlaybackPriority(ids, 'c12'), ['c13', 'c14', 'c15', 'c16', 'c17', 'c18']);
-  assert.deepEqual(ids.slice(0, 2), ['c0', 'c1']);
-  assert.deepEqual(nearPlaybackPriority(book.plannedChunkIds!, 'unknown'), []);
-});
-
 test('equal-sequence alignment views preserve immutable source refs and reject source/plan corruption', async () => {
   const book = await fixture();
   const incoming = structuredClone(book); incoming.title = '表示名の更新';
@@ -81,40 +73,6 @@ test('equal-sequence alignment views preserve immutable source refs and reject s
   assert.equal(acceptsManifest(book, { ...incoming, chunks: [book.chunks[0]], completedChunks: 1 }), false);
   assert.equal(acceptsManifest(book, { ...incoming, document: { ...book.document, contentHash: 'other' } }), false);
 });
-
-test('priority RPCs are serial, coalesce rapid seeks and abort on book disposal', async () => {
-  const sent: string[][] = []; const signals: AbortSignal[] = []; const finish: (() => void)[] = [];
-  const queue = new PlaybackPriorityQueue((priority, signal) => { sent.push(priority.chunkIds); signals.push(signal); return new Promise<void>(resolve => finish.push(resolve)); });
-  queue.update({ jobId: 'j', chunkIds: ['c1'] });
-  queue.update({ jobId: 'j', chunkIds: ['c2'] });
-  queue.update({ jobId: 'j', chunkIds: ['c3'] });
-  assert.deepEqual(sent, [['c1']]);
-  finish[0](); await new Promise(resolve => setImmediate(resolve));
-  assert.deepEqual(sent, [['c1'], ['c3']]);
-  queue.dispose(); assert.equal(signals[1].aborted, true);
-  finish[1](); await new Promise(resolve => setImmediate(resolve));
-  queue.update({ jobId: 'other', chunkIds: ['c4'] });
-  assert.equal(sent.length, 2);
-});
-
-test('a failed priority request can be retried', async () => {
-  const calls: string[][] = []; let fail = true;
-  const queue = new PlaybackPriorityQueue(async priority => { calls.push(priority.chunkIds); if (fail) throw new Error('network'); });
-  queue.update({ jobId: 'j', chunkIds: ['c1'] }); await new Promise(resolve => setImmediate(resolve));
-  fail = false; queue.update({ jobId: 'j', chunkIds: ['c1'] }); await new Promise(resolve => setImmediate(resolve));
-  assert.deepEqual(calls, [['c1'], ['c1']]); queue.dispose();
-});
-
-test('an empty priority window cancels queued work without adding RPCs', async () => {
-  const sent: string[][] = []; let finish!: () => void;
-  const queue = new PlaybackPriorityQueue(priority => { sent.push(priority.chunkIds); return new Promise<void>(resolve => { finish = resolve; }); });
-  queue.update({ jobId: 'j', chunkIds: ['c1'] });
-  queue.update({ jobId: 'j', chunkIds: ['c2'] });
-  queue.update({ jobId: 'j', chunkIds: [] });
-  finish(); await new Promise(resolve => setImmediate(resolve));
-  assert.deepEqual(sent, [['c1']]); queue.dispose();
-});
-
 
 test('manifest validation checks all saved IDs with bounded linear work on long partial books', async () => {
   const book = await fixture(), count = 256;
