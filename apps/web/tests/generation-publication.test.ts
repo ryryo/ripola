@@ -136,7 +136,7 @@ test('an unknown paid request flushes prior speech promptly and is never resent'
   assert.equal((await f.readBook())!.generation!.sequence, sequence);
 });
 
-test('a timer write failure preserves paid speech and resumes publication with zero new sends', async t => {
+for (const unknown of [false, true]) test(`a timer write failure republishes saved speech without credentials or resending an unknown request (${unknown})`, async t => {
   const f = await fixture(t, 'gemini');
   const failedWrite = deferred();
   const originalWrite = LibraryDisk.prototype.write;
@@ -150,15 +150,19 @@ test('a timer write failure preserves paid speech and resumes publication with z
   t.mock.timers.tick(1000);
   f.gates[1].audio.resolve(); await f.gates[2].sent.promise;
   t.mock.timers.tick(4000); await failedWrite.promise; await yieldIo();
-  f.gates[2].audio.resolve();
+  f.gates[2].fail = unknown; f.gates[2].audio.resolve();
   const failed = await f.service.waitForJob(job.id);
-  assert.equal(failed.status, 'failed'); assert.equal(failed.completedChunks, 3);
-  assert.ok(failed.chunks.every(chunk => chunk.status === 'completed' && chunk.attempts === 1));
+  assert.equal(failed.status, 'failed'); assert.equal(failed.completedChunks, unknown ? 2 : 3);
+  assert.ok(failed.chunks.every(chunk => chunk.attempts === 1));
+  assert.equal(failed.chunks[2].status, unknown ? 'outcome-unknown' : 'completed');
   assert.equal((await f.readBook())!.completedChunks, 1);
-  for (const chunk of failed.chunks) assert.ok((await f.service.getAudio(chunk.speechKey)).bytes.length);
-  await f.service.resumeJob(job.id, true);
-  assert.equal((await f.service.waitForJob(job.id)).status, 'completed');
-  assert.equal((await f.readBook())!.completedChunks, 3); assert.equal(f.calls(), 3);
+  for (const chunk of failed.chunks.filter(chunk => chunk.status === 'completed')) assert.ok((await f.service.getAudio(chunk.speechKey)).bytes.length);
+  const offline = new GenerationService({ libraryDir: f.disk.root, localOrigin: 'http://127.0.0.1:4173', paidEnabled: false, automaticCompression: false }, { gemini: { async voices() { return []; }, async synthesize() { assert.fail('republication must not send speech'); } } });
+  await offline.resumeJob(job.id);
+  const recovered = await offline.waitForJob(job.id);
+  assert.equal(recovered.status, unknown ? 'outcome-unknown' : 'completed');
+  assert.equal(recovered.chunks[2].status, unknown ? 'outcome-unknown' : 'completed');
+  assert.equal((await f.readBook())!.completedChunks, unknown ? 2 : 3); assert.equal(f.calls(), 3);
 });
 
 test('a timer failure before the next paid send stops it without recording an unknown outcome', async t => {

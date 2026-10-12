@@ -4,6 +4,7 @@ import { inspectAudioPresentation, requireAudioPresentation } from '../../reader
 import { DEFAULT_SETTINGS, type ReadingDocument } from '../../reader/model';
 import { validateSavedReading } from '../../reader/storage';
 import { GEMINI_MODELS, type AlignmentJob, type StartAlignmentInput, type AudioBookManifest, type AudioBookSummary, type GenerationChunk, type GenerationChunkSpan, type GenerationChunkPlanningInput, type GenerationChunkPlanningResult, type SpeechProvider, type SpeechProviderCapabilities, type SpeechReceipt, type GenerationConfig, type GenerationJob, type GenerationOptions, type GenerationPlan, type PrepareGenerationInput, type StartGenerationInput } from '../contracts';
+import { jobResumeMode } from '../job-resume';
 import type { GenerationServerConfig } from './config';
 import { prepareSpeech } from './speech-source';
 import { estimateGeminiOutput, geminiEstimateNote } from '../cost-estimate';
@@ -360,7 +361,7 @@ export class GenerationService {
       const initial = await this.getJob(jobId);
       const stored = await this.disk.read<StoredPlan>(['plans', `${initial.planId}.json`]);
       if (!stored) throw new Error('missing plan');
-      if (initial.chunks.some(chunk => chunk.status !== 'completed') && stored.plan.options.transport === 'gateway'
+      if (initial.chunks.some(chunk => chunk.status !== 'completed' && chunk.status !== 'outcome-unknown') && stored.plan.options.transport === 'gateway'
         && (!this.config.gateway || stored.plan.endpoint !== gatewayEndpoint(this.config.gateway) || stored.plan.routeIdentity !== gatewayRouteIdentity(this.config.gateway))) throw new SpeechRequestError('Gateway設定が変更されています。新しい計画を確認してください。');
       const verifiedCache = new Map<string, CacheRecord>();
       for (const state of initial.chunks) if (state.status === 'completed' && !verifiedCache.has(state.speechKey)) {
@@ -628,13 +629,13 @@ export class GenerationService {
     await this.ready(); requireId(jobId);
     const current = await this.getJob(jobId);
     const stored = await this.disk.read<StoredPlan>(['plans', `${current.planId}.json`]);
-    if (current.provider === 'gemini' && (paidConfirmed !== true || !this.config.paidEnabled || (stored?.plan.options.transport === 'direct' ? !this.config.geminiApiKey : !this.config.gateway))) throw new Error('有料再開には送信本文・概算の再確認とサーバー設定が必要です。');
-    if (stored?.plan.options.transport === 'gateway' && (!this.config.gateway || stored.plan.endpoint !== gatewayEndpoint(this.config.gateway) || stored.plan.routeIdentity !== gatewayRouteIdentity(this.config.gateway))) throw new Error('Gateway設定が変更されています。計画を再確認してください。');
+    const publicationRetry = jobResumeMode(current) === 'publication';
+    if (!publicationRetry && current.provider === 'gemini' && (paidConfirmed !== true || !this.config.paidEnabled || (stored?.plan.options.transport === 'direct' ? !this.config.geminiApiKey : !this.config.gateway))) throw new Error('有料再開には送信本文・概算の再確認とサーバー設定が必要です。');
+    if (!publicationRetry && stored?.plan.options.transport === 'gateway' && (!this.config.gateway || stored.plan.endpoint !== gatewayEndpoint(this.config.gateway) || stored.plan.routeIdentity !== gatewayRouteIdentity(this.config.gateway))) throw new Error('Gateway設定が変更されています。計画を再確認してください。');
     await this.disk.write(['owners', `${jobId}.json`], { pid: process.pid });
     const job = await this.updateJob(jobId, (job) => {
       if (['completed', 'running', 'cancel-requested', 'queued'].includes(job.status)) return;
-      const publicationRetry = job.status === 'failed' && job.chunks.every(chunk => chunk.status === 'completed');
-      if (!publicationRetry && !job.chunks.some((chunk) => ['pending', 'failed', 'audio-ready'].includes(chunk.status))) throw new Error('安全に再開できる未送信分がありません。結果不明の有料音声は自動再送しません。');
+      if (!jobResumeMode(job)) throw new Error('安全に再開できる未送信分がありません。結果不明の有料音声は自動再送しません。');
       for (const chunk of job.chunks) if (chunk.status === 'failed') chunk.status = 'pending';
       job.status = 'queued'; delete job.error;
     });
