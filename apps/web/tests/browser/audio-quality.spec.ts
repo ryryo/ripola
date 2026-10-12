@@ -47,7 +47,7 @@ test('保存音声QAを実local APIで保存・再検査し、元範囲と判定
     await page.getByRole('button', { name: '保存音声を検査する', exact: true }).click();
     const result = page.getByTestId('audio-inspection-result'); await expect(result).toContainText('要確認');
     await result.locator('summary').first().click(); await expect(result).toContainText('音声全体が無音'); await expect(result).toContainText('UTF-16 0–26');
-    await expect(result).toContainText('内容検査：判定不能'); await expect(result).toContainText('元音声hash');
+    await expect(result).toContainText('内容検査：未検査'); await expect(result).toContainText('元音声hash');
     const preview = result.locator('audio'); await preview.evaluate((audio: HTMLAudioElement) => { audio.loop = true; return audio.play(); });
     await expect.poll(() => preview.evaluate((audio: HTMLAudioElement) => audio.paused)).toBe(false);
     await page.locator('audio').first().evaluate((audio: HTMLAudioElement) => { audio.loop = true; });
@@ -55,9 +55,9 @@ test('保存音声QAを実local APIで保存・再検査し、元範囲と判定
     await expect.poll(() => preview.evaluate((audio: HTMLAudioElement) => audio.paused)).toBe(true);
     await page.getByRole('button', { name: '一時停止', exact: true }).click();
     await page.getByRole('button', { name: '保存音声を検査する', exact: true }).click(); await expect(panel.getByRole('status')).toContainText('cache再利用 1文');
-    await page.getByLabel('手元Reazonモデルで内容の認識候補も比較する').check();
-    await page.getByRole('button', { name: '再検査する（再合成なし）', exact: true }).click(); await expect(result).toContainText('手元ASRが未設定');
-    await page.reload(); await result.locator('summary').first().click(); await expect(result).toContainText('手元ASRが未設定');
+    await expect(page.getByLabel('手元Reazonモデルで内容の認識候補も比較する')).toHaveCount(0);
+    await page.getByRole('button', { name: '再検査する（再合成なし）', exact: true }).click(); await expect(result).toContainText('内容検査は実行していません');
+    await page.reload(); await result.locator('summary').first().click(); await expect(result).toContainText('内容検査は実行していません');
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     const saved = await new AudioInspectionService(disk).read(book.id, book.revision); expect(saved?.chunks[0].audioHash).toBe(digest(bytes));
     expect(await disk.readBytes(bookPath)).toEqual(before); expect(await disk.readBytes(['audio', `${key}.wav`])).toEqual(bytes); expect(await disk.list('jobs')).toEqual([]); expect(await disk.list('receipts')).toEqual([]); expect(errors).toEqual([]);
