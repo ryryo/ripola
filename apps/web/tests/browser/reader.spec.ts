@@ -71,15 +71,17 @@ test('再生連打・速度変更・戻る・設定・背景停止は単位を�
   await page.getByRole('button', { name: '閉じる', exact: true }).click();
   await expect(page.getByRole('button', { name: '再生', exact: true })).toBeVisible();
 });
-test('最後の1フレーズは時間を確保してから読了し、再読は停止状態', async ({ page }) => {
+test('最後の1フレーズは時間を確保してから読了し、再読も1クリックで開始', async ({ page }) => {
   await page.goto('/'); await read(page, '一。');
   await page.getByLabel('読む速さ（字/分）').fill('3000');
   await page.getByRole('button', { name: '再生', exact: true }).click();
   await expect(page.getByRole('button', { name: '一時停止', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'もう一度', exact: true })).toBeVisible();
   await expect(page.getByTestId('character-progress')).toHaveText('1 / 1 字');
+  await page.getByLabel('読む速さ（字/分）', { exact: true }).fill('100');
   await page.getByRole('button', { name: 'もう一度', exact: true }).click();
-  await expect(page.getByRole('button', { name: '再生', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: '一時停止', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: '一時停止', exact: true }).click();
   await expect(page.getByTestId('character-progress')).toHaveText('0 / 1 字');
 });
 test('端末に明示保存、再開と削除', async ({ page }) => {
@@ -91,7 +93,7 @@ test('端末に明示保存、再開と削除', async ({ page }) => {
   await page.reload(); await page.getByRole('button', { name: '続きから開く', exact: true }).click();
   await expect(page.getByTestId('current-phrase')).toHaveText(position);
   await expect(page.getByRole('button', { name: '再生', exact: true })).toBeVisible();
-  await page.getByRole('button', { name: '表示設定', exact: true }).click();
+  await page.getByRole('button', { name: '本の操作', exact: true }).click();
   await page.getByRole('button', { name: '保存を削除', exact: true }).click();
   await page.reload(); await expect(page.getByRole('button', { name: '続きから開く', exact: true })).toHaveCount(0);
 });

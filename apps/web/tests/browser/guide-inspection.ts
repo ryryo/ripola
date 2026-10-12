@@ -2,9 +2,9 @@ import type { Page } from '@playwright/test';
 
 /** Measure glyph ranges, including ruby, rather than only the body line box. */
 export async function inspectGuides(page: Page, selector: string, duration = 0) {
-  return page.evaluate(({ selector, duration }) => new Promise<{ samples: number; overlap: boolean; minimumGap: number; guides: number; ruby: number }>(resolve => {
+  return page.evaluate(({ selector, duration }) => new Promise<{ samples: number; overlap: boolean; clipped: boolean; minimumGap: number; guides: number; ruby: number }>(resolve => {
     const started = performance.now();
-    let samples = 0; let overlap = false; let minimumGap = Infinity; let guides = 0; let ruby = 0;
+    let samples = 0; let overlap = false; let clipped = false; let minimumGap = Infinity; let guides = 0; let ruby = 0;
     const sample = () => {
       const stage = document.querySelector(selector)!;
       const body = stage.querySelector('[data-testid="current-phrase"], [data-testid="audio-sentence"]')!;
@@ -16,17 +16,22 @@ export async function inspectGuides(page: Page, selector: string, duration = 0) 
         rects.push(...range.getClientRects());
       }
       const markers = [...stage.querySelectorAll<HTMLElement>('.guide')].filter(node => Number(getComputedStyle(node).opacity) > 0);
+      const bounds = stage.getBoundingClientRect();
+      const vertical = getComputedStyle(body).writingMode === 'vertical-rl';
       guides = markers.length; ruby = body.querySelectorAll('rt').length;
       for (const marker of markers) {
         const guide = marker.getBoundingClientRect();
+        if (guide.left < bounds.left || guide.right > bounds.right || guide.top < bounds.top || guide.bottom > bounds.bottom) clipped = true;
         for (const text of rects) {
           if (guide.left < text.right && guide.right > text.left && guide.top < text.bottom && guide.bottom > text.top) overlap = true;
-          minimumGap = Math.min(minimumGap, marker.classList.contains('guide-top') ? text.top - guide.bottom : guide.top - text.bottom);
+          minimumGap = Math.min(minimumGap, vertical
+            ? marker.classList.contains('guide-top') ? guide.left - text.right : text.left - guide.right
+            : marker.classList.contains('guide-top') ? text.top - guide.bottom : guide.top - text.bottom);
         }
       }
       samples++;
       if (performance.now() - started < duration) requestAnimationFrame(sample);
-      else resolve({ samples, overlap, minimumGap, guides, ruby });
+      else resolve({ samples, overlap, clipped, minimumGap, guides, ruby });
     };
     sample();
   }), { selector, duration });
