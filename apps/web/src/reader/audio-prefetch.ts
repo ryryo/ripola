@@ -37,6 +37,8 @@ export class AudioPrefetch {
   update(chunks: PlayableAudioChunk[], current: number, localSeconds: number, rate: number, enabled: boolean): void {
     if (this.disposed) return;
     this.activeKey = chunks[current] ? audioAssetKey(chunks[current]) : '';
+    const active = this.entries.get(this.activeKey);
+    if (active && !active.url) this.release(this.activeKey, active);
     const wanted = new Map<string, PlayableAudioChunk>();
     if (enabled && chunks[current]) {
       const speed = Number.isFinite(rate) && rate > 0 ? rate : 1;

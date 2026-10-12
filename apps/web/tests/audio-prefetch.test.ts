@@ -60,6 +60,65 @@ test('unknown content length cannot exceed byte budget; failure falls back to or
   h.owner.dispose();
 });
 
+for (const enabled of [true, false]) test(`unfinished successor transfers to native media when active (${enabled ? 'playing' : 'paused'})`, async t => {
+  const h = harness({ saveData: true }); const source = chunks(2);
+  t.after(async () => { h.owner.dispose(); for (let i = 0; i < h.requests.length; i++) await h.complete(i); });
+  h.owner.update(source, 0, 0, 1, true);
+  assert.equal(h.requests[0].url, '/c1.mp3');
+  assert.equal(h.owner.source(source[1]), '/c1.mp3');
+
+  h.owner.update(source.slice(1), 0, .25, 1, enabled);
+  assert.equal(h.requests[0].signal.aborted, true);
+  h.owner.update(source.slice(1), 0, .5, 1, false);
+  assert.equal(h.requests.length, 1);
+
+  h.owner.update(source, 0, 0, 1, true); // A later seek can prefetch this asset again.
+  await h.complete(0); // Even after re-seek, a fetch that ignores abort must not publish a URL.
+  assert.equal(h.owner.source(source[1]), '/c1.mp3');
+  assert.deepEqual(h.revoked, []);
+  assert.equal(h.requests.length, 2);
+  await h.complete(1);
+  assert.equal(h.owner.source(source[1]), 'blob:1');
+});
+
+test('partially received successor is aborted on activation and rejects its delayed body', async t => {
+  const h = harness({ saveData: true }); const source = chunks(2);
+  let body!: ReadableStreamDefaultController<Uint8Array>;
+  const stream = new ReadableStream<Uint8Array>({ start(controller) { body = controller; controller.enqueue(new Uint8Array(128)); } });
+  t.after(() => { h.owner.dispose(); body.error(new Error('Test cleanup')); });
+  h.owner.update(source, 0, 0, 1, true);
+  h.requests[0].resolve(new Response(stream));
+  await delay(0);
+  h.owner.update(source.slice(1), 0, .25, 1, false);
+  assert.equal(h.requests[0].signal.aborted, true);
+  body.enqueue(new Uint8Array(128));
+  await delay(0);
+  assert.equal(h.owner.source(source[1]), '/c1.mp3');
+  assert.deepEqual(h.revoked, []);
+});
+
+test('completed active blob survives pause and same-asset seek until leaving or closing', async t => {
+  const h = harness({ saveData: true }); const source = chunks(2);
+  t.after(async () => { h.owner.dispose(); for (let i = 0; i < h.requests.length; i++) await h.complete(i); });
+  h.owner.update(source, 0, 0, 1, true);
+  await h.complete(0);
+  const url = h.owner.source(source[1]); assert.equal(url, 'blob:1');
+  h.owner.update(source.slice(1), 0, 0, 1, true);
+  h.owner.update(source.slice(1), 0, .5, 1, false);
+  h.owner.update(source.slice(1), 0, .25, 1.5, false);
+  assert.equal(h.owner.source(source[1]), url);
+  assert.deepEqual(h.revoked, []);
+  h.owner.update(source, 0, 0, 1, false);
+  assert.deepEqual(h.revoked, [url]);
+  h.owner.update(source, 0, 0, 1, true);
+  await h.complete(1);
+  h.owner.update(source.slice(1), 0, 0, 1, false);
+  assert.equal(h.owner.source(source[1]), 'blob:2');
+  h.owner.dispose();
+  assert.deepEqual(h.revoked, ['blob:1', 'blob:2']);
+  assert.equal(h.owner.source(source[1]), '/c1.mp3');
+});
+
 test('observed transfer/processing time expands the seconds window within count and memory bounds', async () => {
   let clock = 0; const requests: string[] = [];
   const owner = new AudioPrefetch({}, { now: () => clock, createURL: () => 'blob:latency', revokeURL: () => undefined,

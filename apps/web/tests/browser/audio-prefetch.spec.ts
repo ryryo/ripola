@@ -17,6 +17,8 @@ function tone(seconds = 2, frequency = 440) {
 async function fixture(page: Page, slow = false) {
   let releaseSlow!: () => void;
   const slowGate = new Promise<void>(resolve => { releaseSlow = resolve; });
+  let finishSlow!: () => void;
+  const slowFinished = new Promise<void>(resolve => { finishSlow = resolve; });
   const readingDocument = await prepareDocument(importText('朝の窓を開きます。次の頁を読みます。最後に本を閉じます。', 'txt', '先読みの自作fixture'));
   const id = 'prefetch-fixture'; const revision = 'prefetch-v1';
   const media = [0, 1, 2].map(index => browserMp3(tone(2, 220 + index * 50)));
@@ -34,18 +36,20 @@ async function fixture(page: Page, slow = false) {
   await page.route('**/media/*.mp3', async route => {
     const hash = new URL(route.request().url()).pathname.split('/').at(-1)!.split('.')[0];
     const index = media.findIndex(audio => audio.sha256 === hash); requested.push(index);
-    if (slow && index === 1) await slowGate;
+    const delayed = slow && index === 1 && route.request().resourceType() === 'fetch';
+    if (delayed) await slowGate;
     await route.fulfill({ body: media[index].bytes, contentType: 'audio/mpeg' }).catch(() => undefined);
+    if (delayed) finishSlow();
   });
   await page.addInitScript(() => {
-    const target = window as typeof window & { prefetchEvidence: { aborted: number; urls: string[]; revoked: string[]; requestedAt: Array<{ active: string; seconds: number }>; clocks: Array<{ absolute: number; local: number }> } };
-    target.prefetchEvidence = { aborted: 0, urls: [], revoked: [], requestedAt: [], clocks: [] };
+    const target = window as typeof window & { prefetchEvidence: { aborted: number; abortedSources: string[]; urls: string[]; revoked: string[]; requestedAt: Array<{ active: string; seconds: number }>; clocks: Array<{ absolute: number; local: number }> } };
+    target.prefetchEvidence = { aborted: 0, abortedSources: [], urls: [], revoked: [], requestedAt: [], clocks: [] };
     const fetchOriginal = window.fetch.bind(window);
     window.fetch = (input, options) => {
       if (String(input).includes('/media/') && options?.signal) {
         const media = document.querySelector('audio');
         target.prefetchEvidence.requestedAt.push({ active: media?.src ?? '', seconds: media?.currentTime ?? 0 });
-        options.signal.addEventListener('abort', () => target.prefetchEvidence.aborted++);
+        options.signal.addEventListener('abort', () => { target.prefetchEvidence.aborted++; target.prefetchEvidence.abortedSources.push(String(input)); });
       }
       return fetchOriginal(input, options);
     };
@@ -59,7 +63,7 @@ async function fixture(page: Page, slow = false) {
   });
   await page.goto(`/books?book=${id}&revision=${revision}`);
   await expect(page.getByTestId('audio-phrase')).toBeVisible();
-  return { requested, releaseSlow };
+  return { requested, releaseSlow, slowFinished, successorHash: media[1].sha256 };
 }
 
 test('次音声は切替前に取得し、source順とmedia時計を保って連続再生する', async ({ page }) => {
@@ -96,6 +100,57 @@ test('slow networkの先読みはseek・停止・book離脱で取消され、遅
   const evidence = await page.evaluate(() => (window as typeof window & { prefetchEvidence: { urls: string[]; revoked: string[] } }).prefetchEvidence);
   expect(evidence.urls.length).toBeGreaterThan(0);
   expect(evidence.urls.every(url => evidence.revoked.includes(url))).toBe(true);
+});
+
+test('未完了の先読みをactiveにするとnative音声へ引き渡し、pause・再seekでもsource時計を保つ', async ({ page }) => {
+  const { requested, releaseSlow, slowFinished, successorHash } = await fixture(page, true);
+  await page.getByRole('button', { name: '再生', exact: true }).click();
+  await expect.poll(() => requested.includes(1)).toBe(true);
+  const slider = page.getByRole('slider', { name: '音声の再生位置', exact: true });
+  await slider.fill('2.25');
+  await expect(page.locator('audio')).toHaveAttribute('src', new RegExp(`${successorHash}\\.mp3$`));
+  await expect.poll(() => page.evaluate(hash => (window as typeof window & { prefetchEvidence: { abortedSources: string[] } }).prefetchEvidence.abortedSources.some(url => url.includes(hash)), successorHash)).toBe(true);
+  await expect.poll(() => page.locator('audio').evaluate((media: HTMLAudioElement) => media.currentTime)).toBeGreaterThan(.3);
+  await page.getByRole('button', { name: '一時停止', exact: true }).click();
+  await slider.fill('2.65');
+  await expect.poll(() => page.locator('audio').evaluate((media: HTMLAudioElement) => media.currentTime)).toBeCloseTo(.65, 1);
+  const source = await page.locator('audio').getAttribute('src');
+  const urls = await page.evaluate(() => (window as typeof window & { prefetchEvidence: { urls: string[] } }).prefetchEvidence.urls);
+  releaseSlow(); await slowFinished;
+  await expect(page.locator('audio')).toHaveAttribute('src', source!);
+  const clock = await page.locator('audio').evaluate((media: HTMLAudioElement) => ({ paused: media.paused, local: media.currentTime,
+    absolute: Number((document.querySelector('#audio-position') as HTMLInputElement).value) }));
+  expect(clock.paused).toBe(true);
+  expect(clock.local).toBeCloseTo(.65, 1);
+  expect(clock.absolute).toBeCloseTo(2 + clock.local, 1);
+  expect(await page.evaluate(() => (window as typeof window & { prefetchEvidence: { urls: string[] } }).prefetchEvidence.urls)).toEqual(urls);
+  await page.getByRole('button', { name: '本棚へ戻る', exact: true }).click();
+  await expect(page.locator('audio')).toHaveCount(0);
+  const evidence = await page.evaluate(() => (window as typeof window & { prefetchEvidence: { urls: string[]; revoked: string[] } }).prefetchEvidence);
+  expect(evidence.urls.every(url => evidence.revoked.includes(url))).toBe(true);
+});
+
+test('完成したactive blobはpause・再seek中も保持し、book離脱時に解放する', async ({ page }) => {
+  await fixture(page);
+  await page.getByRole('button', { name: '再生', exact: true }).click();
+  await expect.poll(() => page.evaluate(() => (window as typeof window & { prefetchEvidence: { urls: string[] } }).prefetchEvidence.urls.length)).toBe(2);
+  await page.locator('audio').evaluate((media: HTMLAudioElement) => media.pause());
+  await expect(page.getByRole('button', { name: '再生', exact: true })).toBeVisible();
+  const slider = page.getByRole('slider', { name: '音声の再生位置', exact: true });
+  await slider.fill('2.25');
+  await expect(page.locator('audio')).toHaveAttribute('src', /^blob:/);
+  const source = await page.locator('audio').getAttribute('src');
+  await slider.fill('2.65');
+  await expect.poll(() => page.locator('audio').evaluate((media: HTMLAudioElement) => media.currentTime)).toBeCloseTo(.65, 1);
+  await expect(page.locator('audio')).toHaveAttribute('src', source!);
+  const clock = await page.locator('audio').evaluate((media: HTMLAudioElement) => ({ paused: media.paused, local: media.currentTime,
+    absolute: Number((document.querySelector('#audio-position') as HTMLInputElement).value) }));
+  expect(clock.paused).toBe(true);
+  expect(clock.absolute).toBeCloseTo(2 + clock.local, 1);
+  expect(await page.evaluate(() => (window as typeof window & { prefetchEvidence: { revoked: string[] } }).prefetchEvidence.revoked)).not.toContain(source);
+  await page.getByRole('button', { name: '本棚へ戻る', exact: true }).click();
+  await expect(page.locator('audio')).toHaveCount(0);
+  expect(await page.evaluate(() => (window as typeof window & { prefetchEvidence: { revoked: string[] } }).prefetchEvidence.revoked)).toContain(source);
 });
 
 test('旧AACの静的サンプルでmedia時計・倍速・明示seekを保つ', async ({ page }) => {

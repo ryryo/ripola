@@ -1781,5 +1781,41 @@
       "audio",
       "generation"
     ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "audio-prefetch.spec.ts",
+    "title": "未完了の先読みをactiveにするとnative音声へ引き渡し、pause・再seekでもsource時計を保つ",
+    "lane": "related",
+    "domains": [
+      "audio"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "audio-prefetch.spec.ts",
+    "title": "完成したactive blobはpause・再seek中も保持し、book離脱時に解放する",
+    "lane": "related",
+    "domains": [
+      "audio"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "audio-prefetch.spec.ts",
+    "title": "未完了の先読みをactiveにするとnative音声へ引き渡し、pause・再seekでもsource時計を保つ",
+    "lane": "related",
+    "domains": [
+      "audio"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "audio-prefetch.spec.ts",
+    "title": "完成したactive blobはpause・再seek中も保持し、book離脱時に解放する",
+    "lane": "related",
+    "domains": [
+      "audio"
+    ]
   }
 ]
