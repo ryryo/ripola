@@ -1,9 +1,16 @@
 import { expect, test } from '@playwright/test';
 
-function property(node: unknown, key: string): { s?: unknown } | undefined {
+function property(node: unknown, key: string): { t: number; s?: unknown } | undefined {
   if (!node || typeof node !== 'object' || !('p' in node)) return;
-  const props = (node as { p: { k: string[]; v: Array<{ s?: unknown }> } }).p;
+  const props = (node as { p: { k: string[]; v: Array<{ t: number; s?: unknown }> } }).p;
   return props.v[props.k.indexOf(key)];
+}
+function setProperty(node: unknown, key: string, value: string | number | boolean): void {
+  const field = property(node, key);
+  if (!field) return;
+  // Seroval constant nodes use 2 for true and 3 for false, rather than JS booleans.
+  if (typeof value === 'boolean') { expect(field.t).toBe(2); field.s = value ? 2 : 3; }
+  else field.s = value;
 }
 test.afterEach(async ({ page }) => { await page.unrouteAll({ behavior: 'wait' }); });
 
@@ -55,7 +62,7 @@ test('Irodori導入UIはmock進捗・取消し・検証・失敗再開を表示�
     const response = await route.fetch(); const body: unknown = await response.json(); const result = property(body, 'result');
     if (!property(result, 'downloadedBytes') || !property(result, 'totalBytes')) { await route.fulfill({ response }); return; }
     for (const [key, value] of Object.entries({ phase, runtime, downloadedBytes: bytes, message: phase === 'failed' ? '通信が中断しました。再開できます。' : 'mock導入状態の検査です。' })) {
-      const field = property(result, key); if (field) field.s = value;
+      setProperty(result, key, value);
     }
     template = JSON.stringify(body); await route.fulfill({ response, json: body });
   });
@@ -97,7 +104,7 @@ test('Irodoriの起動待ちを取り消し、古い起動エラーを表示せ�
     const response = await route.fetch(); const body: unknown = await response.json(); const result = property(body, 'result');
     if (property(result, 'downloadedBytes')) {
       for (const [key, value] of Object.entries({ phase: 'ready', runtime, downloadedBytes: 1_920_321_792, executableAvailable: true, voiceAvailable: true, message: 'mock起動取消しの検査' })) {
-        const field = property(result, key); if (field) field.s = value;
+        setProperty(result, key, value);
       }
       template = JSON.stringify(body);
     }
@@ -142,7 +149,7 @@ for (const oldReply of ['running', 'error'] as const) {
       if (!property(result, 'downloadedBytes')) { await route.fulfill({ response, json: body }); return; }
       const oldStatus = holdNextStatus; holdNextStatus = false;
       for (const [key, value] of Object.entries({ phase: 'ready', runtime: oldStatus ? 'running' : runtime, downloadedBytes: 1_920_321_792, executableAvailable: true, voiceAvailable: true, message: oldStatus ? '古い起動後の状態' : runtime === 'stopped' ? '停止を確認しました' : '起動待ちを確認しました' })) {
-        const field = property(result, key); if (field) field.s = value;
+        setProperty(result, key, value);
       }
       if (oldStatus) {
         oldStatusUrl = route.request().url(); statusStarted();
@@ -151,7 +158,7 @@ for (const oldReply of ['running', 'error'] as const) {
       } else template = JSON.stringify(body);
       await route.fulfill({ response, json: body });
     });
-    await page.goto('/generate'); await page.getByRole('combobox', { name: '生成手段', exact: true }).click();
+    await page.goto('/generate', { waitUntil: 'domcontentloaded' }); await page.getByRole('combobox', { name: '生成手段', exact: true }).click();
     await page.getByRole('option', { name: '任意追加 · Irodori（このPC）', exact: true }).click();
     const panel = page.getByRole('region', { name: 'Irodoriの任意追加', exact: true });
     const start = panel.getByRole('button', { name: 'このPCで起動', exact: true });
@@ -180,21 +187,23 @@ for (const oldReply of ['running', 'error'] as const) {
 test('Irodoriの遅い状態取得はpollを重ねず完了した状態を表示する', async ({ page }) => {
   const clockStart = new Date();
   await page.clock.install({ time: clockStart });
-  let statusRequests = 0;
+  let statusRequests = 0, statusUrl = '';
   let releaseStatus: () => void = () => undefined, statusStarted: () => void = () => undefined;
   const statusReply = new Promise<void>(resolve => { releaseStatus = resolve; });
   const pendingStatus = new Promise<void>(resolve => { statusStarted = resolve; });
   await page.route('**/_serverFn/**', async route => {
     if (route.request().method() === 'POST') { await route.abort('blockedbyclient'); throw new Error('Unexpected mutation while polling Irodori status'); }
+    const dispatchedStatus = route.request().url() === statusUrl;
+    if (dispatchedStatus) statusRequests++;
     const response = await route.fetch(); const body: unknown = await response.json(); const result = property(body, 'result');
     if (property(result, 'downloadedBytes')) {
-      statusRequests++;
+      if (!dispatchedStatus) { statusUrl = route.request().url(); statusRequests++; }
       const field = property(result, 'message'); if (field) field.s = '遅い状態取得が完了しました';
       statusStarted(); await statusReply;
     }
     await route.fulfill({ response, json: body });
   });
-  await page.goto('/generate'); await page.getByRole('combobox', { name: '生成手段', exact: true }).click();
+  await page.goto('/generate', { waitUntil: 'domcontentloaded' }); await page.getByRole('combobox', { name: '生成手段', exact: true }).click();
   await page.getByRole('option', { name: '任意追加 · Irodori（このPC）', exact: true }).click();
   const panel = page.getByRole('region', { name: 'Irodoriの任意追加', exact: true });
   await pendingStatus; await page.clock.pauseAt(new Date(clockStart.getTime() + 60_000));
