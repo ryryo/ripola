@@ -55,6 +55,7 @@ export function GenerationApp({ home }: { home?: HomeGenerationProps }) {
   const [title, setTitle] = useState('');
   const [format, setFormat] = useState<InputFormat>('auto');
   const [provider, setProvider] = useState<'voicevox' | 'gemini'>('voicevox');
+  const [automaticChunking, setAutomaticChunking] = useState(false);
   const [voice, setVoice] = useState('');
   const [model, setModel] = useState<typeof GEMINI_MODELS[number]>(GEMINI_MODELS[0]);
   const [transport, setTransport] = useState<GenerationOptions['transport']>('direct');
@@ -172,7 +173,7 @@ export function GenerationApp({ home }: { home?: HomeGenerationProps }) {
       const prepared = source ? { ...source, title: resolveDocumentTitle(source.title) } : undefined;
       if (!home && prepared) setDocument(prepared);
       if (!prepared || id !== request.current) return;
-      const options: GenerationOptions = { provider, voice, transport, readings: parseReadings(readings), chunking: { mode: 'auto' }, ...(provider === 'gemini' ? { model, style: transport === 'direct' ? style : '' } : {}), ...(selected ? { selectedChunkIds: selected } : {}) };
+      const options: GenerationOptions = { provider, voice, transport, readings: parseReadings(readings), chunking: { mode: automaticChunking ? 'auto' : 'sentence' }, ...(provider === 'gemini' ? { model, style: transport === 'direct' ? style : '' } : {}), ...(selected ? { selectedChunkIds: selected } : {}) };
       const result = await prepareGeneration({ data: { document: prepared, options } });
       if (!mounted.current || id !== request.current) return;
       setPlan(result); if (!selected) setPreview(result);
@@ -267,6 +268,10 @@ export function GenerationApp({ home }: { home?: HomeGenerationProps }) {
           <p className="muted">{configState === 'error' ? '接続を再確認してください。' : config?.alignment?.automatic?.message ?? 'リポジトリのフォルダーで pnpm setup:audio を実行し、完了後 pnpm dev を起動してください。'}</p>
           {config?.alignment?.automatic?.status !== 'ready' && <p className="muted">セットアップはモデル約387 MBと専用Python環境を準備します。未準備の場合も音声は保存できますが、音声に基づく時刻の補正は使えません。</p>}
         </div>
+        <details className="home-advanced-row"><summary>音声の区切りを調整する（任意）</summary>
+          <Checkbox label="音声の区切りを自動調整する（実験）" checked={automaticChunking} disabled={Boolean(busy)} onChange={event => { setAutomaticChunking(event.currentTarget.checked); invalidate(true); }} />
+          <p className="muted">通常は文ごとに生成します。自動調整は短い文をまとめ、長い文を分けます。実際の音声合成での速度・聞きやすさの改善は未検証です。</p>
+        </details>
         {provider === 'gemini' && <Select label="Geminiモデル" value={model} onChange={value => { if (value === GEMINI_MODELS[0] || value === GEMINI_MODELS[1]) { setModel(value); invalidate(true); } }} data={[{ value: GEMINI_MODELS[0], label: 'Flash-Lite · 既定' }, { value: GEMINI_MODELS[1], label: 'Flash' }]} allowDeselect={false} disabled={Boolean(busy)} />}
 
         <Select label="声・スタイル" value={voice || null} data={(voices ?? []).map(value => ({ value: value.id, label: value.name }))} searchable allowDeselect={false} disabled={Boolean(busy) || configState !== 'ready' || !selectedProviderAvailable || !voices?.length} onChange={value => { if (value) { setVoice(value); invalidate(true); } }} placeholder="接続できる声を選択" />
