@@ -190,8 +190,8 @@ export class GenerationService {
     const optional = this.adapters.irodori;
     let optionalVoices: GenerationConfig['voicevox']['voices'] = [];
     let optionalStatus = optional?.availability?.() ?? { available: Boolean(optional) };
-    if (optionalStatus.available) {
-      try { optionalVoices = await optional!.voices(); } catch { optionalStatus = { available: false, message: 'Irodoriの利用状態を確認できません。' }; }
+    if (optional) {
+      try { optionalVoices = await optional.voices(); } catch { optionalStatus = { available: false, message: 'Irodoriの利用状態を確認できません。' }; }
     }
     return {
       providers: [
