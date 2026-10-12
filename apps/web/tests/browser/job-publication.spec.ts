@@ -118,7 +118,7 @@ createServer(async (incoming, outgoing) => {
 `;
 
 async function selectJob(page: Page, title: string): Promise<void> {
-  await page.getByLabel('ジョブを選択', { exact: true }).click();
+  await page.getByRole('combobox', { name: 'ジョブを選択', exact: true }).click();
   await page.getByRole('option', { name: new RegExp(`^${title} ·`) }).click();
 }
 
