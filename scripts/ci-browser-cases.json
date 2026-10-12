@@ -1847,8 +1847,7 @@
     "domains": [
       "audio",
       "layout"
-    ],
-    "quick": true
+    ]
   },
   {
     "project": "desktop-chromium",
