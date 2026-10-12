@@ -216,8 +216,8 @@ for (const unknownLast of [false, true]) {
       await expect(page.locator('audio').first()).toHaveAttribute('src', /\/api\/local-audio\//);
       expect(externalBrowserRequests).toEqual([]); expect(errors).toEqual([]);
       const blocked: Array<{ method: string; url: string }> = (await readFile(outboundLog, 'utf8')).trim().split('\n').filter(Boolean).map(line => JSON.parse(line));
-      // Config may probe local VOICEVOX availability; even that GET was blocked.
-      expect(blocked.filter(request => request.method !== 'GET' || request.url !== 'http://127.0.0.1:50021/speakers')).toEqual([]);
+      // Config and reader probe local VOICEVOX availability/version; even those GETs were blocked.
+      expect(blocked.filter(request => request.method !== 'GET' || !['http://127.0.0.1:50021/speakers', 'http://127.0.0.1:50021/version'].includes(request.url))).toEqual([]);
     } finally {
       if (child) await stopServer(child);
       await testInfo.attach('publication built server', { body: Buffer.from(serverLog), contentType: 'text/plain' });
