@@ -42,16 +42,16 @@ async function fixture(page: Page, slow = false) {
     if (delayed) finishSlow();
   });
   await page.addInitScript(() => {
-    const target = window as typeof window & { prefetchEvidence: { aborted: number; abortedSources: string[]; urls: string[]; revoked: string[]; requestedAt: Array<{ active: string; seconds: number }>; clocks: Array<{ absolute: number; local: number }> } };
+    const target = window as typeof window & { prefetchEvidence: { aborted: number; abortedSources: string[]; urls: string[]; revoked: string[]; requestedAt: Array<{ active: string; seconds: number; receiverIsWindow: boolean }>; clocks: Array<{ absolute: number; local: number }> } };
     target.prefetchEvidence = { aborted: 0, abortedSources: [], urls: [], revoked: [], requestedAt: [], clocks: [] };
-    const fetchOriginal = window.fetch.bind(window);
-    window.fetch = (input, options) => {
+    const fetchOriginal = window.fetch;
+    window.fetch = function (this: typeof window, input, options) {
       if (String(input).includes('/media/') && options?.signal) {
         const media = document.querySelector('audio');
-        target.prefetchEvidence.requestedAt.push({ active: media?.src ?? '', seconds: media?.currentTime ?? 0 });
+        target.prefetchEvidence.requestedAt.push({ active: media?.src ?? '', seconds: media?.currentTime ?? 0, receiverIsWindow: this === window });
         options.signal.addEventListener('abort', () => { target.prefetchEvidence.aborted++; target.prefetchEvidence.abortedSources.push(String(input)); });
       }
-      return fetchOriginal(input, options);
+      return fetchOriginal.call(this, input, options);
     };
     const create = URL.createObjectURL.bind(URL); const revoke = URL.revokeObjectURL.bind(URL);
     URL.createObjectURL = blob => { const url = create(blob); target.prefetchEvidence.urls.push(url); return url; };
@@ -74,7 +74,9 @@ test('次音声は切替前に取得し、source順とmedia時計を保って連
   expect(requests.filter(index => index === 1)).toHaveLength(1);
   await expect(page.getByRole('button', { name: 'もう一度', exact: true })).toBeVisible();
   await expect(page.getByTestId('audio-phrase')).toContainText('閉じます');
-  const evidence = await page.evaluate(() => (window as typeof window & { prefetchEvidence: { requestedAt: Array<{ active: string; seconds: number }>; clocks: Array<{ absolute: number; local: number }> } }).prefetchEvidence);
+  const evidence = await page.evaluate(() => (window as typeof window & { prefetchEvidence: { requestedAt: Array<{ active: string; seconds: number; receiverIsWindow: boolean }>; clocks: Array<{ absolute: number; local: number }> } }).prefetchEvidence);
+  expect(evidence.requestedAt.length).toBeGreaterThan(0);
+  expect(evidence.requestedAt.every(request => request.receiverIsWindow)).toBe(true);
   expect(evidence.requestedAt[0].active).not.toMatch(/^blob:/);
   expect(evidence.requestedAt[0].seconds).toBeLessThan(2);
   const offsets = evidence.clocks.map(clock => Math.max(0, Math.round((clock.absolute - clock.local) / 2) * 2));

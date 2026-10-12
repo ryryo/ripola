@@ -14,6 +14,25 @@ function harness(environment = {}) {
   return { owner, requests, revoked, complete };
 }
 
+test('default fetch uses the global receiver and publishes a playable prefetch URL', async t => {
+  const calls: Array<{ globalReceiver: boolean; url: string; credentials?: RequestCredentials }> = [];
+  t.mock.method(globalThis, 'fetch', async function (this: unknown, input: RequestInfo | URL, options?: RequestInit) {
+    const globalReceiver = this === globalThis;
+    calls.push({ globalReceiver, url: String(input), credentials: options?.credentials });
+    if (!globalReceiver) throw new TypeError('Illegal invocation');
+    return new Response(new Uint8Array(10));
+  });
+  const revoked: string[] = [];
+  const owner = new AudioPrefetch({ saveData: true }, { createURL: () => 'blob:default-fetch', revokeURL: url => revoked.push(url), now: () => 0 });
+  t.after(() => owner.dispose());
+  const source = chunks(2); owner.update(source, 0, 0, 1, true);
+  await delay(0);
+  assert.deepEqual(calls, [{ globalReceiver: true, url: '/c1.mp3', credentials: 'same-origin' }]);
+  assert.equal(owner.source(source[1]), 'blob:default-fetch');
+  owner.dispose();
+  assert.deepEqual(revoked, ['blob:default-fetch']);
+});
+
 test('prefetch starts successors before switching, bounds concurrency and source order', async () => {
   const { owner, requests, complete } = harness(); const source = chunks(20);
   owner.update(source, 0, 0, 1, true);
