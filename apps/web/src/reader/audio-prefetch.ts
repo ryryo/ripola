@@ -9,6 +9,12 @@ export function browserPrefetchEnvironment(): PrefetchEnvironment {
 export function audioAssetKey(chunk: PlayableAudioChunk): string {
   return JSON.stringify([chunk.id, chunk.audioUrl, chunk.durationSeconds, chunk.mimeType]);
 }
+export function audioBufferReadyForAhead(media: { duration: number; buffered: Pick<TimeRanges, 'length' | 'start' | 'end'> }, durationSeconds: number): boolean {
+  const duration = media.duration, buffered = media.buffered;
+  if (!Number.isFinite(duration) || duration <= 0 || !Number.isFinite(durationSeconds) || durationSeconds <= 0 || buffered.length !== 1) return false;
+  const start = buffered.start(0), end = buffered.end(0);
+  return Number.isFinite(start) && start <= .05 && Number.isFinite(end) && end >= Math.max(duration, durationSeconds) - .05;
+}
 type Entry = { chunk: PlayableAudioChunk; abort: AbortController; bytes: number; url?: string; started: boolean };
 type Dependencies = { fetch: typeof fetch; createURL: (blob: Blob) => string; revokeURL: (url: string) => void; now: () => number };
 
@@ -34,7 +40,7 @@ export class AudioPrefetch {
   source(chunk: PlayableAudioChunk): string { return this.entries.get(audioAssetKey(chunk))?.url ?? chunk.audioUrl; }
 
   /** Reconcile on playback, seek, pause and revision. Never reorder source chunks. */
-  update(chunks: PlayableAudioChunk[], current: number, localSeconds: number, rate: number, enabled: boolean): void {
+  update(chunks: PlayableAudioChunk[], current: number, localSeconds: number, rate: number, enabled: boolean, readyForAhead = true): void {
     if (this.disposed) return;
     this.activeKey = chunks[current] ? audioAssetKey(chunks[current]) : '';
     const active = this.entries.get(this.activeKey);
@@ -56,8 +62,8 @@ export class AudioPrefetch {
         bytes += estimate; wanted.set(key, chunk); seconds += chunk.durationSeconds / speed;
       }
     }
-    for (const [key, entry] of this.entries) if (key !== this.activeKey && !wanted.has(key)) this.release(key, entry);
-    for (const [key, chunk] of wanted) if (!this.entries.has(key)) this.entries.set(key, { chunk, abort: new AbortController(), bytes: 0, started: false });
+    for (const [key, entry] of this.entries) if (key !== this.activeKey && (!wanted.has(key) || !readyForAhead && !entry.url)) this.release(key, entry);
+    if (readyForAhead) for (const [key, chunk] of wanted) if (!this.entries.has(key)) this.entries.set(key, { chunk, abort: new AbortController(), bytes: 0, started: false });
     this.pump();
   }
 
