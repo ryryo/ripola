@@ -6,7 +6,7 @@ import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
 import { resolve } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
-import type { AudioBookManifest, GenerationJob, JobStatus } from '../../src/generation/contracts';
+import type { AudioBookManifest, GenerationJob, JobStatus, SavedAlignment } from '../../src/generation/contracts';
 import { LibraryDisk } from '../../src/generation/core/disk';
 import { audioSegments } from '../../src/reader/audio-clock';
 import { playbackAnchor, restoreAnchor } from '../../src/reader/audio-progressive';
@@ -145,9 +145,25 @@ test('追加保存と同sequence整列はnative位置を保ち、MP3差替えは
   expect(await page.locator('audio').evaluate((media: HTMLAudioElement) => media.currentTime)).toBeCloseTo(3, 1);
   const chunk = full.chunks[2];
   const cache = await disk.read<{ hash: string }>(['cache', `${chunk.speechKey}.json`]);
-  await publish([0, 1, 2], 'running', 3, { chunks: full.chunks.map(value => value.id === chunk.id ? { ...value, alignment: { schemaVersion: 1, key: hash('fixture-alignment'), audioHash: cache!.hash, normalizeVersion: 'ctc-ja-nfkc-v1', alignerVersion: 'fixture-only', precision: 'sentence', method: 'sentence-fallback', status: 'fallback', cues: [], units: [], warnings: ['runtime-size-limit'] } } : value) });
-  await expect(page.getByText('整列できる音声の長さの上限を超えています。対応しない部分は表示用の推定時刻を使います。', { exact: true })).toBeAttached();
+  const source = await page.locator('audio').evaluate((media: HTMLAudioElement) => media.currentSrc);
+  const sourceUnit = await page.getByTestId('audio-phrase').getAttribute('data-unit-id');
+  expect(sourceUnit).toBeTruthy();
+  const aligned: SavedAlignment = {
+    schemaVersion: 1, key: hash('fixture-alignment'), audioHash: cache!.hash, normalizeVersion: 'ctc-ja-nfkc-v1', alignerVersion: 'fixture-only', precision: 'phrase', method: 'forced-alignment', status: 'aligned', score: .95,
+    // Valid UI contract cues, without claiming acoustic accuracy for the synthetic tone.
+    cues: audioSegments(full)[2].displayCues.map(cue => ({ unitId: cue.unitId, unitIds: cue.unitIds, blockId: cue.blockId, start: cue.start, end: cue.end, startSeconds: cue.startSeconds, endSeconds: cue.endSeconds, score: .95 })), units: [], warnings: [],
+  };
+  await expect(page.getByTestId('audio-sentence')).toHaveAttribute('data-method', 'estimated');
+  await publish([0, 1, 2], 'running', 3, { chunks: full.chunks.map(value => value.id === chunk.id ? { ...value, alignment: aligned } : value) });
+  await expect(page.getByTestId('audio-sentence')).toHaveAttribute('data-method', 'forced-alignment');
   await expect(page.locator('audio')).toHaveAttribute('data-original', 'retained');
+  expect(await page.locator('audio').evaluate((media: HTMLAudioElement) => ({ source: media.currentSrc, seconds: media.currentTime, paused: media.paused }))).toEqual({ source, seconds: expect.closeTo(3, 1), paused: true });
+  await expect(page.getByTestId('audio-phrase')).toHaveAttribute('data-unit-id', sourceUnit!);
+  await publish([0, 1, 2], 'running', 3, { chunks: full.chunks.map(value => value.id === chunk.id ? { ...value, alignment: { schemaVersion: 1, key: hash('fixture-alignment'), audioHash: cache!.hash, normalizeVersion: 'ctc-ja-nfkc-v1', alignerVersion: 'fixture-only', precision: 'sentence', method: 'sentence-fallback', status: 'fallback', cues: [], units: [], warnings: ['runtime-size-limit'] } } : value) });
+  await expect(page.getByTestId('audio-sentence')).toHaveAttribute('data-method', 'estimated');
+  await expect(page.locator('audio')).toHaveAttribute('data-original', 'retained');
+  expect(await page.locator('audio').evaluate((media: HTMLAudioElement) => ({ source: media.currentSrc, seconds: media.currentTime, paused: media.paused }))).toEqual({ source, seconds: expect.closeTo(3, 1), paused: true });
+  await expect(page.getByTestId('audio-phrase')).toHaveAttribute('data-unit-id', sourceUnit!);
   const mp3 = browserMp3(tone(12, 320));
   await serveMp3(page, 'fixture-replacement.mp3', mp3.bytes);
   const before = playbackAnchor(audioSegments(full)[2], 3);
