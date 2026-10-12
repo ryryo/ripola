@@ -1634,8 +1634,7 @@
     "domains": [
       "audio",
       "generation"
-    ],
-    "quick": true
+    ]
   },
   {
     "project": "mobile-chromium",
