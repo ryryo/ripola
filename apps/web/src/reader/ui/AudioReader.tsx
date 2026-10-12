@@ -23,6 +23,7 @@ import { FullscreenEnterButton, FullscreenReader, ReaderPlayButton, useFullscree
 import { useScreenWakeLock } from './useScreenWakeLock';
 import { ReadingModeControls } from './ReadingModeControls';
 import { useReaderPreferences } from './useReaderPreferences';
+import { AudioPrefetch, audioAssetKey, audioBufferReadyForAhead, browserPrefetchEnvironment } from '../audio-prefetch';
 import { ReaderAudioNavigation, ReaderDisplaySettings, ReaderDisplayToolbar, ReaderTransport } from './ReaderWorkspace';
 
 export function AudioReader({ book, onClose, attribution, localTools, demo = false, onRename }: { book: PlayableAudioBook; onClose: () => void; attribution?: string; localTools?: ReactNode; demo?: boolean; onRename?: (title: string) => Promise<void> }) {
@@ -32,6 +33,7 @@ export function AudioReader({ book, onClose, attribution, localTools, demo = fal
   }, [book]);
   const segments = useMemo(() => validation.valid ? audioSegments(book) : [], [book, validation.valid]);
   const phraseTargets = useMemo(() => audioPhraseTargets(segments), [segments]);
+  const audioChunks = useMemo(() => segments.map(value => value.chunk), [segments]);
   const mediaRevision = useMemo(() => segments.map(segment => `${segment.chunk.id}:${segment.chunk.audioUrl}:${segment.chunk.durationSeconds}`).join('|'), [segments]);
   const segmentsByBlock = useMemo(() => {
     const result = new Map<string, Array<{ segment: typeof segments[number]; index: number }>>();
@@ -63,8 +65,14 @@ export function AudioReader({ book, onClose, attribution, localTools, demo = fal
   const pendingSeek = useRef(0);
   const positionRef = useRef(0);
   const activeBook = useRef('');
+  const prefetch = useRef<AudioPrefetch | null>(null);
+  const prefetchBook = useRef('');
   const segment = segments[index];
   const storageKey = audioPositionKey(book);
+  const assetIdentity = segment ? `${storageKey}:${audioAssetKey(segment.chunk)}` : storageKey;
+  // Snapshot a ready URL only when changing files. Completing a speculative
+  // fetch must never replace or restart the audio that is currently playing.
+  const audioSource = useMemo(() => segment ? (prefetchBook.current === storageKey ? prefetch.current?.source(segment.chunk) : undefined) ?? segment.chunk.audioUrl : '', [assetIdentity]);
   const display = audioDisplayAt(segment, position - (segment?.startSeconds ?? 0));
   const reading = playing || intent.current;
   const playableUnits = useMemo(() => phraseTargets.flatMap(target => target.cue.units), [phraseTargets]);
@@ -100,6 +108,24 @@ export function AudioReader({ book, onClose, attribution, localTools, demo = fal
     return seconds;
   }, []);
 
+  const readyForAhead = useCallback((targetIndex: number) => {
+    const media = audio.current;
+    const clock = mediaClock.current;
+    const target = audioChunks[targetIndex];
+    if (activeBook.current !== storageKey || prefetchBook.current !== storageKey || targetIndex !== index) return false;
+    if (!media || !clock || clock.media !== media || !target || !segment || media.readyState < 1 || !media.currentSrc || !audioSource) return false;
+    const targetAsset = audioAssetKey(target);
+    if (targetAsset !== audioAssetKey(segment.chunk) || targetAsset !== audioAssetKey(clock.segment.chunk)) return false;
+    try { if (media.currentSrc !== new URL(audioSource, media.ownerDocument.baseURI).href) return false; }
+    catch { return false; }
+    return audioBufferReadyForAhead(media, target.durationSeconds);
+  }, [audioChunks, index, segment, storageKey, audioSource]);
+
+  const reconcilePrefetch = useCallback((media: HTMLAudioElement) => {
+    if (media !== audio.current || prefetchBook.current !== storageKey) return;
+    prefetch.current?.update(audioChunks, index, media.currentTime, Number(rate), intent.current, readyForAhead(index));
+  }, [audioChunks, index, rate, readyForAhead, storageKey]);
+
   const pause = useCallback(() => {
     playRequest.current++;
     intent.current = false;
@@ -107,7 +133,8 @@ export function AudioReader({ book, onClose, attribution, localTools, demo = fal
     setPlaying(false);
     setBuffering(false);
     persist(sample());
-  }, [persist, sample]);
+    prefetch.current?.update(audioChunks, index, 0, Number(rate), false, readyForAhead(index));
+  }, [persist, sample, segments, index, rate, readyForAhead]);
 
   const font = useReadingFont(book.document.blocks, options.fontFamily ?? 'system', pause);
   const fullscreen = useFullscreenReader(pause);
@@ -128,6 +155,7 @@ export function AudioReader({ book, onClose, attribution, localTools, demo = fal
     setPosition(nextPosition);
     persist(nextPosition);
     setError('');
+    prefetch.current?.update(audioChunks, target.index, target.localSeconds, Number(rate), continuePlaying, readyForAhead(target.index));
     if (target.index === index && audio.current && audio.current.readyState >= 1) {
       audio.current.currentTime = target.localSeconds;
       if (continuePlaying) void audio.current.play().catch(() => { if (attempt !== playRequest.current) return; intent.current = false; setPlaying(false); setError('再生を開始できませんでした。「再生」をもう一度押してください。'); });
@@ -137,7 +165,30 @@ export function AudioReader({ book, onClose, attribution, localTools, demo = fal
       setPlaying(false);
       setBuffering(continuePlaying);
     }
-  }, [index, persist, segments]);
+  }, [index, persist, segments, rate, readyForAhead]);
+
+  useLayoutEffect(() => {
+    const owner = new AudioPrefetch(browserPrefetchEnvironment());
+    prefetchBook.current = storageKey;
+    prefetch.current = owner;
+    return () => { owner.dispose(); if (prefetch.current === owner) prefetch.current = null; };
+  }, [storageKey]);
+
+  useEffect(() => {
+    prefetch.current?.update(audioChunks, index, pendingSeek.current, Number(rate), intent.current, readyForAhead(index));
+  }, [segments, index, rate, playing, storageKey, readyForAhead]);
+
+  useLayoutEffect(() => {
+    const media = audio.current;
+    // StrictMode repeats setup after cleanup while retaining the same DOM node.
+    if (media && audioSource && media.getAttribute('src') !== audioSource) {
+      media.src = audioSource; media.load();
+    }
+    return () => {
+      // Removing src and loading also cancels the native media/Range request.
+      media?.pause(); media?.removeAttribute('src'); media?.load();
+    };
+  }, [assetIdentity, audioSource]);
 
   const moveSentence = useCallback((direction: -1 | 1, seconds = sample()) => {
     const target = sentenceEntries[audioSentenceIndexAt(sentenceEntries, seconds) + direction];
@@ -153,6 +204,7 @@ export function AudioReader({ book, onClose, attribution, localTools, demo = fal
     }
     activeBook.current = storageKey;
     intent.current = false;
+    playRequest.current++;
     audio.current?.pause(); setPlaying(false); setBuffering(false);
     const target = locateAudioTime(segments, saved);
     if (target.index !== index) mediaClock.current = null;
@@ -209,6 +261,7 @@ export function AudioReader({ book, onClose, attribution, localTools, demo = fal
     setError('');
     if (position >= total) { seek(0, true); return; }
     intent.current = true;
+    prefetch.current?.update(audioChunks, index, media.currentTime, Number(rate), true, readyForAhead(index));
     try { await media.play(); }
     catch { if (attempt !== playRequest.current || media !== audio.current) return; intent.current = false; setPlaying(false); setBuffering(false); setError('音声を再生できませんでした。音声ファイルと端末の再生設定を確認してください。'); }
   }
@@ -239,13 +292,14 @@ export function AudioReader({ book, onClose, attribution, localTools, demo = fal
       <FullscreenEnterButton fullscreen={fullscreen} />
       </section>
       </FullscreenReader>
-      <audio key={`${book.revision}:${index}`} ref={bindAudio} src={segment.chunk.audioUrl} preload="auto"
+      <audio key={assetIdentity} ref={bindAudio} src={audioSource} preload="auto"
         onLoadedMetadata={event => {
           if (!audio.current || event.currentTarget !== audio.current) return;
           const attempt = playRequest.current;
           audio.current.currentTime = Math.min(pendingSeek.current, audio.current.duration || segment.chunk.durationSeconds);
           audio.current.playbackRate = Number(rate);
           sample();
+          reconcilePrefetch(event.currentTarget);
           if (intent.current) void audio.current.play().catch(() => { if (attempt !== playRequest.current) return; intent.current = false; setPlaying(false); setBuffering(false); setError('「再生」を押して音声を開始してください。'); });
         }}
         onPlay={event => { if (event.currentTarget !== audio.current) return; setPlaying(true); setBuffering(false); }}
@@ -255,10 +309,12 @@ export function AudioReader({ book, onClose, attribution, localTools, demo = fal
           // A delayed pause from seek or natural completion must not cancel continuation.
           if (event.currentTarget !== audio.current || !event.currentTarget.paused || event.currentTarget.ended) return;
           intent.current = false; setPlaying(false); setBuffering(false); persist(sample());
+          prefetch.current?.update(audioChunks, index, 0, Number(rate), false, readyForAhead(index));
         }}
         onWaiting={event => { if (event.currentTarget !== audio.current) return; sample(); setBuffering(true); }}
         onSeeking={event => { if (event.currentTarget === audio.current) sample(); }} onSeeked={event => { if (event.currentTarget !== audio.current) return; sample(); setBuffering(false); }}
-        onTimeUpdate={event => { if (event.currentTarget === audio.current) sample(); }}
+        onLoadedData={event => reconcilePrefetch(event.currentTarget)} onProgress={event => reconcilePrefetch(event.currentTarget)} onCanPlayThrough={event => reconcilePrefetch(event.currentTarget)} onEmptied={event => reconcilePrefetch(event.currentTarget)}
+        onTimeUpdate={event => { if (event.currentTarget !== audio.current) return; sample(); reconcilePrefetch(event.currentTarget); }}
         onEnded={event => { if (event.currentTarget !== audio.current) return; if (index + 1 < segments.length) seek(segments[index + 1].startSeconds, intent.current); else { intent.current = false; setPlaying(false); positionRef.current = total; setPosition(total); persist(total); } }}
         onError={event => { if (event.currentTarget !== audio.current) return; intent.current = false; setPlaying(false); setBuffering(false); setError('音声を読み込めませんでした。接続を確認して、もう一度お試しください。'); }} />
       <ReaderTransport playing={reading} playLabel={position >= total ? 'もう一度' : '再生'} disabled={font.busy}
