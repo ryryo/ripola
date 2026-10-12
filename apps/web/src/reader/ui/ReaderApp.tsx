@@ -28,6 +28,7 @@ import { InputFormatControl } from './InputFormatControl';
 import { EnvironmentAvailability } from './EnvironmentAvailability';
 import { FullscreenEnterButton, FullscreenReader, ReaderPlayButton, useFullscreenReader } from './FullscreenReader';
 import { ReadingModeControls } from './ReadingModeControls';
+import { ReadingPaceControls } from './ReadingPaceControls';
 import { useReaderPreferences } from './useReaderPreferences';
 import { useScreenWakeLock } from './useScreenWakeLock';
 import { hasStoredPreferences } from '../preferences';
@@ -365,6 +366,7 @@ export function ReaderApp() {
       {document && <section className="settings-section"><h2>タイトル</h2><TitleEditor title={document.title} onRename={renameDocument} /></section>}
       <section className="settings-section"><h2>読書位置</h2><div className="reader-book-actions"><Button variant="light" onClick={() => { controller.seek(0); setBookOpen(false); }}>先頭へ戻る</Button><Button variant="subtle" onClick={() => { controller.seek(Math.max(0, (document?.units.length ?? 1) - 1)); setBookOpen(false); }}>末尾へ</Button></div></section>
       <section className="settings-section"><h2>文章と保存</h2><Button variant="light" onClick={() => { setBookOpen(false); setImportOpen(true); setError(''); }}>別の文章を開く</Button><p className="muted">本文と読書位置を残すには「端末に保存」を押してください。</p><Button variant="subtle" color="red" disabled={saving || !saved} onClick={() => void removeSaved()}>保存を削除</Button></section>
+      <section className="settings-section"><h2>黙読のペース</h2><ReadingPaceControls value={settings.readingPace} summary={controller.getTimingSummary()} onChange={readingPace => { controller.pause(); update({ readingPace }); }} /></section>
       <section className="settings-section"><ShortcutHelp /></section>
       {document?.provenance && <section className="settings-section"><h2>作品情報</h2><AozoraInfo value={document.provenance} /></section>}
       <section className="settings-section"><h2>ページURLを共有</h2><ShareLink title={document?.title ?? 'リーダー'} /></section>
