@@ -19,7 +19,7 @@ test('future fetches wait for the current native buffer to finish', async t => {
   t.after(async () => { h.owner.dispose(); for (let i = 0; i < h.requests.length; i++) await h.complete(i); });
   h.owner.update(source, 0, 0, 1, true, false);
   h.owner.update(source, 0, .25, 1, true, false);
-  assert.deepEqual(h.requests, []);
+  assert.equal(h.requests.length, 0);
   h.owner.update(source, 0, .25, 1, true, true);
   assert.deepEqual(h.requests.map(request => request.url), ['/c1.mp3', '/c2.mp3']);
 });
