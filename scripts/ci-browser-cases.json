@@ -2176,5 +2176,45 @@
       "audio",
       "generation"
     ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "job-publication.spec.ts",
+    "title": "有料ジョブの公開失敗を保存済み3音声だけで再試行し、課金確認と再合成を要求しない",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "generation"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "job-publication.spec.ts",
+    "title": "結果不明の有料音声を再送せず、保存済み2音声だけの公開を回復する",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "generation"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "job-publication.spec.ts",
+    "title": "有料ジョブの公開失敗を保存済み3音声だけで再試行し、課金確認と再合成を要求しない",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "generation"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "job-publication.spec.ts",
+    "title": "結果不明の有料音声を再送せず、保存済み2音声だけの公開を回復する",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "generation"
+    ]
   }
 ]

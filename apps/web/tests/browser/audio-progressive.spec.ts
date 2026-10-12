@@ -78,6 +78,8 @@ test.beforeAll(async () => {
 test.afterAll(async () => { server?.kill('SIGTERM'); if (root) await rm(root, { recursive: true, force: true }); });
 
 test('生成holeで待機し、次chunk保存後に本文順で再開する', async ({ page }) => {
+  const generationUpdates: string[] = [];
+  page.on('request', request => { if (request.method() === 'POST' && request.url().includes('/_serverFn/')) generationUpdates.push(request.url()); });
   await page.addInitScript(() => {
     const target = window as typeof window & { progressiveEvidence: { offsets: number[]; stopNext?: boolean } };
     target.progressiveEvidence = { offsets: [] };
@@ -95,7 +97,7 @@ test('生成holeで待機し、次chunk保存後に本文順で再開する', as
   await publish([0]); await open(page);
   await page.getByRole('button', { name: '再生', exact: true }).click();
   await expect(page.getByTestId('audio-stage')).toContainText('次の音声の生成を待っています');
-  await expect.poll(pendingPriority).toEqual(['c1', 'c2', 'c0']);
+  expect(await pendingPriority()).toBeUndefined();
   const playsBefore = await page.evaluate(() => (window as typeof window & { progressiveEvidence: { offsets: number[] } }).progressiveEvidence.offsets.length);
   const replacement = browserMp3(tone(2, 220));
   await serveMp3(page, 'fixture-waiting.mp3', replacement.bytes);
@@ -113,6 +115,8 @@ test('生成holeで待機し、次chunk保存後に本文順で再開する', as
   await expect.poll(() => page.evaluate(() => (window as typeof window & { progressiveEvidence: { offsets: number[] } }).progressiveEvidence.offsets)).toEqual([2]);
   expect(await page.locator('audio').evaluate((media: HTMLAudioElement) => media.paused)).toBe(true);
   await expect(page.getByTestId('audio-phrase')).toContainText('次の');
+  expect(await pendingPriority()).toBeUndefined();
+  expect(generationUpdates).toEqual([]);
 });
 
 test('追加保存と同sequence整列はnative位置を保ち、MP3差替えは同じsourceへ戻る', async ({ page }) => {

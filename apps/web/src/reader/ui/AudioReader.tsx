@@ -26,8 +26,7 @@ import { ReadingModeControls } from './ReadingModeControls';
 import { useReaderPreferences } from './useReaderPreferences';
 import { resetDisplaySettings } from '../preferences';
 import { AudioPrefetch, audioAssetKey, browserPrefetchEnvironment } from '../audio-prefetch';
-import { continuation, contiguousChunks, playbackAnchor, restoreAnchor, type PlaybackAnchor, type ProgressiveBook } from '../audio-progressive';
-import { audioBookmarkKey, readAudioBookmark, restoreAudioBookmark, writeAudioBookmark } from '../audio-bookmark';
+import { continuation, contiguousChunks, playbackAnchor, restoreAnchor, savedPlaybackAnchor, serializePlaybackAnchor, type PlaybackAnchor, type ProgressiveBook } from '../audio-progressive';
 import type { JobStatus } from '../../generation/contracts';
 
 export function AudioReader({ book, onClose, attribution, localTools, demo = false, onRename, generationStatus, onPlaybackPosition }: { book: ProgressiveBook; generationStatus?: JobStatus; onPlaybackPosition?: (chunkId: string) => void; onClose: () => void; attribution?: string; localTools?: ReactNode; demo?: boolean; onRename?: (title: string) => Promise<void> }) {
@@ -74,7 +73,7 @@ export function AudioReader({ book, onClose, attribution, localTools, demo = fal
   const segment = segments[index];
   const audioChunks = useMemo(() => segment ? contiguousChunks(book, segment.chunk.id) : [], [book, segment]);
   const generationStopped = generationStatus && ['failed', 'cancelled', 'cancel-requested', 'outcome-unknown'].includes(generationStatus);
-  const storageKey = audioBookmarkKey(book);
+  const storageKey = `rsvp-audio-position:${book.id}:${book.revision}`;
   const assetIdentity = segment ? `${storageKey}:${audioAssetKey(segment.chunk)}` : storageKey;
   // Snapshot a ready URL only when changing files. Completing a speculative
   // fetch must never replace or restart the audio that is currently playing.
@@ -96,7 +95,10 @@ export function AudioReader({ book, onClose, attribution, localTools, demo = fal
 
   const persist = useCallback((seconds: number) => {
     if (activeBook.current !== storageKey) return;
-    writeAudioBookmark(storageKey, seconds, anchor.current);
+    try {
+      localStorage.setItem(storageKey, String(seconds));
+      if (anchor.current) localStorage.setItem(`${storageKey}:source`, serializePlaybackAnchor(anchor.current));
+    } catch { /* Playback remains usable without browser storage. */ }
   }, [storageKey]);
 
   const bindAudio = useCallback((media: HTMLAudioElement | null) => {
@@ -196,12 +198,14 @@ export function AudioReader({ book, onClose, attribution, localTools, demo = fal
 
   // New books restore once. Same-book publications retain the native clock.
   useLayoutEffect(() => {
-    const bookmark = readAudioBookmark(storageKey);
+    let saved = 0;
+    let stored: PlaybackAnchor | undefined;
+    try { saved = Number(localStorage.getItem(storageKey) ?? 0); stored = savedPlaybackAnchor(localStorage.getItem(`${storageKey}:source`)); } catch { /* Optional local position only. */ }
     activeBook.current = storageKey;
     intent.current = false; playRequest.current++;
     setWaitingFor(null);
     audio.current?.pause(); setPlaying(false); setBuffering(false);
-    const target = restoreAudioBookmark(segments, bookmark);
+    const target = stored && restoreAnchor(segments, stored) || locateAudioTime(segments, saved);
     const restored = segments[target.index];
     if (target.index !== index) mediaClock.current = null;
     pendingSeek.current = target.localSeconds;

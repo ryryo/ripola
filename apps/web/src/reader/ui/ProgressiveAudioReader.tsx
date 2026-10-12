@@ -10,9 +10,9 @@ type Props = Omit<ComponentProps<typeof AudioReader>, 'book' | 'generationStatus
   renderTools?: (book: AudioBookManifest) => ReactNode;
 };
 export function ProgressiveAudioReader({ book: initial, requestedJobId, renderTools, ...props }: Props) {
-  const { book, job, error, prioritize } = useProgressiveBook(initial, requestedJobId);
+  const { book, job, error } = useProgressiveBook(initial, requestedJobId);
   return <>
     {error && <Alert color="yellow" role="status">{error}</Alert>}
-    <AudioReader {...props} book={book} generationStatus={job?.status} onPlaybackPosition={prioritize} localTools={renderTools?.(book)} />
+    <AudioReader {...props} book={book} generationStatus={job?.status} localTools={renderTools?.(book)} />
   </>;
 }
