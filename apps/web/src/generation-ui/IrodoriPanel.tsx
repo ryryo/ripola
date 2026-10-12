@@ -10,6 +10,7 @@ export function IrodoriPanel({ onChange, onSettingsChange, onBusyChange, disable
   const [error, setError] = useState(''); const [busy, setBusy] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const operation = useRef(0);
+  const settingsRevision = useRef(0);
   const statusRequest = useRef(0);
   const pendingStatus = useRef<{ id: number; run: number } | undefined>(undefined);
   const refresh = useCallback(async (run: number, polling = false) => {
@@ -26,14 +27,20 @@ export function IrodoriPanel({ onChange, onSettingsChange, onBusyChange, disable
       if (pendingStatus.current?.id === id) pendingStatus.current = undefined;
     }
   }, []);
-  useEffect(() => { let active = true; void getIrodoriSettings().then(value => { if (active) { setSettings(value); onSettingsChange(value); } }).catch(() => { if (active) setError('合成設定を読めません。設定を確認・保存してから計画してください。'); }); void refresh(operation.current, true); const timer = window.setInterval(() => { if (active) void refresh(operation.current, true); }, 1000); return () => { active = false; window.clearInterval(timer); }; }, [refresh, onSettingsChange]);
+  useEffect(() => { let active = true; const revision = settingsRevision.current; const current = () => active && settingsRevision.current === revision;
+    void getIrodoriSettings().then(value => { if (current()) { setSettings(value); onSettingsChange(value); } }).catch(() => { if (current()) setError('合成設定を読めません。設定を確認・保存してから計画してください。'); });
+    void refresh(operation.current, true); const timer = window.setInterval(() => { if (active) void refresh(operation.current, true); }, 1000); return () => { active = false; window.clearInterval(timer); }; }, [refresh, onSettingsChange]);
   useEffect(() => () => { operation.current++; statusRequest.current++; onBusyChange(false); }, [onBusyChange]);
   const working = status?.phase === 'downloading' || status?.phase === 'verifying';
-  async function act(action: () => Promise<unknown>, cancellation = false) {
+  function editSettings(change?: Partial<IrodoriSettings>) {
+    settingsRevision.current++;
+    if (change) setSettings(previous => ({ ...previous, ...change }));
+  }
+  async function act(action: (run: number) => Promise<unknown>, cancellation = false) {
     const run = ++operation.current;
     setCancelling(cancellation);
     setBusy(true); onBusyChange(true); setError('');
-    try { await action(); if (operation.current === run) { await refresh(run); if (operation.current === run) onChange(); } }
+    try { await action(run); if (operation.current === run) { await refresh(run); if (operation.current === run) onChange(); } }
     catch (error) { if (operation.current === run) setError(error instanceof Error ? error.message : '操作を完了できません。'); }
     finally { if (operation.current === run) { setBusy(false); setCancelling(false); onBusyChange(false); } }
   }
@@ -57,11 +64,11 @@ export function IrodoriPanel({ onChange, onSettingsChange, onBusyChange, disable
     <p><a href="https://github.com/ryryo/ripola/blob/main/docs/guides/irodori.md" target="_blank" rel="noreferrer">実行環境・固定voiceの準備ガイド</a> · <a href={`https://huggingface.co/${IRODORI_MODEL.repository}/tree/${IRODORI_MODEL.revision}`} target="_blank" rel="noreferrer">モデルの取得元と利用条件</a></p>
     <details><summary>合成設定・取得資材の詳細</summary>
       <p>MFのstepsは合成の計算回数です。減らしてもモデルの保存容量は減りません。長文は短いチャンクに分けます。音質・速度はPCと原稿によって変わります。</p>
-      <NumberInput label="MF steps" min={1} max={16} value={settings.steps} disabled={busy || disabled} onChange={value => { if (typeof value === 'number') setSettings(previous => ({ ...previous, steps: value })); }} />
-      <NumberInput label="速度" min={.25} max={4} step={.1} value={settings.speed} disabled={busy || disabled} onChange={value => { if (typeof value === 'number') setSettings(previous => ({ ...previous, speed: value })); }} />
-      <NumberInput label="合成seed" min={0} max={Number.MAX_SAFE_INTEGER} value={settings.seed} disabled={busy || disabled} onChange={value => { if (typeof value === 'number') setSettings(previous => ({ ...previous, seed: value })); }} />
-      <Textarea label="読み上げ方の指示（任意）" maxLength={256} value={settings.instructions} disabled={busy || disabled} onChange={event => { const instructions = event.currentTarget.value; setSettings(previous => ({ ...previous, instructions })); }} />
-      <Button mt="sm" disabled={busy || disabled || status?.phase !== 'ready'} onClick={() => void act(async () => { await saveIrodoriSettings({ data: settings }); onSettingsChange(settings); })}>設定を保存して計画を更新</Button>
+      <NumberInput label="MF steps" min={1} max={16} value={settings.steps} disabled={busy || disabled} onChange={value => editSettings(typeof value === 'number' ? { steps: value } : undefined)} />
+      <NumberInput label="速度" min={.25} max={4} step={.1} value={settings.speed} disabled={busy || disabled} onChange={value => editSettings(typeof value === 'number' ? { speed: value } : undefined)} />
+      <NumberInput label="合成seed" min={0} max={Number.MAX_SAFE_INTEGER} value={settings.seed} disabled={busy || disabled} onChange={value => editSettings(typeof value === 'number' ? { seed: value } : undefined)} />
+      <Textarea label="読み上げ方の指示（任意）" maxLength={256} value={settings.instructions} disabled={busy || disabled} onChange={event => editSettings({ instructions: event.currentTarget.value })} />
+      <Button mt="sm" disabled={busy || disabled || status?.phase !== 'ready'} onClick={() => { settingsRevision.current++; void act(async run => { await saveIrodoriSettings({ data: settings }); if (operation.current === run) onSettingsChange(settings); }); }}>設定を保存して計画を更新</Button>
       <p style={{ overflowWrap: 'anywhere' }}>固定revision: <code>{IRODORI_MODEL.revision}</code><br />SHA-256: <code>{IRODORI_MODEL.sha256}</code><br />取得後の検証が完了した資材だけを使います。</p>
     </details>
   </section>;
