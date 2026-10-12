@@ -7,7 +7,7 @@ for (const [width, height] of [[320, 740], [375, 812], [390, 844], [430, 932], [
     await page.getByRole('button', { name: 'テキストのみ生成して読む', exact: true }).click();
     await expect(page.getByTestId('current-phrase')).toBeVisible();
     await page.getByRole('button', { name: '再生', exact: true }).scrollIntoViewIfNeeded();
-    const transport = page.locator('.transport');
+    const transport = page.locator('.reader-player-transport');
     for (const button of await transport.getByRole('button').all()) {
       const box = await button.boundingBox(); expect(box?.height).toBeGreaterThanOrEqual(44); expect(box?.width).toBeGreaterThanOrEqual(44);
     }

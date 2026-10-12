@@ -44,6 +44,7 @@ test('青空文庫全文のルビ・仮想文一覧・章移動・保存設定',
   await page.reload(); await page.getByRole('button', { name: '続きから開く', exact: true }).click();
   await expect(page.getByLabel('読む速さ（字/分）', { exact: true })).toHaveValue('800');
   await expect(page.getByTestId('current-phrase')).toContainText('ありがたい');
+  await page.getByRole('button', { name: '本の操作', exact: true }).click();
   await page.getByText('作品の出典・ルビ・外字・入力者注', { exact: true }).click();
   await expect(page.locator('.aozora-provenance')).toContainText('9,214件'); await expect(page.locator('.aozora-provenance')).toContainText('36件');
   await expect(page.locator('.aozora-provenance')).toContainText('入力者注6件'); await expect(page.locator('.aozora-provenance')).toContainText('柴田卓治');
@@ -60,18 +61,17 @@ test('実保存ずんだもん冒頭3文は9フレーズ・ルビ・2.5倍で読
   await expect(page.getByTestId('audio-stage')).toBeVisible();
   const position = page.getByRole('slider', { name: '音声の再生位置', exact: true }); await position.fill('0.3');
   await expect(page.locator('[data-testid="audio-phrase"] rt')).toHaveText('わがはい');
-  await expect(page.getByTestId('audio-precision')).toHaveAttribute('data-method', 'voicevox-mora');
-  await expect(page.getByTestId('audio-precision')).toContainText('合成時に保存');
+  await expect(page.getByTestId('audio-sentence')).toHaveAttribute('data-method', 'voicevox-mora');
   await expect.poll(() => page.locator('audio').evaluate((element: HTMLAudioElement) => element.playbackRate)).toBe(2.5);
   const phrases: string[] = [];
   const expected = ['吾輩', '猫である', '名前は', 'まだ', '無い', 'どこで', '生れたかとんと', '見当', 'つかぬ'];
   for (let index = 0; index < 9; index++) {
-    if (index > 0) await page.getByRole('button', { name: '次のフレーズ', exact: true }).click();
+    if (index > 0) await page.getByRole('button', { name: '一区切り進む', exact: true }).click();
     await expect(page.getByTestId('audio-phrase')).toBeVisible();
     await expect(page.getByTestId('audio-phrase')).toContainText(expected[index]);
     phrases.push(await page.getByTestId('audio-phrase').evaluate(element => [...element.childNodes].map(node => node.textContent).join('')));
-    await expect(page.getByTestId('audio-precision')).toHaveAttribute('data-method', 'voicevox-mora');
-    expect(await page.getByTestId('audio-precision').getAttribute('data-score')).toBeNull();
+    await expect(page.getByTestId('audio-sentence')).toHaveAttribute('data-method', 'voicevox-mora');
+    expect(await page.getByTestId('audio-sentence').getAttribute('data-score')).toBeNull();
   }
   expect(phrases).toEqual(['吾輩わがはいは', '猫である。', '名前は', 'まだ', '無い。', 'どこで', '生れたかとんと', '見当けんとうが', 'つかぬ。']);
   const toggle = page.getByRole('button', { name: '文一覧を開く', exact: true });
@@ -86,7 +86,7 @@ test('実保存ずんだもん冒頭3文は9フレーズ・ルビ・2.5倍で読
     await toggle.click();
   } else {
     await expect(page.getByRole('button', { name: '文一覧を閉じる', exact: true })).toHaveAttribute('aria-expanded', 'true');
-    await page.getByRole('button', { name: '次のフレーズ', exact: true }).click();
+    await page.getByRole('button', { name: '一区切り進む', exact: true }).click();
     await expect(page.getByTestId('sentence-list')).toBeVisible();
   }
   await page.getByRole('button', { name: '文一覧を閉じる', exact: true }).click();

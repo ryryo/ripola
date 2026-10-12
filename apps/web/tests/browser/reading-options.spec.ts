@@ -32,7 +32,7 @@ test('optional fonts load from the same origin only, keep anchor paused and fit 
   for (const id of ['noto-sans-jp', 'noto-serif-jp', 'biz-udpgothic']) {
     const first = fonts.length;
     await settings(page); await page.getByLabel('本文の書体', { exact: true }).selectOption(id);
-    await expect(page.locator('.font-status')).toHaveText('書体の準備完了');
+    await expect(page.locator('.font-status')).toHaveAttribute('data-state', 'ready');
     expect(fonts.slice(first).length).toBeGreaterThan(0);
     expect(fonts.slice(first).every(url => url.includes(id))).toBe(true);
     expect(fonts.slice(first).every(url => url.includes('400-normal'))).toBe(true);
@@ -78,7 +78,7 @@ test('font failures and stale A→B→system results leave the same anchor pause
   await page.getByLabel('本文の書体', { exact: true }).selectOption('noto-sans-jp');
   await page.getByLabel('本文の書体', { exact: true }).selectOption('biz-udpgothic');
   await page.getByLabel('本文の書体', { exact: true }).selectOption('system');
-  await expect(page.locator('.font-status')).toHaveText('書体の準備完了'); await close(page);
+  await expect(page.locator('.font-status')).toHaveAttribute('data-state', 'ready'); await close(page);
   await page.waitForTimeout(900);
   await expect(page.getByTestId('current-phrase')).toHaveText(anchor);
   expect(await page.getByTestId('current-phrase').evaluate(element => getComputedStyle(element).fontFamily)).toContain('Yu Mincho');
@@ -94,11 +94,11 @@ test('grouping is a view; Guide and Flash share position, ruby and static text',
   await expect(page.getByTestId('guide-reader')).toBeVisible();
   await expect(page.locator('.playback-position-label')).toHaveText(position);
   await expect(page.locator('.guide-unit rt')).toContainText(['としょかん']);
-  await page.getByLabel('Guide本文を検索').fill('最後'); await page.getByRole('button', { name: '検索して移動' }).click();
+  await page.getByLabel('本文を検索').fill('最後'); await page.getByRole('button', { name: '検索して移動' }).click();
   await expect(page.locator('.guide-unit[aria-current="location"]').first()).toContainText('最後');
   await expect(page.getByRole('button', { name: '再生', exact: true })).toBeVisible();
   await page.getByText('全文を静止表示・コピー', { exact: true }).click();
-  await expect(page.getByLabel('Guide静止全文')).toHaveValue(manuscript.replace('<ruby>図書館<rt>としょかん</rt></ruby>', '図書館'));
+  await expect(page.getByLabel('コピーする全文')).toHaveValue(manuscript.replace('<ruby>図書館<rt>としょかん</rt></ruby>', '図書館'));
   await page.getByRole('button', { name: 'フレーズ表示', exact: true }).click();
   await expect(page.getByTestId('current-phrase')).toContainText('最後');
   const context = await page.getByTestId('stopped-context').textContent();
@@ -114,7 +114,7 @@ test('Guide bounds long-document DOM; manual scrolling keeps the reading anchor 
   await page.getByRole('button', { name: '全文表示', exact: true }).click();
   expect(await page.locator('.guide-unit').count()).toBeLessThan(250);
   const position = await page.locator('.playback-position-label').innerText();
-  await page.getByRole('button', { name: '再生（画面中央）', exact: true }).hover(); await page.mouse.wheel(0, 5000);
+  await page.getByTestId('guide-viewport').hover(); await page.mouse.wheel(0, 5000);
   await expect(page.getByRole('button', { name: '現在位置を追従', exact: true })).toBeVisible();
   expect(await page.locator('.playback-position-label').innerText()).toBe(position);
   const scrolled = await page.getByTestId('guide-viewport').evaluate(element => element.scrollTop);
@@ -127,7 +127,7 @@ test('Guide bounds long-document DOM; manual scrolling keeps the reading anchor 
 test('Guide reveals the highlighted phrase within a tall virtual row after a search jump', async ({ page }) => {
   await read(page, '静かな図書館で記録を読む。'.repeat(14) + 'ここが現在位置の目印です。' + '続きをゆっくり読む。'.repeat(25));
   await page.getByRole('button', { name: '全文表示', exact: true }).click();
-  await page.getByLabel('Guide本文を検索', { exact: true }).fill('目印');
+  await page.getByLabel('本文を検索', { exact: true }).fill('目印');
   await page.getByRole('button', { name: '検索して移動', exact: true }).click();
   await expect.poll(() => page.getByTestId('guide-viewport').evaluate(element => {
     const target = element.querySelector('.guide-unit[aria-current="location"]');
@@ -213,7 +213,7 @@ test('audio uses original ±5 seconds across chunks, retains play intent, suppor
   await expect(page.getByTestId('guide-reader')).toBeVisible(); expect(Number(await slider.inputValue())).toBeCloseTo(position, 2);
   await page.getByRole('button', { name: 'フレーズ表示', exact: true }).click(); await settings(page);
   await page.getByLabel('まとめる', { exact: true }).selectOption('8'); await page.getByLabel('本文の書体', { exact: true }).selectOption('noto-sans-jp');
-  await expect(page.locator('.font-status')).toHaveText('書体の準備完了'); await close(page);
+  await expect(page.locator('.font-status')).toHaveAttribute('data-state', 'ready'); await close(page);
   expect(Number(await slider.inputValue())).toBeCloseTo(position, 2); await expect(page.getByRole('button', { name: '再生', exact: true })).toBeEnabled();
   expect((await inspectGuides(page, '[data-testid="audio-stage"]')).overlap).toBe(false);
 });
@@ -308,7 +308,7 @@ test('vertical phrases fit ruby and guides, retain position and restore/reset th
   const position = await page.locator('.playback-position-label').innerText();
   await settings(page); await page.getByLabel('本文の向き', { exact: true }).selectOption('vertical-rl');
   await page.getByLabel('本文の書体', { exact: true }).selectOption('noto-serif-jp');
-  await expect(page.locator('.font-status')).toHaveText('書体の準備完了');
+  await expect(page.locator('.font-status')).toHaveAttribute('data-state', 'ready');
   for (const size of ['24', '96']) {
     await page.getByLabel('文字サイズ', { exact: true }).fill(size); await close(page);
     await expect(page.getByTestId('current-phrase')).toHaveText(anchor);
@@ -379,7 +379,7 @@ test('vertical Guide virtualizes right-to-left columns, follows search and prese
   await expect(page.locator('.guide-unit rt').first()).toHaveText('としょかん');
   expect(await page.locator('.guide-unit').count()).toBeLessThan(250);
   for (const query of ['目印', '末尾の標識']) {
-    await page.getByLabel('Guide本文を検索', { exact: true }).fill(query);
+    await page.getByLabel('本文を検索', { exact: true }).fill(query);
     await page.getByRole('button', { name: '検索して移動', exact: true }).click();
     await expect(page.locator('.guide-unit[aria-current="location"]').first()).toContainText(query === '目印' ? '目印' : '末尾');
     await expect.poll(() => viewport.evaluate(element => {
@@ -391,7 +391,7 @@ test('vertical Guide virtualizes right-to-left columns, follows search and prese
   }
   const position = await page.locator('.playback-position-label').innerText();
   const before = await viewport.evaluate(element => element.scrollLeft);
-  await page.getByRole('button', { name: '再生（画面中央）', exact: true }).hover(); await page.mouse.wheel(0, -2000);
+  await page.getByTestId('guide-viewport').hover(); await page.mouse.wheel(0, -2000);
   await expect(page.getByRole('button', { name: '現在位置を追従', exact: true })).toBeVisible();
   await expect.poll(() => viewport.evaluate(element => element.scrollLeft)).toBeGreaterThan(before);
   await expect(page.locator('.playback-position-label')).toHaveText(position);
@@ -444,7 +444,8 @@ test('audio vertical layout keeps timing, works fullscreen and restores directio
   await page.getByRole('button', { name: '一時停止', exact: true }).click();
   await page.reload();
   await expect(page.getByTestId('audio-sentence')).toHaveCSS('writing-mode', 'vertical-rl');
-  await page.getByLabel('注視点ガイド', { exact: true }).uncheck();
+  await settings(page);
+  await page.getByLabel('注視点ガイド', { exact: true }).uncheck(); await close(page);
   await page.getByRole('button', { name: '全画面で読む', exact: true }).click();
   await full.getByRole('button', { name: '再生', exact: true }).click();
   await expect(full).toHaveAttribute('data-playing', 'true');
@@ -455,3 +456,52 @@ test('audio vertical layout keeps timing, works fullscreen and restores directio
   await settings(page); await page.getByLabel('本文の向き', { exact: true }).selectOption('horizontal-tb'); await close(page);
   await expect(page.getByTestId('audio-sentence')).toHaveCSS('writing-mode', 'horizontal-tb');
 });
+
+for (const kind of ['silent', 'audio'] as const) {
+  test(`${kind} reader exposes common display controls and separates book actions from appearance`, async ({ page }) => {
+    if (kind === 'audio') await audioFixture(page); else await read(page);
+    const phrase = page.getByTestId(kind === 'audio' ? 'audio-phrase' : 'current-phrase');
+    const anchor = await phrase.textContent();
+    const toolbar = page.getByLabel('読書の表示', { exact: true });
+    await expect(page.getByRole('button', { name: '再生（画面中央）', exact: true })).toHaveCount(0);
+    await toolbar.getByRole('button', { name: '文字を大きく', exact: true }).click();
+    await toolbar.getByRole('switch', { name: 'ルビを表示', exact: true }).uncheck();
+    await expect(phrase).toHaveText(anchor!);
+    await toolbar.getByRole('button', { name: '表示設定', exact: true }).click();
+    const appearance = page.getByRole('dialog');
+    await expect(appearance.getByLabel('文字サイズ', { exact: true })).toHaveValue('60');
+    await expect(appearance.getByLabel('タイトルを変更', { exact: true })).toHaveCount(0);
+    await expect(appearance.getByRole('button', { name: '保存を削除', exact: true })).toHaveCount(0);
+    await expect(appearance.getByRole('switch', { name: '句読点で間をとる', exact: true })).toHaveCount(0);
+    await appearance.getByLabel('文字サイズ', { exact: true }).fill('96');
+    await close(page);
+    await expect(toolbar.getByRole('switch', { name: 'ルビを表示', exact: true })).not.toBeChecked();
+    await toolbar.getByRole('switch', { name: 'ルビを表示', exact: true }).check();
+    const guides = await inspectGuides(page, kind === 'audio' ? '[data-testid="audio-stage"]' : '[data-testid="reader-stage"]');
+    expect(guides.guides).toBe(2); expect(guides.clipped).toBe(false); expect(guides.overlap).toBe(false);
+    expect(await page.getByLabel('再生操作', { exact: true }).evaluate(element => {
+      const frame = element.getBoundingClientRect(); const play = element.querySelector('.play-button')!.getBoundingClientRect();
+      return Math.abs((frame.left + frame.right) / 2 - (play.left + play.right) / 2);
+    })).toBeLessThan(1);
+    if (kind === 'audio') {
+      await expect(page.getByRole('group', { name: '文の先頭へ移動', exact: true }).getByRole('button', { name: '一文進む', exact: true })).toBeVisible();
+      await expect(page.getByRole('group', { name: '文の中の短い区切りへ移動', exact: true }).getByRole('button', { name: '一区切り進む', exact: true })).toBeVisible();
+    }
+    const context = page.getByTestId('stopped-context');
+    const next = context.getByRole('button', { name: /^次の文へ：/ });
+    const sentence = (await next.getAttribute('aria-label'))!.replace('次の文へ：', '');
+    const label = await page.locator('.playback-position-label').textContent();
+    await next.click();
+    await expect(page.locator('.playback-position-label')).not.toHaveText(label!);
+    await expect(context.getByRole('button', { name: /^前の文/ })).toBeEnabled();
+    expect(sentence).toContain((await phrase.textContent())!);
+    await page.getByRole('button', { name: '再生', exact: true }).click();
+    await page.getByRole('button', { name: '本の操作', exact: true }).click();
+    await expect(page.getByRole('dialog').getByRole('button', { name: '先頭へ戻る', exact: true })).toBeVisible();
+    if (kind === 'audio') expect(await page.locator('audio').evaluate((element: HTMLAudioElement) => element.paused)).toBe(true);
+    await close(page);
+    await expect(page.getByRole('button', { name: '再生', exact: true })).toBeVisible();
+    await expect(page.getByTestId('audio-presentation-report')).toHaveCount(0);
+    await expect(page.locator('.audio-alignment-status, .keyboard-hint, .reader-note')).toHaveCount(0);
+  });
+}

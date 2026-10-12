@@ -52,8 +52,8 @@ test('新規保存を実local APIで再開・seek・有音再生し、AAC静的�
     expect(ready, 'temporary isolated local server').toBe(true);
     const localUrl = `${origin}/library?book=${book.id}&revision=${book.revision}`;
     await page.goto(localUrl); await expect(page.getByTestId('audio-phrase')).toBeVisible();
-    await expect(page.getByTestId('audio-precision')).toContainText('表示用推定');
-    await expect(page.getByTestId('audio-presentation-report')).toContainText(`表示 ${expected.length} / ${expected.length}`);
+    await expect(page.getByTestId('audio-sentence')).toHaveAttribute('data-method', 'estimated');
+    await expect(page.getByTestId('audio-presentation-report')).toHaveCount(0);
     const slider = page.getByRole('slider', { name: '音声の再生位置', exact: true }); await slider.fill('1.3');
     const resumed = await page.getByTestId('audio-phrase').getAttribute('data-unit-id'); await page.reload();
     await expect(page.getByTestId('audio-phrase')).toHaveAttribute('data-unit-id', resumed!); await expect(page.getByRole('button', { name: '再生', exact: true })).toBeVisible();
@@ -62,7 +62,7 @@ test('新規保存を実local APIで再開・seek・有音再生し、AAC静的�
     const originalManifest = await readFile(savedManifestPath);
     const originalAudio = await readFile(join(libraryDir, 'audio', `${book.chunks[0].speechKey}.wav`));
     const beforeRename = await slider.inputValue();
-    await page.getByRole('button', { name: '表示設定', exact: true }).click();
+    await page.getByRole('button', { name: '本の操作', exact: true }).click();
     await page.getByLabel('タイトルを変更', { exact: true }).fill('読書画面で変更した名前');
     await page.getByRole('button', { name: '名前を変更', exact: true }).click();
     await expect(page.locator('.title-status')).toContainText('名前を変更');
@@ -119,6 +119,7 @@ test('新規保存を実local APIで再開・seek・有音再生し、AAC静的�
     // Real local API/WAV and real compiled static HTTP/AAC share AudioReader; no network fulfillment mocks.
     for (const url of [localUrl, `${publicOrigin}/books/?book=${book.id}&revision=${book.revision}`]) {
       await page.evaluate(() => localStorage.clear()); await page.goto(url); await expect(page.getByTestId('audio-phrase')).toBeVisible();
+      await page.getByRole('button', { name: '本の操作', exact: true }).click();
       await page.getByRole('button', { name: '先頭へ戻る', exact: true }).click();
       await expect(page.locator('[data-testid="audio-phrase"] rt')).toHaveText('とうきょう');
       await page.evaluate(() => {
@@ -131,8 +132,8 @@ test('新規保存を実local APIで再開・seek・有音再生し、AAC静的�
       expect(expected.filter(id => !seen.includes(id))).toEqual([]);
       expect(await page.locator('audio').evaluate((element: HTMLAudioElement) => element.muted)).toBe(false);
       expect(await page.getByTestId('audio-phrase').getAttribute('data-unit-id')).toBe(expected.at(-1));
-      await expect(page.getByTestId('audio-presentation-report')).toContainText('欠落 0');
-      await expect(page.getByTestId('audio-precision')).not.toContainText('文単位');
+      await expect(page.getByTestId('audio-presentation-report')).toHaveCount(0);
+      await expect(page.getByTestId('audio-sentence')).toHaveAttribute('data-precision', 'phrase');
     }
     expect(calls).toBe(2); expect(errors).toEqual([]);
     // Uninspectable/stale data cannot be presented as a successful sentence fallback.
