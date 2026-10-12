@@ -60,7 +60,7 @@ function mapping(value: unknown): boolean {
 function settings(value: unknown): value is ReaderSettings {
   return record(value) && integer(value.cpm, 100, 3000) && integer(value.fontSize, 24, 96)
     && typeof value.punctuationPause === 'boolean' && typeof value.ruby === 'boolean'
-    && typeof value.guide === 'boolean' && (value.contrast === 'paper' || value.contrast === 'night')
+    && typeof value.guide === 'boolean'
     && (value.settingsVersion === undefined || value.settingsVersion === 2)
     && (value.fontFamily === undefined || isReadingFont(value.fontFamily))
     && (value.groupTarget === undefined || integer(value.groupTarget, 0, 24))

@@ -20,7 +20,6 @@ export function normalizeSettings(value: unknown): ReaderSettings {
   if (isReadingFont(stored.fontFamily)) settings.fontFamily = stored.fontFamily;
   if (stored.writingMode === 'horizontal-tb' || stored.writingMode === 'vertical-rl') settings.writingMode = stored.writingMode;
   if (stored.mode === 'flash' || stored.mode === 'guide') settings.mode = stored.mode;
-  if (stored.contrast === 'paper' || stored.contrast === 'night') settings.contrast = stored.contrast;
   return settings;
 }
 

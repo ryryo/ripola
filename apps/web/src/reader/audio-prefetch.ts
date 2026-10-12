@@ -28,7 +28,7 @@ export class AudioPrefetch {
     this.environment = environment;
     this.budget = environment.saveData ? 1024 * 1024 : (environment.deviceMemory ?? 8) <= 2 ? 2 * 1024 * 1024 : 8 * 1024 * 1024;
     this.concurrency = environment.saveData || (environment.downlink ?? 10) < 1 ? 1 : 2;
-    this.dependencies = { fetch: globalThis.fetch, createURL: blob => URL.createObjectURL(blob), revokeURL: url => URL.revokeObjectURL(url), now: () => performance.now(), ...dependencies };
+    this.dependencies = { fetch: globalThis.fetch.bind(globalThis), createURL: blob => URL.createObjectURL(blob), revokeURL: url => URL.revokeObjectURL(url), now: () => performance.now(), ...dependencies };
   }
 
   source(chunk: PlayableAudioChunk): string { return this.entries.get(audioAssetKey(chunk))?.url ?? chunk.audioUrl; }
