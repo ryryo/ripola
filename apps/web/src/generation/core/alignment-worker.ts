@@ -4,6 +4,7 @@ import { setTimeout, clearTimeout } from 'node:timers';
 import type { AlignmentRuntimeRequest, AlignmentRuntimeResult } from './alignment-adapter';
 import { validateAlignmentResult } from './alignment-projection';
 import { AlignmentFrameDecoder, MAX_ALIGNMENT_REQUEST_BYTES } from './alignment-worker-protocol';
+import { trackNativeProcess } from './native-processes';
 
 export class AlignmentWorkerError extends Error {
   constructor(readonly code: 'cancelled' | 'timeout' | 'crashed' | 'protocol' | 'closed' | 'queue-full' | 'input' | 'runtime' | 'resources-changed', message: string) { super(message); this.name = 'AlignmentWorkerError'; }
@@ -37,25 +38,8 @@ function killTree(child: ChildProcess, signal: NodeJS.Signals, grouped = true): 
   }
 }
 
-// Shared across HMR module evaluations. Idle pipes do not keep a one-shot Node CLI alive.
-const registryKey = Symbol.for('ripola.alignment-worker-processes.v1');
-const globals = globalThis as typeof globalThis & { [registryKey]?: Map<ChildProcess, boolean> };
 export function trackAlignmentProcess(child: ChildProcess, grouped = true): () => void {
-  let children = globals[registryKey];
-  if (!children) {
-    children = new Map(); globals[registryKey] = children;
-    const cleanup = () => { for (const [item, group] of children!) killTree(item, 'SIGKILL', group); };
-    const interrupted = (signal: NodeJS.Signals, listener: () => void) => {
-      cleanup();
-      if (process.listenerCount(signal) === 1) { process.removeListener(signal, listener); process.kill(process.pid, signal); }
-    };
-    const onInterrupt = () => interrupted('SIGINT', onInterrupt);
-    const onTerminate = () => interrupted('SIGTERM', onTerminate);
-    process.on('beforeExit', cleanup); process.on('exit', cleanup);
-    process.on('SIGINT', onInterrupt); process.on('SIGTERM', onTerminate);
-  }
-  children.set(child, grouped);
-  return () => children.delete(child);
+  return trackNativeProcess(child, grouped);
 }
 function reference(session: Session, active: boolean): void {
   for (const stream of [session.child.stdin, session.child.stdout, session.child.stderr]) {
