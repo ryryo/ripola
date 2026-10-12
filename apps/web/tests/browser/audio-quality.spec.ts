@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { createRequire } from 'node:module';
 import { spawn } from 'node:child_process';
 import { createServer } from 'node:net';
 import { mkdtemp, rm } from 'node:fs/promises';
@@ -12,6 +13,14 @@ import type { AudioBookManifest } from '../../src/generation/contracts';
 import { digest, LibraryDisk } from '../../src/generation/core/disk';
 import { AudioInspectionService } from '../../src/generation/audio-quality/service';
 import { QA_TEXT, qaWave } from '../fixtures/audio-quality/fixture';
+import type { AudioInspectionReport } from '../../src/generation/audio-quality/contracts';
+
+const localRequire = createRequire(import.meta.url);
+const routerRequire = createRequire(localRequire.resolve('@tanstack/react-router'));
+const serializer = createRequire(routerRequire.resolve('@tanstack/router-core'))('seroval') as {
+  fromCrossJSON<T>(value: unknown, options: { refs: Map<number, unknown> }): T;
+  toCrossJSON(value: unknown, options: { refs: Map<number, unknown> }): unknown;
+};
 
 test('保存音声QAを実local APIで保存・再検査し、元範囲と判定不能を確認する', async ({ page }, testInfo) => {
   // CI builds the local app before browsers. Test the built server with a private library.
@@ -35,6 +44,7 @@ test('保存音声QAを実local APIで保存・再検査し、元範囲と判定
   let serverLog = '';
   const log = (data: Buffer) => { serverLog = (serverLog + data.toString()).slice(-65536); };
   child.stdout.on('data', log); child.stderr.on('data', log);
+  let releaseHeldGet = () => {};
   const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
   try {
     const deadline = Date.now() + 120_000; let ready = false;
@@ -42,11 +52,43 @@ test('保存音声QAを実local APIで保存・再検査し、元範囲と判定
     while (!ready && Date.now() < deadline) { try { const response = await fetch(`${origin}/THIRD-PARTY-LICENSES.md`, { signal: AbortSignal.timeout(2000) }); ready = response.ok; await response.body?.cancel(); } catch { /* Wait for the isolated owned server. */ } if (!ready) await delay(100); }
     expect(ready).toBe(true);
     await page.goto(`${origin}/library?book=${book.id}&revision=${book.revision}`, { timeout: 60_000 });
+    let releaseInitial!: () => void, initialStarted!: () => void;
+    const initial = new Promise<void>(resolve => { releaseInitial = resolve; releaseHeldGet = resolve; });
+    const started = new Promise<void>(resolve => { initialStarted = resolve; });
+    let initialUrl = '', latest: AudioInspectionReport | undefined;
+    const oldText = '再検査前の古い判定';
+    await page.route('**/_serverFn/**', async route => {
+      const response = await route.fetch();
+      const envelope = serializer.fromCrossJSON<Record<string, unknown>>(await response.json(), { refs: new Map() });
+      const value = envelope.result;
+      if (route.request().method() === 'GET' && value === undefined && !initialUrl) {
+        initialUrl = route.request().url(); initialStarted();
+        await initial;
+        if (!latest) { await route.fulfill({ response }); return; }
+        const older: AudioInspectionReport = { ...latest, inspectedAt: '2000-01-01T00:00:00Z', chunks: latest.chunks.map(chunk => ({ ...chunk, text: oldText, inspectedAt: '2000-01-01T00:00:00Z' })) };
+        await route.fulfill({ response, json: serializer.toCrossJSON({ ...envelope, result: older }, { refs: new Map() }) });
+        return;
+      }
+      if (route.request().method() === 'POST' && value && typeof value === 'object' && 'inspectionVersion' in value && 'chunks' in value) latest = value as AudioInspectionReport;
+      await route.fulfill({ response });
+    });
     await page.getByRole('button', { name: '本の操作', exact: true }).click();
+    await started;
     const panel = page.locator('section[aria-label="保存音声の品質検査"]');
     await expect(page.getByRole('heading', { name: '保存音声の品質を確認' })).toBeVisible({ timeout: 60_000 });
     await page.getByRole('button', { name: '保存音声を検査する', exact: true }).click();
     const result = page.getByTestId('audio-inspection-result'); await expect(result).toContainText('要確認');
+    await page.getByRole('button', { name: '再検査する（再合成なし）', exact: true }).click();
+    await expect(page.getByRole('button', { name: '再検査する（再合成なし）', exact: true })).toBeEnabled();
+    expect(latest).toBeDefined();
+    const refreshedAt = latest!.chunks[0].inspectedAt;
+    const oldResponse = page.waitForResponse(response => response.url() === initialUrl && response.request().method() === 'GET');
+    releaseInitial(); await (await oldResponse).finished();
+    await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
+    await expect(result).not.toContainText(oldText);
+    await expect(result).toContainText(refreshedAt);
+    await expect(panel.getByRole('alert')).toHaveCount(0);
+    await page.unrouteAll({ behavior: 'wait' });
     await result.locator('summary').first().click(); await expect(result).toContainText('音声全体が無音'); await expect(result).toContainText('UTF-16 0–26');
     await expect(result).toContainText('内容検査：未検査'); await expect(result).toContainText('元音声hash');
     const preview = result.locator('audio'); await preview.evaluate((audio: HTMLAudioElement) => { audio.loop = true; return audio.play(); });
@@ -55,6 +97,8 @@ test('保存音声QAを実local APIで保存・再検査し、元範囲と判定
     expect(previewMedia).not.toBeNull();
     await page.locator('audio').first().evaluate((audio: HTMLAudioElement) => { audio.loop = true; });
     await page.getByRole('button', { name: '閉じる', exact: true }).click();
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+    await expect.poll(() => previewMedia!.evaluate(media => (media as HTMLAudioElement).paused)).toBe(true);
     await page.getByRole('button', { name: '再生', exact: true }).click();
     await expect.poll(() => previewMedia!.evaluate(media => (media as HTMLAudioElement).paused)).toBe(true);
     await page.getByRole('button', { name: '一時停止', exact: true }).click();
@@ -67,6 +111,7 @@ test('保存音声QAを実local APIで保存・再検査し、元範囲と判定
     const saved = await new AudioInspectionService(disk).read(book.id, book.revision); expect(saved?.chunks[0].audioHash).toBe(digest(bytes));
     expect(await disk.readBytes(bookPath)).toEqual(before); expect(await disk.readBytes(['audio', `${key}.wav`])).toEqual(bytes); expect(await disk.list('jobs')).toEqual([]); expect(await disk.list('receipts')).toEqual([]); expect(errors).toEqual([]);
   } finally {
+    releaseHeldGet(); await page.unrouteAll({ behavior: 'wait' });
     if (child.pid) { try { process.kill(process.platform === 'win32' ? child.pid : -child.pid, 'SIGTERM'); } catch { /* Already stopped. */ } }
     const exited = new Promise<void>(resolve => { if (child.exitCode !== null || child.signalCode !== null) resolve(); else child.once('exit', () => resolve()); });
     await Promise.race([exited, delay(3000)]);
