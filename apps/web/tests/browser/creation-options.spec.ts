@@ -70,6 +70,7 @@ test('音声サンプルはTab・Shift+TabとEnterで5種類を直接開ける',
   test.setTimeout(60_000);
   await page.goto('/');
   for (const [index, sample] of audioSamples.entries()) {
+    await expect(page.getByLabel('読む文章', { exact: true })).toBeVisible({ timeout: 30_000 });
     const links = page.getByRole('group', { name: '音声サンプルを開く' }).getByRole('link');
     await expect(links).toHaveCount(5);
     await links.first().focus();
