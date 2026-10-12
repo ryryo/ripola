@@ -1625,5 +1625,65 @@
       "audio",
       "layout"
     ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "audio-sentences.spec.ts",
+    "title": "三文が一音声でも前後ボタン・Shift矢印・文一覧は原文の文単位で移動する",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "generation"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "audio-sentences.spec.ts",
+    "title": "一文が二音声でも文一覧は一項目で、後半から次の原文文へ移動する",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "generation"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "generation.spec.ts",
+    "title": "通常の生成は文単位で、自動調整を明示選択すると計画を再確認する",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "generation"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "audio-sentences.spec.ts",
+    "title": "三文が一音声でも前後ボタン・Shift矢印・文一覧は原文の文単位で移動する",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "generation"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "audio-sentences.spec.ts",
+    "title": "一文が二音声でも文一覧は一項目で、後半から次の原文文へ移動する",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "generation"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "generation.spec.ts",
+    "title": "通常の生成は文単位で、自動調整を明示選択すると計画を再確認する",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "generation"
+    ]
   }
 ]
