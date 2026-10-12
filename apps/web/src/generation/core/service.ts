@@ -13,6 +13,7 @@ import type { AlignmentAdapter } from './alignment-adapter';
 import { digest, LibraryDisk, processAlive, requireId, requireKey } from './disk';
 import { compressedAudioRecord, readReadyAudio, type AudioCacheRecord as CacheRecord } from './audio-cache';
 import { audioCompressionAvailable, encodeVerifiedMp3 } from './audio-compression';
+import { BookPublisher } from './book-publisher';
 import { GEMINI_ENDPOINT, GEMINI_VOICES, geminiAdapter, gatewayEndpoint, gatewayRouteIdentity, SpeechRequestError, VOICEVOX_CAPABILITIES, GEMINI_CAPABILITIES, IRODORI_CAPABILITIES, VOICEVOX_ENDPOINT, voicevoxAdapter, wavDuration, type SpeechAdapter } from './providers';
 
 class CancelledBeforeSend extends Error {}
@@ -354,6 +355,7 @@ export class GenerationService {
   private async run(jobId: string): Promise<void> {
     const release = await this.disk.lock(`run-${jobId}`);
     if (!release) return;
+    let publisher: BookPublisher | undefined;
     try {
       const initial = await this.getJob(jobId);
       const stored = await this.disk.read<StoredPlan>(['plans', `${initial.planId}.json`]);
@@ -364,11 +366,12 @@ export class GenerationService {
       for (const state of initial.chunks) if (state.status === 'completed' && !verifiedCache.has(state.speechKey)) {
         const record = await this.readyCache(state.speechKey); if (record) verifiedCache.set(state.speechKey, record);
       }
-      let lastPublishedAt = 0;
+      publisher = new BookPublisher(() => this.persistBook(stored, new Map(verifiedCache), jobId));
       await this.updateJob(jobId, (job) => { if (['queued', 'running'].includes(job.status)) job.status = 'running'; delete job.error; });
       const sourceIds = stored.plan.chunks.map(chunk => chunk.id);
       const remaining = new Map(stored.plan.chunks.map(chunk => [chunk.id, chunk]));
       while (remaining.size) {
+        publisher.check();
         const current = await this.getJob(jobId);
         const nextId = (current.executionOrder ?? sourceIds).find(id => remaining.has(id));
         if (!nextId) throw new Error('Invalid execution order.');
@@ -403,6 +406,7 @@ export class GenerationService {
               if (adapter.capabilities?.cancellation === 'abort') this.activeRequests.set(jobId, controller);
               try {
                 audio = await adapter.synthesize({ signal: controller.signal, providerVersion: stored.plan.providerVersion, text: chunk.spokenText, options: stored.plan.options, captureVoicevoxQuery: query => { capturedQuery = query; }, captureReceipt: receipt => { capturedReceipt = receipt; } }, async () => {
+                  publisher!.check();
                   const latest = await this.getJob(jobId);
                   if (['cancel-requested', 'cancelled'].includes(latest.status)) throw new CancelledBeforeSend();
                   await this.disk.write(['cache', `${chunk.speechKey}.json`], { schemaVersion: 1, provider: stored.plan.options.provider, status: 'sending' } satisfies CacheRecord);
@@ -424,7 +428,6 @@ export class GenerationService {
             await this.updateJob(jobId, (job) => { const target = job.chunks.find((target) => target.id === chunk.id)!; target.status = 'completed'; target.reused = Boolean(record?.status === 'audio-ready'); delete target.error; });
           }
           verifiedCache.set(chunk.speechKey, cache);
-          if (Date.now() - lastPublishedAt >= 5000) { await this.persistBook(stored, verifiedCache, jobId); lastPublishedAt = Date.now(); }
         } catch (error) {
           if (error instanceof CancelledBeforeSend || requestCancelled && stored.plan.options.provider !== 'gemini') {
             await this.updateJob(jobId, job => { const target = job.chunks.find(target => target.id === chunk.id)!; target.status = 'pending'; delete target.error; job.status = 'cancelled'; delete job.error; });
@@ -439,8 +442,9 @@ export class GenerationService {
           await this.updateJob(jobId, (job) => { const target = job.chunks.find((target) => target.id === chunk.id)!; target.status = durable ? 'audio-ready' : uncertain ? 'outcome-unknown' : 'failed'; target.error = message; job.status = uncertain ? 'outcome-unknown' : 'failed'; job.error = message; });
           break;
         } finally { await speechRelease(); }
+        await publisher.changed();
       }
-      await this.persistBook(stored, verifiedCache, jobId);
+      await publisher.finish();
       const savedJob = await this.getJob(jobId);
       if (savedJob.status === 'running' && savedJob.chunks.every(chunk => chunk.status === 'completed')) await this.correctSavedAudio(jobId, stored);
       const correctedJob = await this.getJob(jobId);
@@ -451,7 +455,7 @@ export class GenerationService {
         else if (job.status === 'cancel-requested') job.status = 'cancelled';
         else if (job.status === 'running') job.status = 'failed';
       });
-    } finally { await release(); }
+    } finally { await publisher?.close(); await release(); }
   }
   /** Both providers use one default, local-only compression path after correction. */
   private async compressSavedAudio(jobId: string): Promise<void> {
@@ -629,7 +633,8 @@ export class GenerationService {
     await this.disk.write(['owners', `${jobId}.json`], { pid: process.pid });
     const job = await this.updateJob(jobId, (job) => {
       if (['completed', 'running', 'cancel-requested', 'queued'].includes(job.status)) return;
-      if (!job.chunks.some((chunk) => ['pending', 'failed', 'audio-ready'].includes(chunk.status))) throw new Error('安全に再開できる未送信分がありません。結果不明の有料音声は自動再送しません。');
+      const publicationRetry = job.status === 'failed' && job.chunks.every(chunk => chunk.status === 'completed');
+      if (!publicationRetry && !job.chunks.some((chunk) => ['pending', 'failed', 'audio-ready'].includes(chunk.status))) throw new Error('安全に再開できる未送信分がありません。結果不明の有料音声は自動再送しません。');
       for (const chunk of job.chunks) if (chunk.status === 'failed') chunk.status = 'pending';
       job.status = 'queued'; delete job.error;
     });
