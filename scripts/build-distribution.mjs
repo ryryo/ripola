@@ -81,6 +81,7 @@ export async function buildDistribution(options) {
     // Vite's package license collector does not include a vendored source file.
     // Ship the full copyright and MIT permission notice even if minification drops its source comment.
     await writeFile(join(temporary, 'LICENSE.qrcodegen.txt'), await readFile(join(repository, 'apps/web/src/sharing/vendor/LICENSE.qrcodegen.txt')), { flag: 'wx' });
+    await writeFile(join(temporary, 'LICENSE.irodori-voice-audition.txt'), await readFile(join(repository, 'docs/licenses/irodori/irodori-voice-audition-LICENSE')), { flag: 'wx' });
     await writeFile(join(temporary, 'LICENSE.txt'), await readFile(join(repository, 'LICENSE')), { flag: 'wx' });
     // These npm packages omit standalone notices, so Vite emits only SPDX headings.
     // Keep the pinned upstream full texts and the original format release copyrights.

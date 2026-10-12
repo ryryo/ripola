@@ -27,7 +27,7 @@ export interface ReadingOverride { text: string; reading: string }
 export interface GenerationOptions {
   provider: SpeechProvider;
   voice: string;
-  model?: GeminiModel | 'irodori-tts-mf';
+  model?: GeminiModel | 'irodori-tts' | 'irodori-tts-mf';
   transport: 'direct' | 'gateway';
   readings: ReadingOverride[];
   style?: string;
