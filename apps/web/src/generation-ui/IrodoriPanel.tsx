@@ -1,5 +1,5 @@
 import { Alert, Button, NumberInput, Progress, Textarea } from '@mantine/core';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { DEFAULT_IRODORI_SETTINGS, IRODORI_MODEL, type IrodoriSettings, type IrodoriStatus } from '../generation/irodori-contracts';
 import { cancelIrodoriInstall, getIrodoriSettings, getIrodoriStatus, installIrodori, saveIrodoriSettings, startIrodoriRuntime, stopIrodoriRuntime } from '../generation/irodori-functions';
 
@@ -8,19 +8,25 @@ export function IrodoriPanel({ onChange, onSettingsChange, onBusyChange, disable
   const [status, setStatus] = useState<IrodoriStatus>();
   const [settings, setSettings] = useState<IrodoriSettings>(DEFAULT_IRODORI_SETTINGS);
   const [error, setError] = useState(''); const [busy, setBusy] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
+  const operation = useRef(0);
   const refresh = useCallback(async () => {
     try { setStatus(await getIrodoriStatus()); } catch (error) { setError(error instanceof Error ? error.message : '状態を取得できません。'); }
   }, []);
   useEffect(() => { let active = true; void getIrodoriSettings().then(value => { if (active) { setSettings(value); onSettingsChange(value); } }).catch(() => { if (active) setError('合成設定を読めません。設定を確認・保存してから計画してください。'); }); void refresh(); const timer = window.setInterval(() => { if (active) void refresh(); }, 1000); return () => { active = false; window.clearInterval(timer); }; }, [refresh, onSettingsChange]);
-  useEffect(() => () => onBusyChange(false), [onBusyChange]);
+  useEffect(() => () => { operation.current++; onBusyChange(false); }, [onBusyChange]);
   const working = status?.phase === 'downloading' || status?.phase === 'verifying';
-  async function act(action: () => Promise<unknown>) {
+  async function act(action: () => Promise<unknown>, cancellation = false) {
+    const run = ++operation.current;
+    setCancelling(cancellation);
     setBusy(true); onBusyChange(true); setError('');
-    try { await action(); await refresh(); onChange(); } catch (error) { setError(error instanceof Error ? error.message : '操作を完了できません。'); }
-    finally { setBusy(false); onBusyChange(false); }
+    try { await action(); if (operation.current === run) { await refresh(); onChange(); } }
+    catch (error) { if (operation.current === run) setError(error instanceof Error ? error.message : '操作を完了できません。'); }
+    finally { if (operation.current === run) { setBusy(false); setCancelling(false); onBusyChange(false); } }
   }
   return <section className="generation-card" aria-label="Irodoriの任意追加">
     <h3>Irodori · このPCに任意追加</h3>
+    <p>実験機能です。このPCでの速度・音質を確認してから利用してください。</p>
     <p>日本語をこのPCで合成します。モデル約1.92GB、新規導入には約2.2GBの空き容量が必要です。通常の起動・音声セットアップでは取得しません。スマホへは完成した音声だけを配ります。</p>
     <p>利用にはspeech.cppの実行環境と、話者の同意・利用条件を確認した固定voiceが別途必要です。現在は製品voiceを同梱していません。準備ガイドを確認してから追加してください。</p>
     <p role="status">{status ? `${label[status.phase]} · ${status.message}` : '導入状態を確認しています。'}</p>
@@ -29,8 +35,8 @@ export function IrodoriPanel({ onChange, onSettingsChange, onBusyChange, disable
     {error && <Alert color="red" role="alert">{error}</Alert>}
     <div className="generation-actions">
       {status && status.phase !== 'ready' && !working && <Button disabled={busy || disabled || status.freeBytes !== undefined && status.freeBytes < status.requiredFreeBytes} onClick={() => void act(() => installIrodori())}>{status.downloadedBytes > 0 ? '途中から導入を再開する' : status.phase === 'failed' ? '導入を再試行する（約1.92GB）' : 'Irodoriを追加する（約1.92GB）'}</Button>}
-      {working && <Button color="gray" variant="light" disabled={busy} onClick={() => void act(() => cancelIrodoriInstall())}>取得・検証を取り消す</Button>}
-      {status?.runtime === 'running' && <Button disabled={busy || disabled} onClick={() => void act(() => stopIrodoriRuntime())}>このPCのIrodoriを停止</Button>}
+      {working && <Button color="gray" variant="light" disabled={cancelling} onClick={() => void act(() => cancelIrodoriInstall(), true)}>取得・検証を取り消す</Button>}
+      {(status?.runtime === 'running' || status?.runtime === 'starting') && <Button disabled={cancelling || disabled} onClick={() => void act(() => stopIrodoriRuntime(), true)}>{status.runtime === 'starting' ? 'Irodoriの起動を取り消す' : 'このPCのIrodoriを停止'}</Button>}
       {status?.phase === 'ready' && status.runtime !== 'running' && <Button disabled={busy || disabled || !status.executableAvailable || !status.voiceAvailable || status.runtime === 'starting'} onClick={() => void act(() => startIrodoriRuntime())}>{status.runtime === 'starting' ? '起動中' : 'このPCで起動'}</Button>}
     </div>
     {status?.phase === 'ready' && !status.voiceAvailable && <p>同じ声で読み続けるには、話者の同意と利用条件を確認した固定voice資材が必要です。現在は製品voiceを同梱していません。voiceがない状態では声が変わる可能性があるため生成を開始できません。</p>}

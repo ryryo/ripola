@@ -1,7 +1,7 @@
 import type { GenerationOptions } from '../contracts';
 import { IRODORI_LIMITS } from '../irodori-contracts';
 import type { IrodoriController } from './irodori-controller';
-import { irodoriFingerprint, irodoriSettings, synthesizeIrodori, type NativeSession } from './irodori-runtime';
+import { irodoriFingerprint, irodoriSettings, synthesizeIrodori, validateIrodoriText, type NativeSession } from './irodori-runtime';
 import { SpeechRequestError, type SpeechAdapter } from './providers';
 
 /** The optional injection seam also lets tests use a real loopback mock endpoint. */
@@ -28,6 +28,8 @@ export function irodoriAdapter(controller: IrodoriController, session: () => Nat
     async synthesize(request, beforeSend) {
       const current = await fingerprint(request.options);
       if (!request.providerVersion || request.providerVersion !== current) throw new SpeechRequestError('Irodoriのモデル・voice・合成設定が計画から変わっています。計画を更新してください。');
+      try { validateIrodoriText(request.text, irodoriSettings(request.options.irodori)); }
+      catch (error) { throw new SpeechRequestError(error instanceof Error ? error.message : 'Irodoriの本文上限を確認できません。'); }
       await beforeSend(); request.signal?.throwIfAborted();
       try { return await synthesizeIrodori(session(), request.text, irodoriSettings(request.options.irodori), request.signal); }
       catch (error) {

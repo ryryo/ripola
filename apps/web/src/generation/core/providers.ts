@@ -1,4 +1,5 @@
 import { GEMINI_MODELS, type GenerationOptions, type VoiceOption, type SpeechReceipt, type SpeechProviderCapabilities } from '../contracts';
+import { IRODORI_LIMITS } from '../irodori-contracts';
 import type { GeminiGatewayConfig } from './config';
 import { wranglerAiRuntime, WRANGLER_GATEWAY_MISSING, type WranglerAiRuntime } from './wrangler-ai';
 
@@ -22,7 +23,7 @@ export interface SpeechAdapter {
 }
 export const VOICEVOX_CAPABILITIES: SpeechProviderCapabilities = { local: true, supportsStyle: false, cancellation: 'before-send' };
 export const GEMINI_CAPABILITIES: SpeechProviderCapabilities = { local: false, supportsStyle: true, cancellation: 'before-send' };
-export const IRODORI_CAPABILITIES: SpeechProviderCapabilities = { local: true, supportsStyle: true, cancellation: 'abort', maxTextTokens: 256, maxAudioSeconds: 30, recommendedMaxCharacters: 90 };
+export const IRODORI_CAPABILITIES: SpeechProviderCapabilities = { local: true, supportsStyle: true, cancellation: 'abort', ...IRODORI_LIMITS };
 
 async function boundedBytes(response: Response, maximum = 64 * 1024 * 1024): Promise<Uint8Array> {
   if (Number(response.headers.get('content-length')) > maximum) throw new SpeechRequestError('音声応答が大きすぎます。', true);

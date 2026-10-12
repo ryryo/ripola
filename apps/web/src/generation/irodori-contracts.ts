@@ -10,7 +10,7 @@ export const IRODORI_MODEL = {
   sha256: 'e237dc3eefe469b8bba87872beacf12fb7fe00dbdf85767edca8ec04ab910d13',
 } as const;
 export const IRODORI_HEADROOM = 256 * 1024 * 1024;
-export const IRODORI_LIMITS = { maxTextTokens: 256, maxAudioSeconds: 30, recommendedMaxCharacters: 90 } as const;
+export const IRODORI_LIMITS = { maxCharacters: 90, maxTextTokens: 256, maxAudioSeconds: 30, recommendedMaxCharacters: 90 } as const;
 /** Fully normalized settings, derived from the shared request contract. */
 export type IrodoriSettings = Required<SharedIrodoriSettings>;
 export const DEFAULT_IRODORI_SETTINGS: IrodoriSettings = { steps: 4, speed: 1, seed: 42, instructions: '' };

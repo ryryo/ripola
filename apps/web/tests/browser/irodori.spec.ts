@@ -76,3 +76,44 @@ test('Irodori導入UIはmock進捗・取消し・検証・失敗再開を表示�
   expectedAction = 'stop'; await stop.click(); await expect(stop).toHaveCount(0);
   expect(actions).toEqual(['install', 'cancel', 'install', 'install', 'stop']);
 });
+
+test('Irodoriの起動待ちを取り消し、古い起動エラーを表示せず再試行できる', async ({ page }) => {
+  let runtime = 'stopped', template = '', action: 'start' | 'stop' | undefined;
+  let releaseStart: () => void = () => undefined;
+  const firstStart = new Promise<void>(resolve => { releaseStart = resolve; });
+  const actions: string[] = [];
+  await page.route('**/_serverFn/**', async route => {
+    if (route.request().method() === 'POST') {
+      const next = action; action = undefined;
+      if (!next || !template) { await route.abort('blockedbyclient'); throw new Error('Unexpected Irodori launch mutation'); }
+      actions.push(next); runtime = next === 'stop' ? 'stopped' : 'starting';
+      if (actions.length === 1) {
+        await firstStart;
+        await route.fulfill({ status: 500, body: 'cancelled old launch' }); return;
+      }
+      if (next === 'start') runtime = 'running';
+      await route.fulfill({ status: 200, contentType: 'application/json', body: template }); return;
+    }
+    const response = await route.fetch(); const body: unknown = await response.json(); const result = property(body, 'result');
+    if (property(result, 'downloadedBytes')) {
+      for (const [key, value] of Object.entries({ phase: 'ready', runtime, downloadedBytes: 1_920_321_792, executableAvailable: true, voiceAvailable: true, message: 'mock起動取消しの検査' })) {
+        const field = property(result, key); if (field) field.s = value;
+      }
+      template = JSON.stringify(body);
+    }
+    await route.fulfill({ response, json: body });
+  });
+  await page.goto('/generate'); await page.getByRole('combobox', { name: '生成手段', exact: true }).click();
+  await page.getByRole('option', { name: '任意追加 · Irodori（このPC）', exact: true }).click();
+  const panel = page.getByRole('region', { name: 'Irodoriの任意追加', exact: true });
+  const start = panel.getByRole('button', { name: 'このPCで起動', exact: true });
+  await expect(start).toBeEnabled(); action = 'start'; await start.click();
+  try {
+    const cancel = panel.getByRole('button', { name: 'Irodoriの起動を取り消す', exact: true });
+    await expect(cancel).toBeEnabled(); action = 'stop'; await cancel.click(); await expect(start).toBeEnabled();
+  } finally { releaseStart(); }
+  await expect(panel.getByRole('alert')).toHaveCount(0);
+  action = 'start'; await start.click();
+  await expect(panel.getByRole('button', { name: 'このPCのIrodoriを停止', exact: true })).toBeEnabled();
+  expect(actions).toEqual(['start', 'stop', 'start']);
+});
