@@ -3,18 +3,15 @@ import { useEffect, useState } from 'react';
 import type { AudioBookSummary } from '../../generation/contracts';
 import { listLibrary } from '../../generation-ui/api';
 import { AUDIO_DEMO_BOOK_ID } from '../audio-demo';
+import { loadAudioPosition } from '../audio-position';
 import { bookDurationLabel } from './Bookshelf';
 import './home-continue-reading.css';
 
 type ContinueBook = AudioBookSummary & { savedPosition?: number };
 
 function savedAudioPosition(book: AudioBookSummary): number | undefined {
-  try {
-    const value = localStorage.getItem(`rsvp-audio-position:${book.id}:${book.revision}`);
-    if (value === null || !value.trim()) return undefined;
-    const seconds = Number(value);
-    return Number.isFinite(seconds) && seconds >= 0 ? seconds : undefined;
-  } catch { return undefined; }
+  const position = loadAudioPosition(book);
+  return position.status === 'saved' ? position.seconds : undefined;
 }
 
 export default function HomeContinueReading() {
