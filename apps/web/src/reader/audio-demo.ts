@@ -6,6 +6,8 @@ export const AUDIO_DEMOS = [
   { key: 'voicevox', label: 'VOICEVOX', voice: 'ずんだもん', id: 'book-6487aedc3f6da54d169317f3', revision: '742654591d3b1f08f6a6b42eb93b69f67a69415058c1dd567919179cb06199b9' },
   { key: 'gemini-male', label: 'Gemini（男）', voice: 'Puck', id: 'book-edc889c2c4bed6b4c94ce9ab', revision: '49fcdf803d0d20b96b048ee25f3f013a5e5c7f316c6a1c30b594d9dfe96c0ddd' },
   { key: 'gemini-female', label: 'Gemini（女）', voice: 'Kore', id: 'book-46e680913b8fbb69271ea04c', revision: 'a1f947a8834612b5f214e2b93e0bad65672f1f1885268be8070b22e8bcf3d393' },
+  { key: 'irodori-male', label: 'Irodori（男）', voice: '元気な男声', id: 'book-irodori-male-4600929a79aadc3e', revision: '29fe3fa4ff0ba21654137ea1cc984bf401fb39169088624acef1a2f9501bc5e9' },
+  { key: 'irodori-female', label: 'Irodori（女）', voice: '落ち着いた女声', id: 'book-irodori-female-5c1db7bbdb9688ce', revision: '665d44028e4e410293c348d2700235f544361aa916bfa232eff4ed5bce99af3f' },
 ] as const;
 export const AUDIO_DEMO_BOOK_ID = AUDIO_DEMOS[0].id;
 export type AudioDemoKey = typeof AUDIO_DEMOS[number]['key'];

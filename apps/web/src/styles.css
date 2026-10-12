@@ -253,11 +253,9 @@
  .is-reading .fullscreen-reader[data-fullscreen="false"] .reader-stage:not(.guide-mode) .phrase-container{padding-block:24px}
 }
 
-/* Three prepared voices share the existing audio sample row. */
-
 .home-samples .home-audio-demo{grid-template-columns:28px minmax(0,1fr) minmax(320px,380px)}
-.sample-voice-group{display:flex;width:100%;min-width:0;padding:3px;border:1px solid var(--line);border-radius:9px;background:var(--paper);gap:3px}
-.sample-voice-link{display:flex;flex:1;min-width:0;min-height:48px;flex-direction:column;align-items:center;justify-content:center;gap:3px;border:0;border-radius:6px;background:var(--accent-soft);color:var(--accent-ink);font-family:inherit;font-size:12px;font-weight:600;line-height:1.4;text-align:center;text-decoration:none;padding:6px 4px;cursor:pointer}
+.sample-voice-group{display:flex;flex-wrap:wrap;width:100%;min-width:0;padding:3px;border:1px solid var(--line);border-radius:9px;background:var(--paper);gap:3px}
+.sample-voice-link{display:flex;flex:1 1 calc((100% - 6px) / 3);min-width:0;min-height:48px;flex-direction:column;align-items:center;justify-content:center;gap:3px;border:0;border-radius:6px;background:var(--accent-soft);color:var(--accent-ink);font-family:inherit;font-size:12px;font-weight:600;line-height:1.4;text-align:center;text-decoration:none;padding:6px 4px;cursor:pointer}
 .sample-voice-link>span{white-space:nowrap}
 .sample-voice-link small{display:flex;gap:3px;color:var(--ink);font-size:10px;font-weight:400;line-height:1.4;white-space:nowrap}
 .sample-voice-link:hover{background:var(--accent-hover)}
