@@ -114,3 +114,20 @@ test('an empty priority window cancels queued work without adding RPCs', async (
   finish(); await new Promise(resolve => setImmediate(resolve));
   assert.deepEqual(sent, [['c1']]); queue.dispose();
 });
+
+
+test('manifest validation checks all saved IDs with bounded linear work on long partial books', async () => {
+  const book = await fixture(), count = 256;
+  const chunks = Array.from({ length: count }, (_, i) => ({ ...book.chunks[0], id: `long-${i}`, sourceOrder: i }));
+  const current = { ...book, chunks, totalChunks: count + 1, completedChunks: count, plannedChunkIds: [...chunks.map(chunk => chunk.id), 'pending'] };
+  let idReads = 0;
+  const incoming = { ...current, chunks: chunks.map(chunk => ({ ...chunk, get id() { idReads++; return chunk.id; } })) };
+  assert.equal(acceptsManifest(current, incoming), true);
+  assert.ok(idReads <= count * 4, `unchanged manifest required ${idReads} saved-ID reads for ${count} chunks`);
+  for (const changed of [
+    { ...incoming, chunks: incoming.chunks.slice(1), completedChunks: count - 1 },
+    { ...incoming, chunks: [...incoming.chunks].reverse() },
+    { ...incoming, chunks: [incoming.chunks[0], incoming.chunks[0], ...incoming.chunks.slice(2)] },
+    { ...incoming, chunks: [{ ...incoming.chunks[0], id: 'not-in-plan' }, ...incoming.chunks.slice(1)] },
+  ]) assert.equal(acceptsManifest(current, changed), false);
+});
