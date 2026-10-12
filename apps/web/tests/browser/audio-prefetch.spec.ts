@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { audioResponse } from '../../src/server/audio-response';
 import { createHash } from 'node:crypto';
 import { prepareDocument } from '../../src/reader/segmentation';
 import { importText } from '../../src/reader/text-import';
@@ -38,7 +39,8 @@ async function fixture(page: Page, slow = false) {
     const index = media.findIndex(audio => audio.sha256 === hash); requested.push(index);
     const delayed = slow && index === 1 && route.request().resourceType() === 'fetch';
     if (delayed) await slowGate;
-    await route.fulfill({ body: media[index].bytes, contentType: 'audio/mpeg' }).catch(() => undefined);
+    const response = audioResponse(media[index].bytes, new Request(route.request().url(), { headers: route.request().headers() }), 'audio/mpeg');
+    await route.fulfill({ body: Buffer.from(await response.arrayBuffer()), status: response.status, headers: Object.fromEntries(response.headers) }).catch(() => undefined);
     if (delayed) finishSlow();
   });
   await page.addInitScript(() => {
@@ -136,12 +138,13 @@ test('完成したactive blobはpause・再seek中も保持し、book離脱時�
   await fixture(page);
   await page.getByRole('button', { name: '再生', exact: true }).click();
   await expect.poll(() => page.evaluate(() => (window as typeof window & { prefetchEvidence: { urls: string[] } }).prefetchEvidence.urls.length)).toBe(2);
-  await page.locator('audio').evaluate((media: HTMLAudioElement) => media.pause());
-  await expect(page.getByRole('button', { name: '再生', exact: true })).toBeVisible();
   const slider = page.getByRole('slider', { name: '音声の再生位置', exact: true });
   await slider.fill('2.25');
   await expect(page.locator('audio')).toHaveAttribute('src', /^blob:/);
+  await expect.poll(() => page.locator('audio').evaluate((media: HTMLAudioElement) => media.currentTime)).toBeGreaterThan(.2);
   const source = await page.locator('audio').getAttribute('src');
+  await page.locator('audio').evaluate((media: HTMLAudioElement) => media.pause());
+  await expect(page.getByRole('button', { name: '再生', exact: true })).toBeVisible();
   await slider.fill('2.65');
   await expect.poll(() => page.locator('audio').evaluate((media: HTMLAudioElement) => media.currentTime)).toBeCloseTo(.65, 1);
   await expect(page.locator('audio')).toHaveAttribute('src', source!);
