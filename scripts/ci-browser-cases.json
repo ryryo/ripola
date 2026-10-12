@@ -1680,5 +1680,72 @@
     "domains": [
       "layout"
     ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "home-continue-reading.spec.ts",
+    "title": "トップは保存音声と途中本を3冊まで表示し、1クリックで区間内位置から停止して開く",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "import",
+      "layout"
+    ],
+    "quick": true
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "home-continue-reading.spec.ts",
+    "title": "トップの保存一覧は再確認で回復し、保存位置が使えなくても文章入力を保つ",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "import",
+      "layout"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "home-continue-reading.spec.ts",
+    "title": "保存黙読もトップから保存位置で開ける",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "import",
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "home-continue-reading.spec.ts",
+    "title": "トップは保存音声と途中本を3冊まで表示し、1クリックで区間内位置から停止して開く",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "import",
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "home-continue-reading.spec.ts",
+    "title": "トップの保存一覧は再確認で回復し、保存位置が使えなくても文章入力を保つ",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "import",
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "home-continue-reading.spec.ts",
+    "title": "保存黙読もトップから保存位置で開ける",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "import",
+      "layout"
+    ]
   }
 ]
