@@ -21,7 +21,6 @@
 .sentence-text { font-size: 13px; line-height: 1.8; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .sentence-row[aria-current="location"] { background: var(--accent-soft); color: var(--accent-ink); box-shadow: inset 3px 0 var(--accent); }
 .sentence-row:hover { background: var(--accent-hover); }
-.night .sentence-row[aria-current="location"] { background: var(--accent-soft); color: var(--ink); }
 .is-reading .reading-main, .audio-reader main { max-width: 1280px; }
 .aozora-provenance { font-size: 12px; line-height: 1.8; margin-top: 20px; }
 .aozora-provenance pre { white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; max-height: 320px; overflow: auto; }
