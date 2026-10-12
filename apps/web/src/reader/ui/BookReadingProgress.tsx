@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { audioPositionKey, audioPositionPercent, loadAudioPosition, type AudioPosition } from '../audio-position';
 import { bookDurationLabel } from './Bookshelf';
 
-export function BookReadingProgress({ book, incomplete = false }: { book: { id: string; revision: string; title: string; durationSeconds: number }; incomplete?: boolean }) {
+export function BookReadingProgress({ book, incomplete = false, catalogStatus = 'ready' }: { book: { id: string; revision: string; title: string; durationSeconds: number }; incomplete?: boolean; catalogStatus?: 'loading' | 'ready' | 'failed' }) {
   const [position, setPosition] = useState<AudioPosition>();
   const key = audioPositionKey(book);
   useEffect(() => {
@@ -18,8 +18,8 @@ export function BookReadingProgress({ book, incomplete = false }: { book: { id: 
 
   const seconds = position?.status === 'saved' ? position.seconds : 0;
   const available = Number.isFinite(book.durationSeconds) && book.durationSeconds > 0;
-  const percent = position && position.status !== 'unavailable' ? audioPositionPercent(seconds, book.durationSeconds) : undefined;
-  const note = !position ? '進捗を確認中…' : !available ? '音声を準備中' : position.status === 'unavailable' ? '保存位置を取得できません' : position.status === 'empty' ? '保存位置なし' : `${bookDurationLabel(Math.min(seconds, book.durationSeconds))} / ${bookDurationLabel(book.durationSeconds)}`;
+  const percent = catalogStatus === 'ready' && position && position.status !== 'unavailable' ? audioPositionPercent(seconds, book.durationSeconds) : undefined;
+  const note = catalogStatus === 'failed' ? '進捗を更新できません' : catalogStatus === 'loading' || !position ? '進捗を確認中…' : !available ? '音声を準備中' : position.status === 'unavailable' ? '保存位置を取得できません' : position.status === 'empty' ? '保存位置なし' : `${bookDurationLabel(Math.min(seconds, book.durationSeconds))} / ${bookDurationLabel(book.durationSeconds)}`;
   return <div className="bookshelf-progress">
     <div className="bookshelf-progress-heading"><span>{incomplete ? '保存済み音声内の位置' : '読書位置'}</span><strong>{percent === undefined ? '—' : `${percent}%`}</strong></div>
     <div className="bookshelf-progress-track" role="progressbar" aria-label={`${book.title}の読書位置`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={percent} aria-valuetext={percent === undefined ? note : `${percent}%${incomplete ? '、生成途中の保存済み音声内' : ''}`}><span style={{ width: `${percent ?? 0}%` }} /></div>

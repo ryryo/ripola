@@ -175,11 +175,16 @@ test('本棚の読書位置はバーで表示し、途中生成・再開・別�
   await expect(partial.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '100');
   await expect(partial).toContainText('生成途中');
   await expect(partial).not.toContainText('読了');
+  await page.getByRole('button', { name: 'グリッド', exact: true }).click();
+  await publish([0, 1, 2]);
   const otherTab = await page.context().newPage();
   await otherTab.goto(`${origin}/library`);
-  await otherTab.evaluate(({ id, revision }) => localStorage.setItem(`rsvp-audio-position:${id}:${revision}`, '7'), { id: full.id, revision: full.revision });
+  await otherTab.evaluate(({ id, revision }) => localStorage.setItem(`rsvp-audio-position:${id}:${revision}`, '13'), { id: full.id, revision: full.revision });
   await otherTab.close();
   await expect(partial.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '50');
+  await expect(partial).not.toContainText('生成途中');
+  await expect(partial).toContainText('0分13秒 / 0分26秒');
+  await expect(page.getByRole('button', { name: 'グリッド', exact: true })).toHaveAttribute('aria-pressed', 'true');
   await page.getByRole('button', { name: '配色を変更', exact: true }).click();
   await page.getByRole('menuitem', { name: /^ダーク/ }).click();
   await page.getByRole('button', { name: 'グリッド', exact: true }).click();
