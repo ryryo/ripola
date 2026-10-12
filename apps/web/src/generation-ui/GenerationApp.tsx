@@ -1,5 +1,6 @@
 import { MAX_TITLE_LENGTH, resolveDocumentTitle } from '../reader/document-title';
 import { Brand } from '../ui/Brand';
+import { ThemeControl } from '../ui/ThemeControl';
 import { Alert, Badge, Button, Checkbox, Progress, Select, Switch, Textarea, TextInput } from '@mantine/core';
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { GEMINI_MODELS, type GenerationConfig, type GenerationJob, type GenerationOptions, type GenerationPlan, type ReadingOverride } from '../generation/contracts';
@@ -235,7 +236,7 @@ export function GenerationApp({ home }: { home?: HomeGenerationProps }) {
       </section>;
 
   const view = <div className={home ? "generation-shell home-generation" : "generation-shell"}>
-    {!home && <header className="generation-header"><Brand /><nav><a href="/">黙読</a><a href="/library">音声の本棚</a></nav></header>}
+    {!home && <header className="generation-header"><Brand /><div className="header-actions"><ThemeControl /><nav><a href="/">黙読</a><a href="/library">音声の本棚</a></nav></div></header>}
     <div className={home ? "home-generation-content" : "generation-main"}>
       {!home && <><div className="generation-title"><div><span className="eyebrow">LOCAL GENERATION</span><h1>文章を、音声に。</h1><p>このPCに保存して、音声と一緒に読みます。</p></div><Badge variant="light" color="ripola">ローカル生成</Badge></div>
       <p className="muted">無料VOICEVOXは起動中のデスクトップアプリへ接続します。有料Geminiは、送信内容と概算費用を確認してから開始します。</p></>}
