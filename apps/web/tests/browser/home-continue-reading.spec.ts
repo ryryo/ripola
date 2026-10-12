@@ -186,7 +186,9 @@ test('本棚の読書位置はバーで表示し、途中生成・再開・別�
   await (await refreshed).finished();
   await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
   await expect(page.getByRole('button', { name: '保存音声を読む', exact: true })).toHaveCount(0);
+  const openedBook = page.waitForResponse(response => rpcId(response.url()) === rpcIds.getBook && response.status() === 200);
   releaseBook();
+  await (await openedBook).finished();
   await page.unroute('**/_serverFn/**');
   await expect(page.getByLabel('音声の再生位置', { exact: true })).toHaveValue('5');
   await page.getByLabel('音声の再生位置', { exact: true }).evaluate((element: HTMLInputElement) => {
