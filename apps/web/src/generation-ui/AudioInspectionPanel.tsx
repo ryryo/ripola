@@ -1,5 +1,5 @@
 import { Alert, Button } from '@mantine/core';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { AudioBookManifest } from '../generation/contracts';
 import type { AudioInspection, AudioInspectionReport } from '../generation/audio-quality/contracts';
 import { getSavedAudioInspections, inspectSavedAudio } from '../generation/audio-quality/functions';
@@ -27,22 +27,27 @@ export function AudioInspectionResult({ result, audioUrl }: { result: AudioInspe
 export function AudioInspectionPanel({ book }: { book: AudioBookManifest }) {
   const [report, setReport] = useState<AudioInspectionReport>();
   const [busy, setBusy] = useState(false), [error, setError] = useState(''), [page, setPage] = useState(0);
+  const requestGeneration = useRef(0);
   useEffect(() => {
     const play = (event: Event) => { if (event.target instanceof HTMLAudioElement) pauseOtherAudio(event.target); };
     document.addEventListener('play', play, true);
     return () => document.removeEventListener('play', play, true);
   }, []);
   useEffect(() => {
-    let active = true;
-    setReport(undefined); setPage(0); setError('');
-    void getSavedAudioInspections({ data: { bookId: book.id, revision: book.revision } }).then(value => { if (active) setReport(value); }).catch(() => { if (active) setError('保存した検査結果を取得できませんでした。'); });
-    return () => { active = false; };
+    const generation = ++requestGeneration.current;
+    setReport(undefined); setPage(0); setError(''); setBusy(false);
+    void getSavedAudioInspections({ data: { bookId: book.id, revision: book.revision } }).then(value => { if (generation === requestGeneration.current) setReport(value); }).catch(() => { if (generation === requestGeneration.current) setError('保存した検査結果を取得できませんでした。'); });
+    return () => { requestGeneration.current++; };
   }, [book.id, book.revision]);
   async function inspect(refresh: boolean) {
+    const generation = ++requestGeneration.current;
     setBusy(true); setError('');
-    try { setReport(await inspectSavedAudio({ data: { bookId: book.id, revision: book.revision, content: false, refresh } })); }
-    catch (error) { setError(error instanceof Error ? error.message : '検査を実行できませんでした。'); }
-    finally { setBusy(false); }
+    try {
+      const value = await inspectSavedAudio({ data: { bookId: book.id, revision: book.revision, content: false, refresh } });
+      if (generation === requestGeneration.current) setReport(value);
+    }
+    catch (error) { if (generation === requestGeneration.current) setError(error instanceof Error ? error.message : '検査を実行できませんでした。'); }
+    finally { if (generation === requestGeneration.current) setBusy(false); }
   }
   return <section className="generation-card" aria-label="保存音声の品質検査">
     <h2>保存音声の品質を確認</h2>
