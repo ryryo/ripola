@@ -125,13 +125,18 @@ export function FullscreenReader({ fullscreen, playing, children, context, seek,
     if (!fullscreen.active || !element || !footer) return;
     // Wrapped controls must leave room for the stopped context on small screens.
     const preview = element.querySelector<HTMLElement>(':scope > .stopped-context');
+    const surface = element.querySelector<HTMLElement>('.guide-viewport, .phrase-container');
     const measure = () => {
       element.style.setProperty('--fullscreen-footer-height', `${footer.getBoundingClientRect().height}px`);
       element.style.setProperty('--fullscreen-context-height', `${preview?.getBoundingClientRect().height ?? 0}px`);
+      if (surface) {
+        const bounds = surface.getBoundingClientRect();
+        element.style.setProperty('--fullscreen-play-top', `${bounds.top - element.getBoundingClientRect().top + bounds.height / 2}px`);
+      }
     };
     measure();
-    const observer = new ResizeObserver(measure); observer.observe(footer); if (preview) observer.observe(preview);
-    return () => { observer.disconnect(); element.style.removeProperty('--fullscreen-footer-height'); element.style.removeProperty('--fullscreen-context-height'); };
+    const observer = new ResizeObserver(measure); observer.observe(footer); if (preview) observer.observe(preview); if (surface) observer.observe(surface);
+    return () => { observer.disconnect(); element.style.removeProperty('--fullscreen-footer-height'); element.style.removeProperty('--fullscreen-context-height'); element.style.removeProperty('--fullscreen-play-top'); };
   }, [fullscreen.active, fullscreen.containerRef, hasContext]);
   return <div ref={fullscreen.containerRef} className="fullscreen-reader" data-fullscreen={fullscreen.active} data-playing={playing} tabIndex={-1} role={fullscreen.active ? 'region' : undefined} aria-label={fullscreen.active ? '全画面の読書' : undefined}
     onClick={event => {

@@ -26,6 +26,7 @@ async function viewportSurface(page: Page) {
     const viewport = await full.locator('.guide-viewport').boundingBox();
     const toolbar = await full.locator('.guide-toolbar').boundingBox();
     const footer = await full.locator('.fullscreen-footer').boundingBox();
+    expect(play!.y + play!.height / 2).toBeCloseTo(viewport!.y + viewport!.height / 2, 0);
     expect(play!.y).toBeGreaterThanOrEqual(viewport!.y);
     expect(play!.y).toBeGreaterThanOrEqual(toolbar!.y + toolbar!.height);
     expect(play!.y + play!.height).toBeLessThanOrEqual(Math.min(viewport!.y + viewport!.height, footer!.y));
@@ -243,6 +244,9 @@ test('fullscreen falls back when denied, traps keyboard focus, supports Guide an
   expect(await page.evaluate(() => document.body.style.overflow)).toBe('');
   await expect(page.getByRole('button', { name: '全画面で読む', exact: true })).toBeFocused();
   await page.setViewportSize({ width: 844, height: 390 });
+  await page.getByRole('button', { name: '全画面で読む', exact: true }).click();
+  await viewportSurface(page);
+  await page.keyboard.press('Escape');
   await page.getByRole('button', { name: 'フレーズ表示', exact: true }).click();
   await page.getByRole('button', { name: '全画面で読む', exact: true }).click();
   await viewportSurface(page);
