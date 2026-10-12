@@ -15,6 +15,11 @@ import { importText } from '../../src/reader/text-import';
 const evidence = resolve('.reader-data/home-continue-reading');
 let root: string, origin: string, server: ChildProcess, disk: LibraryDisk, full: AudioBookManifest;
 const hash = (value: string | Buffer) => createHash('sha256').update(value).digest('hex');
+function rpcName(url: string): string {
+  const id = new URL(url).pathname.split('/_serverFn/')[1];
+  if (!id) return '';
+  try { return String((JSON.parse(Buffer.from(id, 'base64url').toString()) as { export: string }).export); } catch { return ''; }
+}
 function tone(seconds: number) {
   const frames = 24000 * seconds, bytes = Buffer.alloc(44 + frames * 2);
   bytes.write('RIFF'); bytes.writeUInt32LE(bytes.length - 8, 4); bytes.write('WAVEfmt ', 8); bytes.writeUInt32LE(16, 16);
@@ -168,12 +173,12 @@ test('本棚の読書位置はバーで表示し、途中生成・再開・別�
   let releaseBook!: () => void;
   const pendingBook = new Promise<void>(resolve => { releaseBook = resolve; });
   await page.route('**/_serverFn/**', async route => {
-    if (route.request().url().includes('getBook')) await pendingBook;
+    if (rpcName(route.request().url()).startsWith('getBook')) await pendingBook;
     await route.continue();
   });
   await partial.getByRole('button', { name: '保存音声を読む', exact: true }).click();
   await expect(page.getByLabel('本棚を読み込み中', { exact: true })).toBeVisible();
-  const refreshed = page.waitForResponse(response => response.url().includes('listLibrary') && response.status() === 200);
+  const refreshed = page.waitForResponse(response => rpcName(response.url()).startsWith('listLibrary') && response.status() === 200);
   await page.evaluate(key => window.dispatchEvent(new StorageEvent('storage', { key })), `rsvp-audio-position:${full.id}:${full.revision}`);
   await (await refreshed).finished();
   await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
