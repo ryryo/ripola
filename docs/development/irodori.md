@@ -13,9 +13,9 @@ HTTP仕様とworker仕様はspeech.cpp `60a8e1ec068280e5e803ee5d7079e90886c323cb
 
 モデルstoreは取得の排他をdisk lockで取り、同じrevisionの`.part`だけを再開します。UIとCLIは共通cancel markerで取消します。取消し・通信断・短い応答では完成manifestを作りません。容量/checksum検証→rename→manifestで完成を確定します。process停止中のsetup状態を「中断」として読めるようにします。既存の完成モデルを変更した場合もreadyと表示しません。
 
-固定voiceは明示同意・取得元・条件・帰属が記録された既存GGUFだけを受け付け、checksumの変化を拒否します。録音・学習・speaker inversion・voice生成は入口に含めません。`none`のチャンク間声変化を隠さないため、未登録状態は利用不可です。製品固定voiceの実資材は未確認です。
+固定voiceは明示同意・取得元・条件・帰属が記録された既存GGUFだけを受け付け、checksumの変化を拒否します。録音・学習・speaker inversion・voice生成は入口に含めません。通常版の既定男女声は`none`によるVoiceDesignを使い、固定voiceなしで利用できます。男女それぞれの指示文・steps・seed・速度を独立した設定ファイルに保持します。nativeのCFG条件もfingerprintに含めます。指示文とseedが同じでも声の連続性を保証するとは説明しません。通常版では既存のMF固定voiceを読み込まず、男女のVoiceDesignだけを公開します。MF固定voiceの資材と旧設定ファイルは保管し、旧モデルの契約・完成音声は維持します。
 
-MFの上流上限256 tokens/30秒に対し、この接続では90文字・保守的なUTF-8 byte-fallback token上界256・速度を考慮した推定24秒をplannerと送信前検査の共通上限にします。`recommendedMaxCharacters`は境界選択の目安、`maxCharacters`は送信前にも守る上限です。token上界と秒数は表層推定であり、native tokenizerや音声の実時間を正確に予測するものではありません。nativeの長さ拒否・途中完了header・30秒超の出力も失敗として扱います。元source span・chunk ID・旧book・既存WAV/MP3/旧AACを独自形式へ移しません。保存以降は共通alignment・MP3・静的配布処理が所有します。
+通常版の上流上限256 tokens/30秒に対し、この接続では90文字・保守的なUTF-8 byte-fallback token上界256・速度を考慮した推定24秒をplannerと送信前検査の共通上限にします。`recommendedMaxCharacters`は境界選択の目安、`maxCharacters`は送信前にも守る上限です。token上界と秒数は表層推定であり、native tokenizerや音声の実時間を正確に予測するものではありません。nativeの長さ拒否・途中完了header・30秒超の出力も失敗として扱います。元source span・chunk ID・旧book・既存WAV/MP3/旧AACを独自形式へ移しません。保存以降は共通alignment・MP3・静的配布処理が所有します。
 
 分担の先行条件は一次資料・共通契約の固定、独立範囲は専用module・UI・script・tests・guideです。共有可変状態は導入disk lock/cancel markerと所有childで、既存library排他は共通serviceが管理します。担当枠が1つなので主担当が実装し、同じ固定base/headへcorrectnessとcode-qualityを分けて確認します。独立レビューとは記録しません。
 

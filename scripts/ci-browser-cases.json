@@ -2382,5 +2382,23 @@
       "audio",
       "layout"
     ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "irodori.spec.ts",
+    "title": "受付の男女声はプロンプトを別々に保存し声の切替後に古い設定を適用しない",
+    "lane": "related",
+    "domains": [
+      "audio"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "irodori.spec.ts",
+    "title": "受付の男女声はプロンプトを別々に保存し声の切替後に古い設定を適用しない",
+    "lane": "related",
+    "domains": [
+      "audio"
+    ]
   }
 ]

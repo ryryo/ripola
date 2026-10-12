@@ -159,6 +159,7 @@ test('public build postprocessing copies only referenced stage artifacts and ref
     ['NOTICE.format.txt', '../../../docs/licenses/upstream/format-0.2.2-NOTICE'],
     ['LICENSE.react-remove-scroll-bar.txt', '../../../docs/licenses/upstream/react-remove-scroll-bar-2.3.8-LICENSE'],
     ['LICENSE.qrcodegen.txt', '../src/sharing/vendor/LICENSE.qrcodegen.txt'],
+    ['LICENSE.irodori-voice-audition.txt', '../../../docs/licenses/irodori/irodori-voice-audition-LICENSE'],
   ]) {
     assert.deepEqual(await readFile(join(output, name)), await readFile(new URL(source, import.meta.url)));
   }
