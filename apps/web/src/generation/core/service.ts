@@ -10,7 +10,7 @@ import { estimateGeminiOutput, geminiEstimateNote } from '../cost-estimate';
 import { AlignmentService } from './alignment-service';
 import type { CapturedVoicevoxQuery } from './voicevox-timing';
 import type { AlignmentAdapter } from './alignment-adapter';
-import { digest, LibraryDisk, processAlive, requireId, requireKey } from './disk';
+import { BOOK_REFERENCES_LOCK, digest, LibraryDisk, processAlive, requireId, requireKey } from './disk';
 import { compressedAudioRecord, readReadyAudio, type AudioCacheRecord as CacheRecord } from './audio-cache';
 import { audioCompressionAvailable, encodeVerifiedMp3 } from './audio-compression';
 import { GEMINI_ENDPOINT, GEMINI_VOICES, geminiAdapter, gatewayEndpoint, gatewayRouteIdentity, SpeechRequestError, VOICEVOX_ENDPOINT, voicevoxAdapter, wavDuration, type SpeechAdapter } from './providers';
@@ -380,22 +380,27 @@ export class GenerationService {
       summary.status = 'unavailable'; summary.retainedWavFiles = chunks.length;
       await this.updateJob(jobId, value => { value.automaticCompression = summary; }); return;
     }
-    // Completed books can share speech. Keep the original if another reference
-    // still needs correction; only intermediates newly synthesized by this job
-    // are eligible for automatic deletion.
+    // Cached speech can still have a WAV from an earlier compression failure.
+    // Keep it while any saved book needs correction or refers to another hash.
     const needsWav = new Set<string>();
     const referencedHashes = new Map<string, Set<string>>();
-    for (const file of await this.disk.list('books')) {
-      const other = await this.disk.read<AudioBookManifest>(['books', file]);
-      for (const chunk of other?.chunks ?? []) {
-        if (!chunk.alignment) needsWav.add(chunk.speechKey);
-        else {
-          const hashes = referencedHashes.get(chunk.speechKey) ?? new Set<string>();
-          hashes.add(chunk.alignment.audioHash); referencedHashes.set(chunk.speechKey, hashes);
+    let referenceVersion: string | undefined;
+    const refreshReferences = async () => {
+      const version = await this.disk.directoryVersion('books');
+      if (version === referenceVersion) return;
+      needsWav.clear(); referencedHashes.clear();
+      for (const file of await this.disk.list('books')) {
+        const other = await this.disk.read<AudioBookManifest>(['books', file]);
+        for (const chunk of other?.chunks ?? []) {
+          if (!chunk.alignment) needsWav.add(chunk.speechKey);
+          else {
+            const hashes = referencedHashes.get(chunk.speechKey) ?? new Set<string>();
+            hashes.add(chunk.alignment.audioHash); referencedHashes.set(chunk.speechKey, hashes);
+          }
         }
       }
-    }
-    const newlyGenerated = new Set(job.chunks.filter(chunk => !chunk.reused && chunk.attempts > 0).map(chunk => chunk.speechKey));
+      referenceVersion = version;
+    };
     const previousProgress = await this.disk.read<{ files: Array<{ speechKey: string; cleanupPlanned?: boolean; sourceAudioHash?: string }> }>(['audio-compression-jobs', `${jobId}.json`]);
     const previousCleanup = new Map(previousProgress?.files.filter(file => file.cleanupPlanned).map(file => [file.speechKey, file.sourceAudioHash]));
     const files: Array<{ speechKey: string; status: 'verified' | 'source-removed' | 'source-retained' | 'failed' | 'in-use'; sourceAudioHash?: string; mp3Hash?: string; cleanupPlanned?: boolean; reason?: string }> = [];
@@ -414,20 +419,23 @@ export class GenerationService {
           await readReadyAudio(this.disk, chunk.speechKey, 'mp3');
           summary.completedFiles++; summary.sourceBytes += media.sourceBytes; summary.compressedBytes += media.bytes;
           const source = await this.disk.readBytes(['audio', `${chunk.speechKey}.wav`]);
-          const stillRunning = (await this.getJob(jobId)).status === 'running';
-          const cleanupPlanned = Boolean(source && stillRunning && newlyGenerated.has(chunk.speechKey) && job.automaticAlignment?.status === 'completed'
-            && chunk.alignment?.audioHash === media.sourceAudioHash && !needsWav.has(chunk.speechKey)
-            && [...(referencedHashes.get(chunk.speechKey) ?? [])].every(hash => hash === media.sourceAudioHash));
-          const alreadyRemoved = !source && previousCleanup.get(chunk.speechKey) === media.sourceAudioHash;
-          const row = { speechKey: chunk.speechKey, status: 'verified' as 'verified' | 'source-removed' | 'source-retained', sourceAudioHash: media.sourceAudioHash, mp3Hash: media.hash, cleanupPlanned: cleanupPlanned || alreadyRemoved };
-          files.push(row);
-          // Persist the exact proof and intent before removing an intermediate.
-          await recordProgress();
-          if (source && cleanupPlanned) {
-            await this.disk.removeVerified(['audio', `${chunk.speechKey}.wav`], media.sourceAudioHash);
-            summary.removedWavBytes += source.length; row.status = 'source-removed';
-          } else if (source) { summary.retainedWavFiles++; row.status = 'source-retained'; }
-          else if (alreadyRemoved) { summary.removedWavBytes += media.sourceBytes; row.status = 'source-removed'; }
+          await this.disk.withLock(BOOK_REFERENCES_LOCK, async () => {
+            if (source) await refreshReferences();
+            const stillRunning = (await this.getJob(jobId)).status === 'running';
+            const cleanupPlanned = Boolean(source && stillRunning && job.automaticAlignment?.status === 'completed'
+              && chunk.alignment?.audioHash === media.sourceAudioHash && !needsWav.has(chunk.speechKey)
+              && [...(referencedHashes.get(chunk.speechKey) ?? [])].every(hash => hash === media.sourceAudioHash));
+            const alreadyRemoved = !source && previousCleanup.get(chunk.speechKey) === media.sourceAudioHash;
+            const row = { speechKey: chunk.speechKey, status: 'verified' as 'verified' | 'source-removed' | 'source-retained', sourceAudioHash: media.sourceAudioHash, mp3Hash: media.hash, cleanupPlanned: cleanupPlanned || alreadyRemoved };
+            files.push(row);
+            // Persist the exact proof and intent before removing an intermediate.
+            await recordProgress();
+            if (source && cleanupPlanned) {
+              await this.disk.removeVerified(['audio', `${chunk.speechKey}.wav`], media.sourceAudioHash);
+              summary.removedWavBytes += source.length; row.status = 'source-removed';
+            } else if (source) { summary.retainedWavFiles++; row.status = 'source-retained'; }
+            else if (alreadyRemoved) { summary.removedWavBytes += media.sourceBytes; row.status = 'source-removed'; }
+          });
         } catch (error) {
           // Speech is already durable. Codec/verification failures never retry TTS.
           summary.retainedWavFiles++;

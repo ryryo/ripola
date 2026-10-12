@@ -33,10 +33,10 @@ export async function encodeVerifiedMp3(disk: LibraryDisk, key: string, cache: A
   const temporary = await mkdtemp(join(tmpdir(), 'rsvp-mp3-'));
   try {
     const output = join(temporary, 'audio.mp3');
-    await run('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-nostdin', '-i', input, '-map_metadata', '-1', '-vn', '-sn', '-dn', '-ac', '1', '-ar', '24000', '-c:a', 'libmp3lame', '-b:a', '64k', '-write_xing', '1', '-id3v2_version', '3', output], { timeout: 120000, maxBuffer: 256 * 1024 });
-    const { stdout } = await run('ffprobe', ['-v', 'error', '-show_entries', 'format=duration:stream=codec_name,sample_rate,channels:packet_side_data=skip_samples,discard_padding', '-of', 'json', output], { timeout: 30000, maxBuffer: 4 * 1024 * 1024 });
-    const info = JSON.parse(stdout) as { format: { duration: string }; streams: Array<{ codec_name: string; sample_rate: string; channels: number }>; packets: Array<{ side_data_list?: Array<{ skip_samples?: number; discard_padding?: number }> }> };
-    if (info.streams.length !== 1 || info.streams[0].codec_name !== 'mp3' || Number(info.streams[0].sample_rate) !== 24000 || info.streams[0].channels !== 1) throw new Error('MP3 codec profile differs.');
+    await run('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-nostdin', '-i', input, '-map_metadata', '-1', '-vn', '-sn', '-dn', '-ac', '1', '-ar', '24000', '-c:a', 'libmp3lame', '-b:a', '48k', '-write_xing', '1', '-id3v2_version', '3', output], { timeout: 120000, maxBuffer: 256 * 1024 });
+    const { stdout } = await run('ffprobe', ['-v', 'error', '-show_entries', 'format=duration:stream=codec_name,sample_rate,channels,bit_rate:packet_side_data=skip_samples,discard_padding', '-of', 'json', output], { timeout: 30000, maxBuffer: 4 * 1024 * 1024 });
+    const info = JSON.parse(stdout) as { format: { duration: string }; streams: Array<{ codec_name: string; sample_rate: string; channels: number; bit_rate: string }>; packets: Array<{ side_data_list?: Array<{ skip_samples?: number; discard_padding?: number }> }> };
+    if (info.streams.length !== 1 || info.streams[0].codec_name !== 'mp3' || Number(info.streams[0].sample_rate) !== 24000 || info.streams[0].channels !== 1 || Number(info.streams[0].bit_rate) !== 48000) throw new Error('MP3 codec profile differs.');
     const sourcePcm = await decodeTimingPcm(input), decoded = await decodeTimingPcm(output);
     const timing = estimateMp3Timing(sourcePcm.samples, decoded.samples);
     if (timing.verification !== 'pcm-correlated') throw new Error(`MP3 PCM timing verification failed: ${timing.reason}; window=${timing.windowSeconds}s, anchors=${timing.anchors.length}, correlation=${timing.score}.`);

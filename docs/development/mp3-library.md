@@ -1,6 +1,6 @@
 # 保存音声を検証済みMP3へ移行する
 
-新規生成はVOICEVOX／Geminiとも、WAVを中間保存した後に同期補正、MP3圧縮と検証まで自動で実行する。ユーザーの追加指示や形式指定は不要。検証済みMP3を標準再生音声とし、今回新しく合成したWAVは、保存済み補正が元音声hashと一致し、他の本にも補正待ちの参照がなければ中間ファイルとして削除する。削除前の証拠と対象は`audio-compression-jobs/<jobId>.json`へ保存し、実際の解放byte数を生成jobへ記録する。既存WAVや再利用した音声のWAVを自動削除しない。
+新規生成はVOICEVOX／Geminiとも、WAVを中間保存した後に同期補正、MP3圧縮と検証まで自動で実行する。ユーザーの追加指示や形式指定は不要。検証済みMP3を標準再生音声とし、新規生成・キャッシュ再利用・既存WAVの採用のいずれでも、保存済み補正が元音声hashと一致し、他の本にも補正待ちや異なるhashの参照がなければ、検証済みMP3に置き換えたWAVを削除する。削除前の証拠と対象は`audio-compression-jobs/<jobId>.json`へ保存し、実際の解放byte数を生成jobへ記録する。補正未完了・検証失敗・共有先で必要なWAVは保持する。本の保存と削除判定は共通lockで排他し、参照が変わった場合は再検査する。
 
 補正未完了・圧縮ツール未設定・変換や検証の失敗では必要なWAVを保持し、生成画面に状態を表示する。音声の再合成や追加の有料API呼び出しは行わない。圧縮中のプロセス停止は次回の起動時に保存済み音声から自動再開する。
 
@@ -10,11 +10,11 @@
 
 `audio/<speechKey>.mp3`と`audio-media/<speechKey>.json`を追加する。speechKey、元WAVのSHA-256、元cacheのduration、保存済みcueを維持し、MP3のhash・bytesを別に記録する。MP3を不足キャッシュと判断して再生成しない。MP3や検証記録が破損した場合も再送せず停止する。
 
-変換はlibmp3lame、mono、24kHz、64kbps。Xing/LAMEのgapless情報を残す。[FFmpegのMP3 muxer](https://ffmpeg.org/ffmpeg-formats.html#mp3)はXing/LAMEフレームを書き出せる。コンテナdurationだけをタイムラインとして採用しない。
+変換はlibmp3lame、mono、24kHz、48kbps。Xing/LAMEのgapless情報を残す。[FFmpegのMP3 muxer](https://ffmpeg.org/ffmpeg-formats.html#mp3)はXing/LAMEフレームを書き出せる。コンテナdurationだけをタイムラインとして採用しない。
 
 元WAVとMP3を24kHz PCMへ復号し、フレーム数差1以下、元duration差2ms以下、3個以上の独立した音声区間、相互相関0.8以上、全音声長で時計差2ms以下を要求する。通常は320msの検査窓を使い、独立した活動区間が不足する短い見出しなどは80msの窓で再検査する。相関・ピークの識別性・活動量・時計差の基準は変えない。encoder skip/padding、両PCM hash、検査窓長、offset/scale/residualを保存する。条件を満たさない無音・周期的なチャンクなどはreportに具体的な理由を残す。人手による発話境界の精度保証ではない。
 
-ローカル本棚は検証済みMP3があれば`.mp3`と`audio/mpeg`を返す。旧`.wav` URLはWAVがあればWAVを返し、退避後はMP3へ307 redirectする。GET/HEAD/byte Rangeに対応する。WAV退避後の同期再開は元音声hashが一致する保存済み補正を再利用し、損失圧縮されたPCMからVOICEVOXの発音時刻を再構築しない。別文書で同じ音声を再利用するときも、対応するCTC cacheがあれば元の時計のまま表示位置へ再射影できる。異なるモデルで再補正するなど、保存済み補正やcacheを使えない場合は元WAVが必要。新規生成で削除済みの中間WAVには退避・復元機能はない。
+ローカル本棚は検証済みMP3があれば`.mp3`と`audio/mpeg`を返す。旧`.wav` URLはWAVがあればWAVを返し、退避後はMP3へ307 redirectする。GET/HEAD/byte Rangeに対応する。WAV退避後の同期再開は元音声hashが一致する保存済み補正を再利用し、損失圧縮されたPCMからVOICEVOXの発音時刻を再構築しない。別文書で同じ音声を再利用するときも、対応するCTC cacheがあれば元の時計のまま表示位置へ再射影できる。異なるモデルで再補正するなど、保存済み補正やcacheを使えない場合は元WAVが必要。自動整理で削除済みのWAVには退避・復元機能はない。
 
 ブラウザがMP3 durationを小数6桁へ丸めることがある。自然終了後のカーソルは保存済みのチャンク末尾へ固定し、遅れて届くtimeupdateで「もう一度」が通常の再生ボタンへ戻らないようにする。
 
