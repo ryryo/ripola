@@ -4,6 +4,8 @@
 
 ## 直接依存
 
+音声QAの内部許容表記には、版固定したCC0の注釈データを使います。[出典・revision・抽出方法](audio-qa-data.md)を参照してください。
+
 | package | 固定version | package宣言 |
 | --- | --- | --- |
 | React／react-dom | 19.2.8 | MIT |
