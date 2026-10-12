@@ -6,8 +6,6 @@ Only known characters are aligned; no wildcard or interpolated timestamps count 
 """
 import hashlib
 import json
-import math
-import os
 from pathlib import Path
 import subprocess
 import sys
@@ -148,7 +146,7 @@ def speech_activity(samples, duration, sample_rate=SAMPLE_RATE):
     return {'version': 'pcm-rms-v1', 'frameSeconds': .01, 'thresholdRms': threshold, 'intervals': intervals}
 
 
-def align(request):
+def align(request, runtime=None):
     if request.get('schemaVersion') != 1 or request.get('offsetUnit') != 'utf16' or request.get('normalizeVersion') != 'ctc-ja-nfkc-v1':
         raise ValueError('Unsupported alignment request schema')
     text = request['normalizedText']
@@ -163,11 +161,14 @@ def align(request):
         duration = audio.getnframes() / audio.getframerate()
         if audio.getcomptype() != 'NONE' or audio.getsampwidth() not in (1, 2, 3, 4):
             raise ValueError('Only PCM WAV is supported')
-    # Limit costly transformer attention before loading or processing long audio.
+    # Limit costly transformer attention before processing long audio.
     if not text or duration <= 0 or duration > MAX_DURATION_SECONDS or len(text) > MAX_CHARACTERS:
         return unmatched(request, duration, 'runtime-size-limit')
-    model_dir = Path(os.environ['RSVP_ALIGNMENT_MODEL_DIR']).resolve(strict=True)
-    config = verify_model(model_dir, request)
+    if runtime is None:
+        import os
+        verify_model(Path(os.environ['RSVP_ALIGNMENT_MODEL_DIR']).resolve(strict=True), request)
+    else:
+        runtime.ensure_loaded(request['alignerVersion'])
     import numpy as np
     # The already installed ffmpeg converts only the server-owned WAV; no shell/network input.
     decoded = subprocess.run(
@@ -180,33 +181,21 @@ def align(request):
         raise ValueError('Invalid decoded PCM')
     if not len(samples) or float(np.sqrt(np.mean(samples ** 2))) < 0.0015:
         return unmatched(request, duration, 'silence-or-too-quiet')
-    # Known classes + local_files_only + safetensors exclude custom remote code and pickle weights.
-    os.environ['HF_HUB_OFFLINE'] = '1'
-    os.environ['TRANSFORMERS_OFFLINE'] = '1'
-    import torch
-    from transformers import Wav2Vec2CTCTokenizer, Wav2Vec2FeatureExtractor, Wav2Vec2ForCTC
-    torch.set_num_threads(min(4, os.cpu_count() or 1))
-    tokenizer = Wav2Vec2CTCTokenizer.from_pretrained(str(model_dir), local_files_only=True)
+    from alignment_runtime import ReazonRuntime
+    runtime = runtime or ReazonRuntime()
+    runtime.ensure_loaded(request['alignerVersion'])
+    config, tokenizer = runtime.config, runtime.tokenizer
     token_strings = tokenizer.tokenize(text)
     tokens = tokenizer.convert_tokens_to_ids(token_strings)
     ranges = token_ranges(text, token_strings)
     if ranges is None or any(token in tokenizer.all_special_ids or token == config['pad_token_id'] for token in tokens):
-        # No wildcard, guessed reading or character-by-character replacement for model subwords.
         return unmatched(request, duration, 'unknown-vocabulary-character')
-    feature_extractor = Wav2Vec2FeatureExtractor.from_pretrained(str(model_dir), local_files_only=True)
-    model = Wav2Vec2ForCTC.from_pretrained(
-        str(model_dir), local_files_only=True, use_safetensors=True,
-        trust_remote_code=False, attn_implementation='eager', dtype=torch.float32,
-    ).cpu().eval()
-    padded = np.pad(samples, int(PADDING_SECONDS * SAMPLE_RATE))
-    values = feature_extractor(padded, sampling_rate=SAMPLE_RATE, return_tensors='pt').input_values
-    with torch.inference_mode():
-        emission = model(values).logits[0].log_softmax(-1).cpu().numpy()
+    emission = runtime.infer(samples)
     paths = ctc_path(emission, tokens, config['pad_token_id'])
     if paths is None:
         return unmatched(request, duration, 'no-valid-ctc-path')
     # Wav2vec2 convolutions have a known sample stride; do not scale timestamps by text length.
-    stride_seconds = math.prod(config['conv_stride']) / SAMPLE_RATE
+    stride_seconds = runtime.stride_seconds
     segments = []
     for (start, end), token, path in zip(ranges, tokens, paths):
         confidence = float(np.exp(emission[path, token]).mean())
@@ -225,6 +214,12 @@ def align(request):
 
 
 def main():
+    if sys.argv[1:] == ['--worker']:
+        from alignment_worker import run_worker
+        run_worker(align)
+        return
+    if sys.argv[1:]:
+        raise ValueError('Unsupported arguments')
     data = sys.stdin.buffer.read(2 * 1024 * 1024 + 1)
     if len(data) > 2 * 1024 * 1024:
         raise ValueError('Oversized request')
