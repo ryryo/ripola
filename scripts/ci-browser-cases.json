@@ -1633,8 +1633,7 @@
     "lane": "related",
     "domains": [
       "audio"
-    ],
-    "quick": true
+    ]
   },
   {
     "project": "mobile-chromium",
