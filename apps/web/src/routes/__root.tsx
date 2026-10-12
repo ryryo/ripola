@@ -1,8 +1,11 @@
 import { createRootRoute, HeadContent, Outlet, Scripts, useHydrated } from '@tanstack/react-router';
-import { MantineProvider } from '@mantine/core';
+import { ColorSchemeScript, localStorageColorSchemeManager, mantineHtmlProps, MantineProvider } from '@mantine/core';
 import mantineStyles from '@mantine/core/styles.css?url';
 import styles from '../styles.css?url';
-import { ripolaTheme } from '../theme';
+import { ripolaCssVariables, ripolaTheme } from '../theme';
+import { COLOR_SCHEME_KEY, COLOR_SCHEME_MIGRATION_SCRIPT } from '../ui/color-scheme';
+
+const colorSchemeManager = localStorageColorSchemeManager({ key: COLOR_SCHEME_KEY });
 export const Route = createRootRoute({
   head: () => ({
     meta: [
@@ -19,8 +22,8 @@ export const Route = createRootRoute({
 });
 function Root() {
   const hydrated = useHydrated();
-  return <html lang="ja" data-mantine-color-scheme="light"><head><HeadContent /></head><body>
-    <MantineProvider theme={ripolaTheme} forceColorScheme="light">{hydrated ? <Outlet /> : <main className="boot">リーダーを準備しています…</main>}</MantineProvider>
+  return <html lang="ja" {...mantineHtmlProps}><head><HeadContent /><script dangerouslySetInnerHTML={{ __html: COLOR_SCHEME_MIGRATION_SCRIPT }} /><ColorSchemeScript defaultColorScheme="auto" localStorageKey={COLOR_SCHEME_KEY} /></head><body>
+    <MantineProvider theme={ripolaTheme} cssVariablesResolver={ripolaCssVariables} colorSchemeManager={colorSchemeManager} defaultColorScheme="auto">{hydrated ? <Outlet /> : <main className="boot">リーダーを準備しています…</main>}</MantineProvider>
     <Scripts />
   </body></html>;
 }

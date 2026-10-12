@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { durationMs, estimateSpeechSeconds, tokenBytes } from './text-budget';
+import { durationMs, SPEECH_DURATION_EPSILON_MS, tokenBytes } from './text-budget';
 export { estimateSpeechSeconds } from './text-budget';
 
 /** These are planning budgets. Measured audio duration is owned by the provider/cache. */
@@ -87,7 +87,7 @@ function fits(start: Point, end: Point, policy: ChunkPlannerPolicy): boolean {
     && (policy.hard.maxUtf16 === undefined || end.offset - start.offset <= policy.hard.maxUtf16)
     && (policy.hard.maxUtf8Bytes === undefined || end.bytes - start.bytes <= policy.hard.maxUtf8Bytes)
     && (policy.hard.maxTokenUpperBound === undefined || end.tokenBytes - start.tokenBytes + 1 <= policy.hard.maxTokenUpperBound)
-    && end.ms - start.ms <= policy.hard.maxEstimatedSeconds * 1000 + EPSILON;
+    && end.ms - start.ms <= policy.hard.maxEstimatedSeconds * 1000 + SPEECH_DURATION_EPSILON_MS;
 }
 
 function boundary(left: string, right: string, previous: PlannerBoundary, depth: number, quoteOpen: boolean): Pick<Point, 'boundary' | 'penalty' | 'beforeClosing'> {
