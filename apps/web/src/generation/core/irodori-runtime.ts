@@ -9,7 +9,7 @@ import { DEFAULT_IRODORI_SETTINGS, IRODORI_LIMITS, type IrodoriSettings } from '
 import { fileHash, IrodoriModelStore, type IrodoriVoice } from './irodori-model';
 import { wavDuration } from './providers';
 import { trackNativeProcess } from './native-processes';
-import { estimateSpeechSeconds, estimateTokenUpperBound } from './text-budget';
+import { estimateSpeechSeconds, estimateTokenUpperBound, SPEECH_DURATION_EPSILON_MS } from './text-budget';
 
 export async function detectSpeechExecutable(configured?: string): Promise<string | undefined> {
   if (configured && !isAbsolute(configured)) throw new Error('speech実行ファイルは絶対pathで指定してください。');
@@ -62,7 +62,7 @@ export async function nativeModel(endpoint: string, store: IrodoriModelStore): P
 export function validateIrodoriText(text: string, settings: IrodoriSettings): void {
   if (!text.trim()) throw new Error('Irodoriへ送る本文がありません。');
   if ([...text].length > IRODORI_LIMITS.maxCharacters || estimateTokenUpperBound(text) > IRODORI_LIMITS.maxTextTokens
-    || estimateSpeechSeconds(text) > IRODORI_LIMITS.maxAudioSeconds * .8 * settings.speed) {
+    || estimateSpeechSeconds(text) * 1000 > IRODORI_LIMITS.maxAudioSeconds * .8 * settings.speed * 1000 + SPEECH_DURATION_EPSILON_MS) {
     throw new Error('Irodoriの本文・推定時間の上限を超えています。自動分割で短く区切ってください。');
   }
 }

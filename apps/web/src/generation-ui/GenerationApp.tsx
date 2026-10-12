@@ -281,7 +281,7 @@ export function GenerationApp({ home }: { home?: HomeGenerationProps }) {
         </div>
         {provider !== 'irodori' && <details className="home-advanced-row"><summary>音声の区切りを調整する（任意）</summary>
           <Checkbox label="音声の区切りを自動調整する（実験）" checked={automaticChunking} disabled={Boolean(busy)} onChange={event => { setAutomaticChunking(event.currentTarget.checked); invalidate(true); }} />
-          <p className="muted">通常は文ごとに生成します。自動調整は短い文をまとめ、長い文を分けます。速度・聞きやすさの改善は評価中です。</p>
+          <p className="muted">通常は文ごとに生成します。自動調整は短い文をまとめ、長い文を分けます。実際の音声合成での速度・聞きやすさの改善は未検証です。</p>
         </details>}
         {provider === 'irodori' && <p className="muted">Irodoriは本文上限に合わせて短く自動分割します。推定時間で分けた後も、完成音声の長さを検査します。</p>}
         {provider === 'gemini' && <Select label="Geminiモデル" value={model} onChange={value => { if (value === GEMINI_MODELS[0] || value === GEMINI_MODELS[1]) { setModel(value); invalidate(true); } }} data={[{ value: GEMINI_MODELS[0], label: 'Flash-Lite · 既定' }, { value: GEMINI_MODELS[1], label: 'Flash' }]} allowDeselect={false} disabled={Boolean(busy)} />}
