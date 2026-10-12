@@ -269,6 +269,7 @@ test('display and silent speed persist across reload; reset keeps speed and save
   await page.getByLabel('まとめる', { exact: true }).selectOption('8');
   await page.getByRole('button', { name: '閉じる', exact: true }).click();
   await page.getByRole('button', { name: '端末に保存', exact: true }).click();
+  await expect(page.getByRole('status')).toContainText('保存しました');
   await page.reload();
   await page.getByRole('button', { name: '続きから開く', exact: true }).click();
   await expect(page.getByLabel('読む速さ（字/分）', { exact: true })).toHaveValue('900');
