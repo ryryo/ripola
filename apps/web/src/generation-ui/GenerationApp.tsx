@@ -7,6 +7,7 @@ import { GEMINI_MODELS, type GenerationConfig, type GenerationJob, type Generati
 import { MAX_INPUT_BYTES, MAX_TEXT_LENGTH, type ReadingDocument } from '../reader/model';
 import { processDraft, processText } from '../reader/text-service';
 import { cancelJob, getGenerationConfig, getJobPlan, listJobs, prepareGeneration, resumeJob, startGeneration } from './api';
+import { jobResumeMode } from '../generation/job-resume';
 import { mergeJobSnapshots } from './job-state';
 import { defaultVoicevoxVoice } from '../generation/default-voice';
 import { decodeAozoraHtml } from '../reader/aozora-import';
@@ -63,6 +64,7 @@ export function GenerationApp({ home }: { home?: HomeGenerationProps }) {
   const [provider, setProvider] = useState<GenerationOptions['provider']>('voicevox');
   const [irodori, setIrodori] = useState<IrodoriSettings>();
   const [irodoriBusy, setIrodoriBusy] = useState(false);
+  const [automaticChunking, setAutomaticChunking] = useState(false);
   const [voice, setVoice] = useState('');
   const [model, setModel] = useState<typeof GEMINI_MODELS[number]>(GEMINI_MODELS[0]);
   const [transport, setTransport] = useState<GenerationOptions['transport']>('direct');
@@ -182,7 +184,7 @@ export function GenerationApp({ home }: { home?: HomeGenerationProps }) {
       const prepared = source ? { ...source, title: resolveDocumentTitle(source.title) } : undefined;
       if (!home && prepared) setDocument(prepared);
       if (!prepared || id !== request.current) return;
-      const options: GenerationOptions = { provider, voice, transport, readings: parseReadings(readings), chunking: { mode: 'auto' }, ...(provider === 'gemini' ? { model, style: transport === 'direct' ? style : '' } : provider === 'irodori' ? { model: 'irodori-tts-mf' as const, irodori } : {}), ...(selected ? { selectedChunkIds: selected } : {}) };
+      const options: GenerationOptions = { provider, voice, transport, readings: parseReadings(readings), chunking: { mode: provider === 'irodori' || automaticChunking ? 'auto' : 'sentence' }, ...(provider === 'gemini' ? { model, style: transport === 'direct' ? style : '' } : provider === 'irodori' ? { model: 'irodori-tts-mf' as const, irodori } : {}), ...(selected ? { selectedChunkIds: selected } : {}) };
       const result = await prepareGeneration({ data: { document: prepared, options } });
       if (!mounted.current || id !== request.current) return;
       setPlan(result); if (!selected) setPreview(result);
@@ -205,8 +207,8 @@ export function GenerationApp({ home }: { home?: HomeGenerationProps }) {
 
   async function controlJob(action: 'cancel' | 'resume') {
     if (!job) return;
-    if (action === 'resume' && job.provider === 'gemini' && (!resumePlan || !resumeConfirmed || !resumePlan.available)) return;
-    setBusy(action === 'cancel' ? '停止を要求しています' : '未完了分を再開しています'); setError('');
+    if (action === 'resume' && jobResumeMode(job) !== 'publication' && job.provider === 'gemini' && (!resumePlan || !resumeConfirmed || !resumePlan.available)) return;
+    setBusy(action === 'cancel' ? '停止を要求しています' : jobResumeMode(job) === 'publication' ? '保存済み音声を公開しています' : '未完了分を再開しています'); setError('');
     try {
       const result = action === 'cancel' ? await cancelJob({ data: { jobId: job.id } }) : await resumeJob({ data: { jobId: job.id, paidConfirmed: resumeConfirmed } });
       setJobs(previous => [result, ...previous.filter(value => value.id !== result.id)]); setSelectedJob(result.id);
@@ -226,7 +228,7 @@ export function GenerationApp({ home }: { home?: HomeGenerationProps }) {
   const voices = voicesFor(config, provider);
   const chosenIds = selected ?? preview?.chunks.map(chunk => chunk.id) ?? [];
   const chunkPageCount = Math.ceil((preview?.chunks.length ?? 0) / 20);
-  const canResume = job && ['cancelled', 'failed', 'outcome-unknown'].includes(job.status) && job.chunks.some(chunk => ['pending', 'failed', 'audio-ready'].includes(chunk.status));
+  const resumeMode = job && jobResumeMode(job);
 
   const costReadings = useMemo(() => {
     try { return { values: parseReadings(readings), error: undefined }; }
@@ -278,6 +280,11 @@ export function GenerationApp({ home }: { home?: HomeGenerationProps }) {
           <p className="muted">{configState === 'error' ? '接続を再確認してください。' : config?.alignment?.automatic?.message ?? 'リポジトリのフォルダーで pnpm setup:audio を実行し、完了後 pnpm dev を起動してください。'}</p>
           {config?.alignment?.automatic?.status !== 'ready' && <p className="muted">セットアップはモデル約387 MBと専用Python環境を準備します。未準備の場合も音声は保存できますが、音声に基づく時刻の補正は使えません。</p>}
         </div>
+        {provider !== 'irodori' && <details className="home-advanced-row"><summary>音声の区切りを調整する（任意）</summary>
+          <Checkbox label="音声の区切りを自動調整する（実験）" checked={automaticChunking} disabled={Boolean(busy)} onChange={event => { setAutomaticChunking(event.currentTarget.checked); invalidate(true); }} />
+          <p className="muted">通常は文ごとに生成します。自動調整は短い文をまとめ、長い文を分けます。実際の音声合成での速度・聞きやすさの改善は未検証です。</p>
+        </details>}
+        {provider === 'irodori' && <p className="muted">Irodoriは本文上限に合わせて短く自動分割します。推定時間で分けた後も、完成音声の長さを検査します。</p>}
         {provider === 'gemini' && <Select label="Geminiモデル" value={model} onChange={value => { if (value === GEMINI_MODELS[0] || value === GEMINI_MODELS[1]) { setModel(value); invalidate(true); } }} data={[{ value: GEMINI_MODELS[0], label: 'Flash-Lite · 既定' }, { value: GEMINI_MODELS[1], label: 'Flash' }]} allowDeselect={false} disabled={Boolean(busy)} />}
 
         <Select label="声・スタイル" value={voice || null} data={(voices ?? []).map(value => ({ value: value.id, label: value.name }))} searchable allowDeselect={false} disabled={Boolean(busy) || configState !== 'ready' || !selectedProviderAvailable || !voices?.length} onChange={value => { if (value) { setVoice(value); invalidate(true); } }} placeholder="接続できる声を選択" />
@@ -319,7 +326,7 @@ export function GenerationApp({ home }: { home?: HomeGenerationProps }) {
                   : '一部の音声の圧縮を完了できませんでした。該当する元音声を保持しているため、再生できます。'}</p>}
           {job.error && <Alert color="yellow" mt="md">{job.error}</Alert>}
           {job.status === 'outcome-unknown' && <Alert color="yellow" mt="md">送信後の結果が不明な文は自動再送しません。追加課金を避けるため、別途確認が必要です。</Alert>}
-          <div className="generation-actions">{['queued', 'running'].includes(job.status) && <Button color="gray" variant="light" disabled={Boolean(busy)} onClick={() => void controlJob('cancel')}>ここで停止する</Button>}{canResume && <Button disabled={Boolean(busy)} onClick={() => { if (job.provider === 'gemini') void prepareResume(); else void controlJob('resume'); }}>{job.provider === 'gemini' ? '再開する対象と費用を確認' : '保存済み音声を使って未完了分を再開'}</Button>}{job.completedChunks > 0 && <Button component="a" href={`/library?book=${encodeURIComponent(job.bookId)}&revision=${encodeURIComponent(job.revision)}&job=${encodeURIComponent(job.id)}`} variant="light">保存音声を読む</Button>}</div>
+          <div className="generation-actions">{['queued', 'running'].includes(job.status) && <Button color="gray" variant="light" disabled={Boolean(busy)} onClick={() => void controlJob('cancel')}>ここで停止する</Button>}{resumeMode && <Button disabled={Boolean(busy)} onClick={() => { if (resumeMode === 'generate' && job.provider === 'gemini') void prepareResume(); else void controlJob('resume'); }}>{resumeMode === 'publication' ? '保存済み音声の公開を再試行' : job.provider === 'gemini' ? '再開する対象と費用を確認' : '保存済み音声を使って未完了分を再開'}</Button>}{job.completedChunks > 0 && <Button component="a" href={`/library?book=${encodeURIComponent(job.bookId)}&revision=${encodeURIComponent(job.revision)}&job=${encodeURIComponent(job.id)}`} variant="light">保存音声を読む</Button>}</div>
           {resumePlan && <div className="generation-resume"><h3>有料生成の再開前に確認</h3><p>{resumePlan.options.transport === 'gateway' ? 'Cloudflare AI Gateway' : 'Google課金'} · {resumePlan.options.model} · {resumePlan.endpoint}</p><p>{resumePlan.chunks.length}文 · 概算 ${resumePlan.estimatedOutputUsd.toFixed(4)} + 入力等</p><p className="muted">{resumePlan.estimateNote}</p><details><summary>再開時の正確な送信本文</summary><pre>{resumePlan.sendingText}</pre>{resumePlan.options.style && <p>読み上げ指示：{resumePlan.options.style}</p>}</details>{!resumePlan.available && <Alert color="yellow" mt="md">{resumePlan.unavailableReason}</Alert>}<Checkbox mt="md" checked={resumeConfirmed} disabled={Boolean(busy)} onChange={event => setResumeConfirmed(event.currentTarget.checked)} label="未完了分の送信先・本文・費用を確認し、有料生成を再開します。" /><Button mt="md" disabled={Boolean(busy) || !resumeConfirmed || !resumePlan.available} onClick={() => void controlJob('resume')}>確認した未完了分だけを有料生成する</Button></div>}
           <p className="muted">停止は以降の送信を止めます。送信中の処理や課金を取り消せるとは限りません。保存した音声は残り、再開時に再利用します。</p><details><summary>文ごとの状態</summary><ol>{job.chunks.map(chunk => <li key={chunk.id}>{CHUNK_STATUS[chunk.status]} {chunk.reused ? '· 再利用' : ''}{chunk.error ? ` · ${chunk.error}` : ''}</li>)}</ol></details>
         </>}

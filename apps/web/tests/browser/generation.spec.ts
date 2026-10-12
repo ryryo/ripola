@@ -99,6 +99,43 @@ test('有料モデルはLite既定・Flashだけ、Gatewayはサーバー未設�
   await expect(page.getByRole('button', { name: '確認した対象を有料生成する', exact: true })).toHaveCount(0);
 });
 
+test('通常の生成は文単位で、自動調整を明示選択すると計画を再確認する', async ({ page }) => {
+  await availableAudio(page);
+  const starts: string[] = [];
+  page.on('request', request => { const name = rpcName(request.url()); if (/^(startGeneration|resumeJob)/.test(name)) starts.push(name); });
+  await page.goto('/generate');
+  const automatic = page.getByRole('checkbox', { name: '音声の区切りを自動調整する（実験）', exact: true });
+  await expect(automatic).toBeHidden();
+  await page.getByText('音声の区切りを調整する（任意）', { exact: true }).click();
+  await expect(automatic).not.toBeChecked();
+  await expect(page.getByText('実際の音声合成での速度・聞きやすさの改善は未検証です。', { exact: false })).toBeVisible();
+  await page.getByRole('combobox', { name: '生成手段', exact: true }).click();
+  await page.getByRole('option', { name: '有料 · Gemini', exact: true }).click();
+  await expect(automatic).not.toBeChecked();
+  await page.getByLabel('原稿を貼り付け', { exact: true }).fill('朝です。窓を開く。最後です。');
+  await page.getByRole('button', { name: '本文を確認する', exact: true }).click();
+  const review = async (mode: 'sentence' | 'auto') => {
+    const response = page.waitForResponse(value => rpcName(value.url()).startsWith('prepareGeneration'));
+    await page.getByRole('button', { name: '生成計画を確認する', exact: true }).click();
+    const body: unknown = await (await response).json();
+    const options = encodedProperty(encodedProperty(body, 'result'), 'options');
+    expect(encodedProperty(encodedProperty(options, 'chunking'), 'mode')).toMatchObject({ s: mode });
+    await expect(page.getByRole('heading', { name: '4. 開始前に確認', exact: true })).toBeVisible();
+  };
+  await review('sentence');
+  await expect(page.locator('.chunk-selection').getByRole('checkbox')).toHaveCount(3);
+  await automatic.check();
+  await expect(page.locator('.generation-confirm')).toHaveCount(0);
+  await expect(page.locator('.chunk-selection')).toHaveCount(0);
+  await review('auto');
+  await expect(page.locator('.chunk-selection').getByRole('checkbox')).toHaveCount(1);
+  await automatic.uncheck();
+  await expect(page.locator('.generation-confirm')).toHaveCount(0);
+  await review('sentence');
+  await expect(page.locator('.chunk-selection').getByRole('checkbox')).toHaveCount(3);
+  expect(starts).toEqual([]);
+});
+
 function rpcName(url: string): string {
   const id = new URL(url).pathname.split('/_serverFn/')[1];
   if (!id) return '';
