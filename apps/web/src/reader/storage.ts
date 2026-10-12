@@ -67,6 +67,7 @@ function settings(value: unknown): value is ReaderSettings {
     && (value.groupMinimum === undefined || integer(value.groupMinimum, 0, 12))
     && (value.context === undefined || typeof value.context === 'boolean')
     && (value.writingMode === undefined || value.writingMode === 'horizontal-tb' || value.writingMode === 'vertical-rl')
+    && (value.readingPace === undefined || value.readingPace === 'legacy' || value.readingPace === 'text-load')
     && (value.mode === undefined || value.mode === 'flash' || value.mode === 'guide');
 }
 

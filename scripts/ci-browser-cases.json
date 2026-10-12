@@ -2090,5 +2090,157 @@
       "audio",
       "layout"
     ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "audio-quality.spec.ts",
+    "title": "保存音声QAを実local APIで保存・再検査し、元範囲と判定不能を確認する",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "generation"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "audio-quality.spec.ts",
+    "title": "保存音声QAを実local APIで保存・再検査し、元範囲と判定不能を確認する",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "generation"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "audio-prefetch.spec.ts",
+    "title": "次音声は切替前に取得し、source順とmedia時計を保って連続再生する",
+    "lane": "related",
+    "domains": [
+      "audio"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "audio-prefetch.spec.ts",
+    "title": "slow networkの先読みはseek・停止・book離脱で取消され、遅延音声を再生しない",
+    "lane": "related",
+    "domains": [
+      "audio"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "audio-prefetch.spec.ts",
+    "title": "次音声は切替前に取得し、source順とmedia時計を保って連続再生する",
+    "lane": "related",
+    "domains": [
+      "audio"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "audio-prefetch.spec.ts",
+    "title": "slow networkの先読みはseek・停止・book離脱で取消され、遅延音声を再生しない",
+    "lane": "related",
+    "domains": [
+      "audio"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "audio-prefetch.spec.ts",
+    "title": "旧AACの静的サンプルでmedia時計・倍速・明示seekを保つ",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "distribution"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "audio-prefetch.spec.ts",
+    "title": "旧AACの静的サンプルでmedia時計・倍速・明示seekを保つ",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "distribution"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "audio-prefetch.spec.ts",
+    "title": "未完了の先読みをactiveにするとnative音声へ引き渡し、pause・再seekでもsource時計を保つ",
+    "lane": "related",
+    "domains": [
+      "audio"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "audio-prefetch.spec.ts",
+    "title": "完成したactive blobはpause・再seek中も保持し、book離脱時に解放する",
+    "lane": "related",
+    "domains": [
+      "audio"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "audio-prefetch.spec.ts",
+    "title": "未完了の先読みをactiveにするとnative音声へ引き渡し、pause・再seekでもsource時計を保つ",
+    "lane": "related",
+    "domains": [
+      "audio"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "audio-prefetch.spec.ts",
+    "title": "完成したactive blobはpause・再seek中も保持し、book離脱時に解放する",
+    "lane": "related",
+    "domains": [
+      "audio"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "reading-options.spec.ts",
+    "title": "黙読ペース評価は同じ速度で比較でき、停止・seek・下限・保存復元が一致する",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "reading-options.spec.ts",
+    "title": "黙読評価の保存設定は音声のmedia時計・倍速・seekへ影響しない",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "reading-options.spec.ts",
+    "title": "黙読ペース評価は同じ速度で比較でき、停止・seek・下限・保存復元が一致する",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "reading-options.spec.ts",
+    "title": "黙読評価の保存設定は音声のmedia時計・倍速・seekへ影響しない",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
   }
 ]

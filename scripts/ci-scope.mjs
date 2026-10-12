@@ -20,6 +20,7 @@ export function classifyChanges(paths, { manual = false, uncertain = false } = {
     if (/^(?:\.github\/|package\.json$|pnpm-|playwright\.config\.ts$|eslint\.config\.js$|\.node-version$|\.gitignore$|\.env\.example$|LICENSE$|apps\/web\/(?:package\.json|tsconfig\.json|vite\.config\.ts|\.npmignore)$)/.test(path)) { add(...all()); python = true; }
     else if (/^docs\/licenses\//.test(path)) add('distribution');
     else if (/^docs\/validation\/fixtures\//.test(path)) add('import');
+    else if (/^docs\/development\/reading-pace\/(?:desktop|mobile)\.png$/.test(path)) add('layout');
     else if (/^apps\/web\/public\//.test(path)) add('distribution', 'layout', 'import', 'audio');
     else if (/^apps\/web\/tests\/browser\/[^/]+\.spec\.ts$/.test(path)) {
       const cases = browserCases.filter(item => path === `apps/web/tests/browser/${item.file}`);
@@ -37,7 +38,7 @@ export function classifyChanges(paths, { manual = false, uncertain = false } = {
     else if (/^apps\/web\/src\/reader\/pages-demo\.ts$/.test(path)) { /* Text fixture: the normal compiled Pages smoke covers it. */ }
     else if (/^apps\/web\/src\/reader\/(?:pdf-|text-|aozora-|segmentation|model|input-format)/.test(path)) add('import', 'layout');
     else if (/^apps\/web\/src\/reader\/(?:audio-|playback|storage|sentences|shortcuts|document-title)/.test(path)) add('audio', 'import', 'generation', 'layout');
-    else if (/^apps\/web\/src\/reader\/(?:preferences\.ts$|ui\/|display-groups|reading-fonts)/.test(path)) add('import', 'audio', 'layout');
+    else if (/^apps\/web\/src\/reader\/(?:preferences\.ts$|pace\.ts$|ui\/|display-groups|reading-fonts)/.test(path)) add('import', 'audio', 'layout');
     else if (/^apps\/web\/src\/(?:styles\.css|theme\.ts)$/.test(path)) add('layout');
     else if (/^apps\/web\/src\/(?:generation\/|generation-ui\/|server\/)/.test(path)) add('generation', 'audio', 'distribution');
     else if (/^apps\/web\/src\/(?:distribution|sharing|assets|ui)\//.test(path)) add('distribution', 'audio', 'layout');

@@ -25,6 +25,7 @@
     "test:e2e": "playwright test",
     "check": "pnpm typecheck && pnpm lint && pnpm test && pnpm build",
     "audit:audio": "node --import tsx scripts/audit-audio-presentation.ts",
+    "inspect:audio": "node --import tsx scripts/inspect-audio.ts",
     "test:ci-browser": "node scripts/ci-browser.mjs"
   },
   "devDependencies": {
