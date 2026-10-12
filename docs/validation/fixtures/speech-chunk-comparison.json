@@ -1,0 +1,301 @@
+{
+  "schemaVersion": 1,
+  "plannerVersion": "speech-chunk-dp-v1",
+  "measurement": "planner CPU only; estimated synthesis scenarios are not TTS measurements",
+  "scenario": {
+    "policy": {
+      "version": "fixture-voicevox-v1",
+      "hard": {
+        "maxCharacters": 3000,
+        "maxEstimatedSeconds": 45
+      },
+      "soft": {
+        "targetSeconds": 12,
+        "minimumSeconds": 4,
+        "preferredMaxSeconds": 18
+      },
+      "requestCost": 8,
+      "estimatedRequestOverheadSeconds": 0.5
+    },
+    "assumedRealTimeFactor": 1,
+    "fixedRequestOverheadSeconds": 0.5,
+    "samplesPerSide": 5,
+    "ordering": "AB/BA alternating, warmup excluded",
+    "serviceCache": "not used"
+  },
+  "conditions": {
+    "node": "v26.8.1",
+    "icu": "78.3",
+    "platform": "darwin",
+    "arch": "arm64",
+    "cpuCount": 8,
+    "loadAverageBefore": [
+      51.00390625,
+      42.30712890625,
+      35.0224609375
+    ],
+    "loadAverageAfter": [
+      46.50390625,
+      41.98291015625,
+      35.1181640625
+    ]
+  },
+  "cases": [
+    {
+      "id": "ordinary-paste",
+      "sourceUtf16Length": 79,
+      "legacy": {
+        "status": "plannable",
+        "skippedWhitespaceUtf16": 0,
+        "requests": 5,
+        "estimatedSpeechSeconds": 14.37,
+        "estimatedFixedOverheadSeconds": 2.5,
+        "estimatedSerialSynthesisSeconds": 16.869999999999997,
+        "cpu": {
+          "medianMs": 0.03991600000153994,
+          "minimumMs": 0.01333399999930407,
+          "maximumMs": 0.05420900000171969
+        }
+      },
+      "automatic": {
+        "status": "plannable",
+        "requests": 1,
+        "estimatedSpeechSeconds": 14.37,
+        "estimatedFixedOverheadSeconds": 0.5,
+        "estimatedSerialSynthesisSeconds": 14.87,
+        "cpu": {
+          "medianMs": 9.78020800000013,
+          "minimumMs": 1.1219590000000608,
+          "maximumMs": 68.52941600000122
+        },
+        "hash": "3a754bbb31f05fb4463469cdf494e2f7cfd6298c082308401b5a8ce6c1243328"
+      },
+      "coverage": "exact-ordered",
+      "errors": 0
+    },
+    {
+      "id": "many-short-sentences",
+      "sourceUtf16Length": 52,
+      "legacy": {
+        "status": "plannable",
+        "skippedWhitespaceUtf16": 0,
+        "requests": 12,
+        "estimatedSpeechSeconds": 10.999999999999998,
+        "estimatedFixedOverheadSeconds": 6,
+        "estimatedSerialSynthesisSeconds": 17,
+        "cpu": {
+          "medianMs": 0.047582999999576714,
+          "minimumMs": 0.03337499999906868,
+          "maximumMs": 0.07166700000016135
+        }
+      },
+      "automatic": {
+        "status": "plannable",
+        "requests": 1,
+        "estimatedSpeechSeconds": 11,
+        "estimatedFixedOverheadSeconds": 0.5,
+        "estimatedSerialSynthesisSeconds": 11.5,
+        "cpu": {
+          "medianMs": 2.2058340000003227,
+          "minimumMs": 0.627042000000074,
+          "maximumMs": 77.39825000000201
+        },
+        "hash": "7388bea34c3a641d8016b60a47d2fc58f14a4886a450b3688c570b01e48e6335"
+      },
+      "coverage": "exact-ordered",
+      "errors": 0
+    },
+    {
+      "id": "numbers-and-english",
+      "sourceUtf16Length": 186,
+      "legacy": {
+        "status": "plannable",
+        "skippedWhitespaceUtf16": 0,
+        "requests": 6,
+        "estimatedSpeechSeconds": 25.82,
+        "estimatedFixedOverheadSeconds": 3,
+        "estimatedSerialSynthesisSeconds": 28.82,
+        "cpu": {
+          "medianMs": 0.05729099999734899,
+          "minimumMs": 0.045208999999886146,
+          "maximumMs": 5.819833999998082
+        }
+      },
+      "automatic": {
+        "status": "plannable",
+        "requests": 1,
+        "estimatedSpeechSeconds": 25.86,
+        "estimatedFixedOverheadSeconds": 0.5,
+        "estimatedSerialSynthesisSeconds": 26.36,
+        "cpu": {
+          "medianMs": 33.095000000001164,
+          "minimumMs": 3.064750000001368,
+          "maximumMs": 88.12875000000349
+        },
+        "hash": "d355ef0e37b9dfbaaeb5fbbb5ecee332eb4d0c396b7ccafd02cc2d3c78338726"
+      },
+      "coverage": "exact-ordered",
+      "errors": 0
+    },
+    {
+      "id": "long-clause",
+      "sourceUtf16Length": 112,
+      "legacy": {
+        "status": "plannable",
+        "skippedWhitespaceUtf16": 0,
+        "requests": 1,
+        "estimatedSpeechSeconds": 19.29,
+        "estimatedFixedOverheadSeconds": 0.5,
+        "estimatedSerialSynthesisSeconds": 19.79,
+        "cpu": {
+          "medianMs": 0.02479200000016135,
+          "minimumMs": 0.019667000000481494,
+          "maximumMs": 0.0342499999969732
+        }
+      },
+      "automatic": {
+        "status": "plannable",
+        "requests": 1,
+        "estimatedSpeechSeconds": 19.29,
+        "estimatedFixedOverheadSeconds": 0.5,
+        "estimatedSerialSynthesisSeconds": 19.79,
+        "cpu": {
+          "medianMs": 1.1908330000005662,
+          "minimumMs": 0.6501250000001164,
+          "maximumMs": 63.28399999999965
+        },
+        "hash": "973be78978a517b50aacb2476fb0c62eb4c1e92894587465c63fc6dc4da2eacb"
+      },
+      "coverage": "exact-ordered",
+      "errors": 0
+    },
+    {
+      "id": "quotes-and-lines",
+      "sourceUtf16Length": 82,
+      "legacy": {
+        "status": "plannable",
+        "skippedWhitespaceUtf16": 2,
+        "requests": 5,
+        "estimatedSpeechSeconds": 12.82,
+        "estimatedFixedOverheadSeconds": 2.5,
+        "estimatedSerialSynthesisSeconds": 15.32,
+        "cpu": {
+          "medianMs": 0.030083000001468463,
+          "minimumMs": 0.013542000000597909,
+          "maximumMs": 0.11733400000230176
+        }
+      },
+      "automatic": {
+        "status": "plannable",
+        "requests": 1,
+        "estimatedSpeechSeconds": 14.22,
+        "estimatedFixedOverheadSeconds": 0.5,
+        "estimatedSerialSynthesisSeconds": 14.72,
+        "cpu": {
+          "medianMs": 2.3909999999996217,
+          "minimumMs": 0.7274579999975685,
+          "maximumMs": 3.254499999999098
+        },
+        "hash": "fec02fb656b8c2a54b7c8e38c665635f619d1ba7676b7257a607ec1e0677ea06"
+      },
+      "coverage": "exact-ordered",
+      "errors": 0
+    },
+    {
+      "id": "unicode",
+      "sourceUtf16Length": 79,
+      "legacy": {
+        "status": "plannable",
+        "skippedWhitespaceUtf16": 0,
+        "requests": 3,
+        "estimatedSpeechSeconds": 9.49,
+        "estimatedFixedOverheadSeconds": 1.5,
+        "estimatedSerialSynthesisSeconds": 10.99,
+        "cpu": {
+          "medianMs": 0.02295800000138115,
+          "minimumMs": 0.009041999997862149,
+          "maximumMs": 0.031957999999576714
+        }
+      },
+      "automatic": {
+        "status": "plannable",
+        "requests": 1,
+        "estimatedSpeechSeconds": 9.49,
+        "estimatedFixedOverheadSeconds": 0.5,
+        "estimatedSerialSynthesisSeconds": 9.99,
+        "cpu": {
+          "medianMs": 0.4107499999990978,
+          "minimumMs": 0.3431669999990845,
+          "maximumMs": 3.7797089999985474
+        },
+        "hash": "79377d2732758941cd5e00c52a594a818c1db630c7c98ce91a196e5336c8e7b1"
+      },
+      "coverage": "exact-ordered",
+      "errors": 0
+    },
+    {
+      "id": "no-punctuation",
+      "sourceUtf16Length": 4500,
+      "legacy": {
+        "status": "rejected-by-legacy-3000-utf16-limit",
+        "skippedWhitespaceUtf16": 0,
+        "requests": 1,
+        "estimatedSpeechSeconds": 765,
+        "estimatedFixedOverheadSeconds": 0.5,
+        "estimatedSerialSynthesisSeconds": 765.5,
+        "cpu": {
+          "medianMs": 0.11724999999933061,
+          "minimumMs": 0.08179100000052131,
+          "maximumMs": 0.4213339999987511
+        }
+      },
+      "automatic": {
+        "status": "plannable",
+        "requests": 33,
+        "estimatedSpeechSeconds": 765,
+        "estimatedFixedOverheadSeconds": 16.5,
+        "estimatedSerialSynthesisSeconds": 781.5,
+        "cpu": {
+          "medianMs": 418.294249999999,
+          "minimumMs": 277.47441600000093,
+          "maximumMs": 970.9097079999992
+        },
+        "hash": "0ffec47118b94a0d2fc35fa081c88d8960db5015cedb2e7c59d3ce7a4d50cf2d"
+      },
+      "coverage": "exact-ordered",
+      "errors": 0
+    },
+    {
+      "id": "long-ascii-token",
+      "sourceUtf16Length": 3421,
+      "legacy": {
+        "status": "rejected-by-legacy-3000-utf16-limit",
+        "skippedWhitespaceUtf16": 0,
+        "requests": 1,
+        "estimatedSpeechSeconds": 563.11,
+        "estimatedFixedOverheadSeconds": 0.5,
+        "estimatedSerialSynthesisSeconds": 563.61,
+        "cpu": {
+          "medianMs": 0.21941599999991013,
+          "minimumMs": 0.14970899999752874,
+          "maximumMs": 0.3376250000001164
+        }
+      },
+      "automatic": {
+        "status": "plannable",
+        "requests": 24,
+        "estimatedSpeechSeconds": 563.1100000000001,
+        "estimatedFixedOverheadSeconds": 12,
+        "estimatedSerialSynthesisSeconds": 575.1100000000001,
+        "cpu": {
+          "medianMs": 1252.6501250000001,
+          "minimumMs": 990.8635829999985,
+          "maximumMs": 1516.7686250000006
+        },
+        "hash": "67b39e2a85aca5b05721d5b5f7d6533b3aef024e8dea0caca936886b12d337a9"
+      },
+      "coverage": "exact-ordered",
+      "errors": 0
+    }
+  ]
+}

@@ -2,13 +2,14 @@ import { readFile } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
 import { loadGenerationConfig } from '../apps/web/src/generation/core/config.ts';
 import { GenerationService } from '../apps/web/src/generation/core/service.ts';
+import { automaticChunkPlanner } from '../apps/web/src/generation/core/automatic-chunk-planner.ts';
 import type { PrepareGenerationInput } from '../apps/web/src/generation/contracts.ts';
 import { getIrodoriController, type IrodoriController } from '../apps/web/src/generation/core/irodori-controller.ts';
 import { irodoriAdapter } from '../apps/web/src/generation/core/irodori-adapter.ts';
 
 async function execute(irodori: IrodoriController): Promise<void> {
   const [command, argument, ...flags] = process.argv.slice(2);
-  const service = new GenerationService(await loadGenerationConfig(), { providers: { irodori: irodoriAdapter(irodori) } });
+  const service = new GenerationService(await loadGenerationConfig(), { planChunks: automaticChunkPlanner, providers: { irodori: irodoriAdapter(irodori) } });
   await service.ready();
   if (flags.includes('--irodori-start')) {
     if (!['plan', 'start', 'resume'].includes(command)) throw new Error('--irodori-startはplan/start/resume時にだけ使えます。');
