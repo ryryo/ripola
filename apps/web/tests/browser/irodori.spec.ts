@@ -76,3 +76,132 @@ test('Irodori導入UIはmock進捗・取消し・検証・失敗再開を表示�
   expectedAction = 'stop'; await stop.click(); await expect(stop).toHaveCount(0);
   expect(actions).toEqual(['install', 'cancel', 'install', 'install', 'stop']);
 });
+
+test('Irodoriの起動待ちを取り消し、古い起動エラーを表示せず再試行できる', async ({ page }) => {
+  let runtime = 'stopped', template = '', action: 'start' | 'stop' | undefined;
+  let releaseStart: () => void = () => undefined;
+  const firstStart = new Promise<void>(resolve => { releaseStart = resolve; });
+  const actions: string[] = [];
+  await page.route('**/_serverFn/**', async route => {
+    if (route.request().method() === 'POST') {
+      const next = action; action = undefined;
+      if (!next || !template) { await route.abort('blockedbyclient'); throw new Error('Unexpected Irodori launch mutation'); }
+      actions.push(next); runtime = next === 'stop' ? 'stopped' : 'starting';
+      if (actions.length === 1) {
+        await firstStart;
+        await route.fulfill({ status: 500, body: 'cancelled old launch' }); return;
+      }
+      if (next === 'start') runtime = 'running';
+      await route.fulfill({ status: 200, contentType: 'application/json', body: template }); return;
+    }
+    const response = await route.fetch(); const body: unknown = await response.json(); const result = property(body, 'result');
+    if (property(result, 'downloadedBytes')) {
+      for (const [key, value] of Object.entries({ phase: 'ready', runtime, downloadedBytes: 1_920_321_792, executableAvailable: true, voiceAvailable: true, message: 'mock起動取消しの検査' })) {
+        const field = property(result, key); if (field) field.s = value;
+      }
+      template = JSON.stringify(body);
+    }
+    await route.fulfill({ response, json: body });
+  });
+  await page.goto('/generate'); await page.getByRole('combobox', { name: '生成手段', exact: true }).click();
+  await page.getByRole('option', { name: '任意追加 · Irodori（このPC）', exact: true }).click();
+  const panel = page.getByRole('region', { name: 'Irodoriの任意追加', exact: true });
+  const start = panel.getByRole('button', { name: 'このPCで起動', exact: true });
+  await expect(start).toBeEnabled(); action = 'start'; await start.click();
+  try {
+    const cancel = panel.getByRole('button', { name: 'Irodoriの起動を取り消す', exact: true });
+    await expect(cancel).toBeEnabled(); action = 'stop'; await cancel.click(); await expect(start).toBeEnabled();
+  } finally { releaseStart(); }
+  await expect(panel.getByRole('alert')).toHaveCount(0);
+  action = 'start'; await start.click();
+  await expect(panel.getByRole('button', { name: 'このPCのIrodoriを停止', exact: true })).toBeEnabled();
+  expect(actions).toEqual(['start', 'stop', 'start']);
+});
+
+for (const oldReply of ['running', 'error'] as const) {
+  test(`Irodoriの起動取消し後に古い状態GETの${oldReply === 'running' ? '実行中応答' : 'エラー'}を適用しない`, async ({ page }) => {
+    const clockStart = new Date();
+    await page.clock.install({ time: clockStart });
+    let runtime = 'stopped', template = '', action: 'start' | 'stop' | undefined;
+    let holdNextStatus = false, configRequests = 0, oldStatusUrl = '';
+    let releaseStart: () => void = () => undefined, releaseStatus: () => void = () => undefined, statusStarted: () => void = () => undefined;
+    const startReply = new Promise<void>(resolve => { releaseStart = resolve; });
+    const oldStatusReply = new Promise<void>(resolve => { releaseStatus = resolve; });
+    const oldStatusStarted = new Promise<void>(resolve => { statusStarted = resolve; });
+    const actions: string[] = [];
+    await page.route('**/_serverFn/**', async route => {
+      if (route.request().method() === 'POST') {
+        const next = action; action = undefined;
+        if (!next || !template) { await route.abort('blockedbyclient'); throw new Error('Unexpected Irodori launch mutation'); }
+        actions.push(next); runtime = next === 'stop' ? 'stopped' : 'starting';
+        if (next === 'start') await startReply;
+        await route.fulfill({ status: 200, contentType: 'application/json', body: template }); return;
+      }
+      const response = await route.fetch(); const body: unknown = await response.json(); const result = property(body, 'result');
+      if (property(result, 'voicevox')) configRequests++;
+      if (!property(result, 'downloadedBytes')) { await route.fulfill({ response, json: body }); return; }
+      const oldStatus = holdNextStatus; holdNextStatus = false;
+      for (const [key, value] of Object.entries({ phase: 'ready', runtime: oldStatus ? 'running' : runtime, downloadedBytes: 1_920_321_792, executableAvailable: true, voiceAvailable: true, message: oldStatus ? '古い起動後の状態' : runtime === 'stopped' ? '停止を確認しました' : '起動待ちを確認しました' })) {
+        const field = property(result, key); if (field) field.s = value;
+      }
+      if (oldStatus) {
+        oldStatusUrl = route.request().url(); statusStarted();
+        await oldStatusReply;
+        if (oldReply === 'error') { await route.fulfill({ status: 500, body: 'old status GET failed' }); return; }
+      } else template = JSON.stringify(body);
+      await route.fulfill({ response, json: body });
+    });
+    await page.goto('/generate'); await page.getByRole('combobox', { name: '生成手段', exact: true }).click();
+    await page.getByRole('option', { name: '任意追加 · Irodori（このPC）', exact: true }).click();
+    const panel = page.getByRole('region', { name: 'Irodoriの任意追加', exact: true });
+    const start = panel.getByRole('button', { name: 'このPCで起動', exact: true });
+    await expect(start).toBeEnabled();
+    await page.clock.pauseAt(new Date(clockStart.getTime() + 60_000));
+    const initialConfigRequests = configRequests;
+    action = 'start'; await start.click();
+    try {
+      await page.clock.runFor(1000);
+      const cancel = panel.getByRole('button', { name: 'Irodoriの起動を取り消す', exact: true });
+      await expect(cancel).toBeEnabled();
+      holdNextStatus = true; releaseStart(); await oldStatusStarted;
+      action = 'stop'; await cancel.click();
+      await expect(start).toBeEnabled(); await expect(panel).toContainText('停止を確認しました');
+      await expect.poll(() => configRequests).toBe(initialConfigRequests + 1);
+      const oldResponse = page.waitForResponse(response => response.url() === oldStatusUrl && response.request().method() === 'GET');
+      releaseStatus(); await (await oldResponse).finished(); await page.clock.runFor(1);
+      await expect(start).toBeEnabled(); await expect(panel).toContainText('停止を確認しました');
+      await expect(panel.getByRole('alert')).toHaveCount(0);
+      expect(configRequests).toBe(initialConfigRequests + 1);
+      expect(actions).toEqual(['start', 'stop']);
+    } finally { releaseStart(); releaseStatus(); }
+  });
+}
+
+test('Irodoriの遅い状態取得はpollを重ねず完了した状態を表示する', async ({ page }) => {
+  const clockStart = new Date();
+  await page.clock.install({ time: clockStart });
+  let statusRequests = 0;
+  let releaseStatus: () => void = () => undefined, statusStarted: () => void = () => undefined;
+  const statusReply = new Promise<void>(resolve => { releaseStatus = resolve; });
+  const pendingStatus = new Promise<void>(resolve => { statusStarted = resolve; });
+  await page.route('**/_serverFn/**', async route => {
+    if (route.request().method() === 'POST') { await route.abort('blockedbyclient'); throw new Error('Unexpected mutation while polling Irodori status'); }
+    const response = await route.fetch(); const body: unknown = await response.json(); const result = property(body, 'result');
+    if (property(result, 'downloadedBytes')) {
+      statusRequests++;
+      const field = property(result, 'message'); if (field) field.s = '遅い状態取得が完了しました';
+      statusStarted(); await statusReply;
+    }
+    await route.fulfill({ response, json: body });
+  });
+  await page.goto('/generate'); await page.getByRole('combobox', { name: '生成手段', exact: true }).click();
+  await page.getByRole('option', { name: '任意追加 · Irodori（このPC）', exact: true }).click();
+  const panel = page.getByRole('region', { name: 'Irodoriの任意追加', exact: true });
+  await pendingStatus; await page.clock.pauseAt(new Date(clockStart.getTime() + 60_000));
+  try {
+    await page.clock.runFor(3000);
+    expect(statusRequests).toBe(1);
+    releaseStatus();
+    await expect(panel).toContainText('遅い状態取得が完了しました');
+  } finally { releaseStatus(); }
+});

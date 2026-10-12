@@ -57,7 +57,7 @@ pnpm exec tsx scripts/setup-irodori.ts register-voice \
 
 MFの既定は4 MeanFlow stepsです。stepsを減らすことは計算回数の変更で、F16モデルの保存容量を小さくする操作とは別です。速度、steps、seed、任意の指示、モデル・voiceのchecksum、native実行ファイルとモデル情報をfingerprintに含め、変更した条件のcacheを区別します。モデル・voice・設定が変わった計画は見直してください。完成音声を表示・整列・圧縮の変更だけで再合成しません。
 
-上流の上限は1回256 tokens・30秒で、MFは長い文の途中に発音の乱れが出ることがあります。Ripolaは推奨90文字を能力情報としてplannerへ渡します。90文字は分割の目安で、モデルの固定上限ではありません。正確なtoken数はnative tokenizerが判断し、音声の上限は速度と原稿にも左右されます。上限で切れた出力や30秒を超える出力を完成扱いにしません。planner担当の分割機能を統合すると、元位置・ルビを保って短いchunkへ計画できます。辞書登録は利用の前提ではありません。
+上流の上限は1回256 tokens・30秒で、MFは長い文の途中に発音の乱れが出ることがあります。Ripola側では1回90文字、正規化後のbyte fallbackを含む256 token予算、速度に応じた推定時間予算で送信前に制限します。90文字はアプリ側の制限で、モデルの固定上限ではありません。正確なtoken数はnative tokenizerが判断し、音声の上限は速度と原稿にも左右されます。上限で切れた出力や30秒を超える出力を完成扱いにしません。Irodoriでは自動分割と組み合わせ、元位置を保って短いchunkへ計画します。推定時間は実測時間ではなく、正確なnative token数・音質・速度は実モデルで確認する必要があります。辞書登録は利用の前提ではありません。
 
 Ripolaは[HTTP API](https://github.com/nyosegawa/speech.cpp/blob/60a8e1ec068280e5e803ee5d7079e90886c323cb/docs/server.md)の`POST /v1/audio/speech`へ送信します。固定voiceとWAV形式を要求し、完了header、PCM形式・容量・長さ・全無音を検査して、既存のWAV保存→alignment→MP3→静的配布へ接続します。これは声の自然さ・読みの正確さの保証ではありません。合成取消しはHTTP接続をabortし、nativeも停止します。取得取消しと合成取消しは別です。
 

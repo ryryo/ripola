@@ -2098,5 +2098,83 @@
       "audio",
       "generation"
     ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "irodori.spec.ts",
+    "title": "Irodoriの起動待ちを取り消し、古い起動エラーを表示せず再試行できる",
+    "lane": "related",
+    "domains": [
+      "generation"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "irodori.spec.ts",
+    "title": "Irodoriの起動待ちを取り消し、古い起動エラーを表示せず再試行できる",
+    "lane": "related",
+    "domains": [
+      "generation"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "irodori.spec.ts",
+    "title": "Irodoriの起動取消し後に古い状態GETの実行中応答を適用しない",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "generation"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "irodori.spec.ts",
+    "title": "Irodoriの起動取消し後に古い状態GETのエラーを適用しない",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "generation"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "irodori.spec.ts",
+    "title": "Irodoriの遅い状態取得はpollを重ねず完了した状態を表示する",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "generation"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "irodori.spec.ts",
+    "title": "Irodoriの起動取消し後に古い状態GETの実行中応答を適用しない",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "generation"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "irodori.spec.ts",
+    "title": "Irodoriの起動取消し後に古い状態GETのエラーを適用しない",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "generation"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "irodori.spec.ts",
+    "title": "Irodoriの遅い状態取得はpollを重ねず完了した状態を表示する",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "generation"
+    ]
   }
 ]

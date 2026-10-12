@@ -8,6 +8,8 @@ import { createHash } from 'node:crypto';
 import { DEFAULT_IRODORI_SETTINGS, IRODORI_LIMITS, type IrodoriSettings } from '../irodori-contracts';
 import { fileHash, IrodoriModelStore, type IrodoriVoice } from './irodori-model';
 import { wavDuration } from './providers';
+import { trackNativeProcess } from './native-processes';
+import { estimateSpeechSeconds, estimateTokenUpperBound, SPEECH_DURATION_EPSILON_MS } from './text-budget';
 
 export async function detectSpeechExecutable(configured?: string): Promise<string | undefined> {
   if (configured && !isAbsolute(configured)) throw new Error('speech実行ファイルは絶対pathで指定してください。');
@@ -57,12 +59,20 @@ export async function nativeModel(endpoint: string, store: IrodoriModelStore): P
   return model;
 }
 
+export function validateIrodoriText(text: string, settings: IrodoriSettings): void {
+  if (!text.trim()) throw new Error('Irodoriへ送る本文がありません。');
+  if ([...text].length > IRODORI_LIMITS.maxCharacters || estimateTokenUpperBound(text) > IRODORI_LIMITS.maxTextTokens
+    || estimateSpeechSeconds(text) * 1000 > IRODORI_LIMITS.maxAudioSeconds * .8 * settings.speed * 1000 + SPEECH_DURATION_EPSILON_MS) {
+    throw new Error('Irodoriの本文・推定時間の上限を超えています。自動分割で短く区切ってください。');
+  }
+}
+
 /** Sends the actual documented HTTP request. Abort disconnects the native request. */
 export async function synthesizeIrodori(session: NativeSession, text: string, settings: IrodoriSettings, signal?: AbortSignal): Promise<Uint8Array> {
   const endpoint = localEndpoint(session.endpoint);
   const normalized = irodoriSettings(settings);
   if (session.voice !== 'ripola' || !/^[a-f0-9]{64}$/.test(session.voiceHash)) throw new Error('固定voiceがありません。チャンクごとに声が変わる可能性があるため生成を開始できません。');
-  if (!text.trim()) throw new Error('Irodoriへ送る本文がありません。');
+  validateIrodoriText(text, normalized);
   const response = await fetch(`${endpoint}/v1/audio/speech`, { method: 'POST', redirect: 'error', signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(120_000)]) : AbortSignal.timeout(120_000),
     headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ model: session.model.id, input: text, voice: session.voice, response_format: 'wav', language: 'ja', ...normalized }) });
   if (!response.ok) { await response.body?.cancel(); throw new Error(`Irodori合成が失敗しました（HTTP ${response.status}）。長さとruntimeを確認してください。`); }
@@ -91,15 +101,7 @@ export class IrodoriRuntime {
   private starting?: Promise<void>;
   private launchController?: AbortController;
   private state: 'stopped' | 'starting' | 'running' | 'failed' = 'stopped';
-  private shutdown = () => { this.child?.kill('SIGTERM'); };
-  private signalShutdown = (signal: NodeJS.Signals) => {
-    this.shutdown(); this.removeShutdownListeners();
-    // Preserve existing server handlers; restore Node's default only when we added the sole handler.
-    if (process.listenerCount(signal) === 0) process.kill(process.pid, signal);
-  };
-  private removeShutdownListeners() {
-    process.off('exit', this.shutdown); process.off('SIGINT', this.signalShutdown); process.off('SIGTERM', this.signalShutdown);
-  }
+  private unregisterChild?: () => void;
   constructor(readonly store: IrodoriModelStore, readonly executable?: string) {}
   get status() { return this.state; }
   current(): NativeSession {
@@ -127,7 +129,7 @@ export class IrodoriRuntime {
       const child = spawn(executable, ['serve', this.store.modelPath, '--add-voice', `ripola=${voice.path}`, '--host', '127.0.0.1', '--port', '0'], {
         shell: false, stdio: ['ignore', 'ignore', 'pipe'], env: { PATH: process.env.PATH ?? '', HOME: homedir(), LANG: 'en_US.UTF-8' },
       });
-      this.child = child; process.once('exit', this.shutdown); process.once('SIGINT', this.signalShutdown); process.once('SIGTERM', this.signalShutdown);
+      this.child = child; this.unregisterChild = trackNativeProcess(child);
       const endpoint = await new Promise<string>((resolve, reject) => {
         let tail = ''; const timer = setTimeout(() => { cleanup(); reject(new Error('Irodori runtimeの起動が時間内に完了しませんでした。')); }, 120_000);
         const cleanup = () => { clearTimeout(timer); child.stderr?.off('data', data); child.off('error', error); child.off('exit', exited); };
@@ -138,7 +140,7 @@ export class IrodoriRuntime {
       });
       child.stderr?.resume();
       child.on('error', () => { this.state = 'failed'; this.session = undefined; });
-      child.once('exit', () => { this.removeShutdownListeners(); if (this.child === child) { this.child = undefined; this.session = undefined; if (this.state !== 'stopped') this.state = 'failed'; } });
+      child.once('exit', () => { if (this.child === child) { this.child = undefined; this.session = undefined; if (this.state !== 'stopped') this.state = 'failed'; } });
       const model = await nativeModel(endpoint, this.store);
       controller.signal.throwIfAborted();
       if (this.child !== child || child.exitCode !== null || child.signalCode !== null) throw new Error('Irodori runtimeが起動確認中に終了しました。');
@@ -155,6 +157,6 @@ export class IrodoriRuntime {
       for (let attempt = 0; attempt < 40 && child.exitCode === null && child.signalCode === null; attempt++) await pause(50);
       if (child.exitCode === null && child.signalCode === null) { child.kill('SIGKILL'); await new Promise<void>(resolve => child.once('exit', () => resolve())); }
     }
-    this.removeShutdownListeners(); this.child = undefined;
+    this.unregisterChild?.(); this.unregisterChild = undefined; this.child = undefined;
   }
 }

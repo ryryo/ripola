@@ -13,12 +13,13 @@ import { prepareDocument } from '../src/reader/segmentation';
 import { importText } from '../src/reader/text-import';
 import { IrodoriController } from '../src/generation/core/irodori-controller';
 import { irodoriAdapter } from '../src/generation/core/irodori-adapter';
+import { automaticChunkPlanner } from '../src/generation/core/automatic-chunk-planner';
 import { GenerationService, type ServiceDependencies } from '../src/generation/core/service';
 import type { AlignmentAdapter } from '../src/generation/core/alignment-adapter';
 import { wavDuration } from '../src/generation/core/providers';
 import { stageLibrary } from '../../../scripts/stage-library';
 import { IrodoriModelStore, type ModelSpec } from '../src/generation/core/irodori-model';
-import { detectSpeechExecutable, irodoriFingerprint, IrodoriRuntime, irodoriSettings, synthesizeIrodori, type NativeSession } from '../src/generation/core/irodori-runtime';
+import { detectSpeechExecutable, irodoriFingerprint, IrodoriRuntime, irodoriSettings, synthesizeIrodori, validateIrodoriText, type NativeSession } from '../src/generation/core/irodori-runtime';
 
 const modelBytes = Buffer.from('GGUFfixture-model');
 const spec: ModelSpec = { id: 'fixture-mf', repository: 'fixture/repo', revision: 'a'.repeat(40), filename: 'fixture.gguf', bytes: modelBytes.length, sha256: createHash('sha256').update(modelBytes).digest('hex') };
@@ -138,17 +139,20 @@ test('native HTTP sends MF settings and receives validated WAV bytes', async t =
   assert.deepEqual(result, wav()); assert.deepEqual(body, { model: 'Irodori-TTS-866M-MF-v4.1', input: '図書館で本を開きます。', voice: 'ripola', response_format: 'wav', language: 'ja', steps: 4, speed: 1, seed: 42, instructions: '' });
 });
 
-test('90 character planning recommendation does not reject valid native speech', async t => {
+test('Irodori planning applies the application text ceiling before synthesis', async t => {
   let sent = '';
   const { adapter } = await serviceFixture(t, (req, res) => {
     let raw = ''; req.on('data', chunk => { raw += chunk; });
     req.on('end', () => { sent = (JSON.parse(raw) as { input: string }).input; sendWav(res); });
   });
-  assert.equal(adapter.capabilities?.maxCharacters, undefined);
+  assert.equal(adapter.capabilities?.maxCharacters, 90);
   const text = '朝の図書館で本を開きます。'.repeat(8);
   assert.ok([...text].length > 90);
-  const result = await adapter.synthesize({ text, options, providerVersion: await adapter.fingerprint!(options) }, async () => undefined);
-  assert.equal(sent, text); assert.deepEqual(result, wav());
+  await assert.rejects(adapter.synthesize({ text, options, providerVersion: await adapter.fingerprint!(options) }, async () => undefined), /上限/);
+  assert.equal(sent, '');
+  const short = '朝の図書館で本を開きます。';
+  const result = await adapter.synthesize({ text: short, options, providerVersion: await adapter.fingerprint!(options) }, async () => undefined);
+  assert.equal(sent, short); assert.deepEqual(result, wav());
 });
 
 test('abort during native synthesis disconnects the request and returns no partial WAV', async t => {
@@ -191,7 +195,7 @@ test('owned mock speech process starts from absolute local files and stops clean
 });
 
 const options: GenerationOptions = { provider: 'irodori', voice: 'ripola', transport: 'direct', readings: [], irodori: { ...DEFAULT_IRODORI_SETTINGS } };
-async function serviceFixture(t: TestContext, listener: (req: IncomingMessage, res: ServerResponse) => void, dependencies: Pick<ServiceDependencies, 'alignment'> = {}, automaticCompression = false) {
+async function serviceFixture(t: TestContext, listener: (req: IncomingMessage, res: ServerResponse) => void, dependencies: Pick<ServiceDependencies, 'alignment' | 'planChunks'> = {}, automaticCompression = false) {
   const directory = await temporary(t); const store = new IrodoriModelStore(directory, spec, async () => new Response(modelBytes)); await store.install();
   const path = join(directory, 'authorized.voice.gguf'); await writeFile(path, 'GGUFvoice-fixture');
   await store.registerVoice({ path, label: 'self fixture', source: 'self fixture', license: 'test-only', attribution: 'Ripola fixture', rightsConfirmed: true });
@@ -226,6 +230,27 @@ test('actual Irodori adapter integrates WAV persistence, ruby, reusable cache an
   const stale = await service.startGeneration({ planId: changed.id, planHash: changed.hash, operationId: 'irodori-stale', paidConfirmed: false }).catch(error => { assert.match(error.message, /変更|計画/); return undefined; });
   if (stale) assert.equal((await service.waitForJob(stale.id)).status, 'failed');
   assert.equal(requests.length, 2);
+});
+
+test('automatic Irodori chunks validate at a fractional speed boundary', async t => {
+  const { service } = await serviceFixture(t, (_req, res) => sendWav(res), { planChunks: automaticChunkPlanner });
+  const settings = { ...DEFAULT_IRODORI_SETTINGS, speed: .3 };
+  const document = await prepareDocument(importText('A'.repeat(90), 'txt', 'fractional boundary'));
+  const plan = await service.prepareGeneration({ document, options: { ...options, chunking: { mode: 'auto' }, irodori: settings } });
+  assert.equal(plan.chunks.length, 1);
+  assert.equal(plan.chunks[0].spokenText.length, 90);
+  for (const chunk of plan.chunks) assert.doesNotThrow(() => validateIrodoriText(chunk.spokenText, settings));
+});
+
+test('Irodori rejects oversized or too-slow text before HTTP and before recording a send', async t => {
+  let sends = 0, reservations = 0;
+  const { adapter } = await serviceFixture(t, (_req, res) => { sends++; sendWav(res); });
+  for (const [text, speed] of [['あ'.repeat(91), 1], ['𠮷'.repeat(64), 1], ['あ'.repeat(40), .25]] as const) {
+    const boundedOptions = { ...options, irodori: { ...DEFAULT_IRODORI_SETTINGS, speed } };
+    const providerVersion = await adapter.fingerprint!(boundedOptions);
+    await assert.rejects(adapter.synthesize({ text, options: boundedOptions, providerVersion }, async () => { reservations++; }), /上限|短く/);
+  }
+  assert.equal(sends, 0); assert.equal(reservations, 0);
 });
 
 const codecsAvailable = ['ffmpeg', 'ffprobe'].every(binary => spawnSync(binary, ['-version'], { stdio: 'ignore' }).status === 0);
