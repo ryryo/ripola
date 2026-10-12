@@ -349,10 +349,6 @@ export function ReaderApp() {
             <div className="secondary-controls"><Button variant="subtle" onClick={openSource}>原文</Button><Button variant="subtle" onClick={openSettings}>表示設定</Button><Button variant="subtle" onClick={() => void save()} loading={saving} disabled={font.busy}>端末に保存</Button></div>
           </div>
           <p className="keyboard-hint">Space 再生／一時停止 · ← → フレーズ · Shift＋← → 文 · ↑ ↓ 速さ · Home / End</p><ShortcutHelp />
-          <details className="shortcut-help" onToggle={() => controller.pause()}>
-            <summary>黙読ペースを比較（{settings.readingPace === 'text-load' ? '評価' : '従来'}）</summary>
-            <ReadingPaceControls value={settings.readingPace} summary={controller.getTimingSummary()} onChange={readingPace => { controller.pause(); update({ readingPace }); }} />
-          </details>
           <p className="reader-note">まずは400文字/分から。研究を参考にした控えめな初期値です。読みやすさや内容に合わせて調整してください。</p>
           <AozoraInfo value={document.provenance} />
         </NavigationLayout>}
