@@ -9,8 +9,8 @@ test('通常読書の上下ガイドは文字サイズ・ruby・再生停止に�
     for (const ruby of [true, false]) {
       await page.getByRole('button', { name: '表示設定', exact: true }).click();
       await page.getByLabel('文字サイズ', { exact: true }).fill(fontSize);
-      await page.getByRole('switch', { name: 'ルビを表示', exact: true }).setChecked(ruby);
       await page.getByRole('button', { name: '閉じる', exact: true }).click();
+      await page.getByRole('switch', { name: 'ルビを表示', exact: true }).setChecked(ruby);
       const paused = await inspectGuides(page, '[data-testid="reader-stage"]');
       expect(paused.guides).toBe(2); expect(paused.overlap).toBe(false); expect(paused.minimumGap).toBeGreaterThan(2);
       await page.getByRole('button', { name: '再生', exact: true }).click();
