@@ -244,30 +244,6 @@
   },
   {
     "project": "desktop-chromium",
-    "file": "creation-options.spec.ts",
-    "title": "音声サンプル irodori-male は1クリックで開き、戻る・連打でも生成しない",
-    "lane": "related",
-    "domains": [
-      "generation",
-      "import",
-      "distribution",
-      "layout"
-    ]
-  },
-  {
-    "project": "desktop-chromium",
-    "file": "creation-options.spec.ts",
-    "title": "音声サンプル irodori-female は1クリックで開き、戻る・連打でも生成しない",
-    "lane": "related",
-    "domains": [
-      "generation",
-      "import",
-      "distribution",
-      "layout"
-    ]
-  },
-  {
-    "project": "desktop-chromium",
     "file": "generation.spec.ts",
     "title": "C ignores an older delayed configuration after closing and reopening audio settings",
     "lane": "related",
@@ -291,18 +267,6 @@
     "lane": "related",
     "domains": [
       "generation"
-    ]
-  },
-  {
-    "project": "desktop-chromium",
-    "file": "creation-options.spec.ts",
-    "title": "音声サンプルはTab・Shift+TabとEnterで5種類を直接開ける",
-    "lane": "related",
-    "domains": [
-      "generation",
-      "import",
-      "distribution",
-      "layout"
     ]
   },
   {
@@ -942,30 +906,6 @@
   },
   {
     "project": "mobile-chromium",
-    "file": "creation-options.spec.ts",
-    "title": "音声サンプル irodori-male は1クリックで開き、戻る・連打でも生成しない",
-    "lane": "manual_full",
-    "domains": [
-      "generation",
-      "import",
-      "distribution",
-      "layout"
-    ]
-  },
-  {
-    "project": "mobile-chromium",
-    "file": "creation-options.spec.ts",
-    "title": "音声サンプル irodori-female は1クリックで開き、戻る・連打でも生成しない",
-    "lane": "manual_full",
-    "domains": [
-      "generation",
-      "import",
-      "distribution",
-      "layout"
-    ]
-  },
-  {
-    "project": "mobile-chromium",
     "file": "generation.spec.ts",
     "title": "C ignores an older delayed configuration after closing and reopening audio settings",
     "lane": "manual_full",
@@ -980,18 +920,6 @@
     "lane": "manual_full",
     "domains": [
       "generation"
-    ]
-  },
-  {
-    "project": "mobile-chromium",
-    "file": "creation-options.spec.ts",
-    "title": "音声サンプルはTab・Shift+TabとEnterで5種類を直接開ける",
-    "lane": "manual_full",
-    "domains": [
-      "generation",
-      "import",
-      "distribution",
-      "layout"
     ]
   },
   {
@@ -1605,6 +1533,42 @@
   },
   {
     "project": "desktop-chromium",
+    "file": "irodori.spec.ts",
+    "title": "Irodori未導入は容量と追加入口を示し通常利用では取得しない",
+    "lane": "related",
+    "domains": [
+      "audio"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "irodori.spec.ts",
+    "title": "Irodori未導入は容量と追加入口を示し通常利用では取得しない",
+    "lane": "manual_full",
+    "domains": [
+      "audio"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "irodori.spec.ts",
+    "title": "Irodori導入UIはmock進捗・取消し・検証・失敗再開を表示する",
+    "lane": "manual_full",
+    "domains": [
+      "audio"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "irodori.spec.ts",
+    "title": "Irodori導入UIはmock進捗・取消し・検証・失敗再開を表示する",
+    "lane": "manual_full",
+    "domains": [
+      "audio"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
     "file": "audio-sentences.spec.ts",
     "title": "三文が一音声でも前後ボタン・Shift矢印・文一覧は原文の文単位で移動する",
     "lane": "related",
@@ -1660,6 +1624,24 @@
     "lane": "related",
     "domains": [
       "audio",
+      "generation"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "irodori.spec.ts",
+    "title": "Irodoriの起動待ちを取り消し、古い起動エラーを表示せず再試行できる",
+    "lane": "related",
+    "domains": [
+      "generation"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "irodori.spec.ts",
+    "title": "Irodoriの起動待ちを取り消し、古い起動エラーを表示せず再試行できる",
+    "lane": "related",
+    "domains": [
       "generation"
     ]
   },
@@ -1782,6 +1764,198 @@
     "domains": [
       "audio",
       "import",
+      "layout"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "irodori.spec.ts",
+    "title": "Irodoriの起動取消し後に古い状態GETの実行中応答を適用しない",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "generation"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "irodori.spec.ts",
+    "title": "Irodoriの起動取消し後に古い状態GETのエラーを適用しない",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "generation"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "irodori.spec.ts",
+    "title": "Irodoriの遅い状態取得はpollを重ねず完了した状態を表示する",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "generation"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "irodori.spec.ts",
+    "title": "Irodoriの起動取消し後に古い状態GETの実行中応答を適用しない",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "generation"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "irodori.spec.ts",
+    "title": "Irodoriの起動取消し後に古い状態GETのエラーを適用しない",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "generation"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "irodori.spec.ts",
+    "title": "Irodoriの遅い状態取得はpollを重ねず完了した状態を表示する",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "generation"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "irodori.spec.ts",
+    "title": "Irodoriの設定保存後に古い初期設定GETの成功応答で設定と計画を戻さない",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "generation"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "irodori.spec.ts",
+    "title": "Irodoriの設定保存後に古い初期設定GETのエラーを表示しない",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "generation"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "irodori.spec.ts",
+    "title": "Irodoriの古い設定保存完了は停止と再表示後の設定を次の計画へ戻さない",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "generation"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "irodori.spec.ts",
+    "title": "Irodoriの設定保存後に古い初期設定GETの成功応答で設定と計画を戻さない",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "generation"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "irodori.spec.ts",
+    "title": "Irodoriの設定保存後に古い初期設定GETのエラーを表示しない",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "generation"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "irodori.spec.ts",
+    "title": "Irodoriの古い設定保存完了は停止と再表示後の設定を次の計画へ戻さない",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "generation"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "creation-options.spec.ts",
+    "title": "音声サンプル irodori-male は1クリックで開き、戻る・連打でも生成しない",
+    "lane": "related",
+    "domains": [
+      "generation",
+      "import",
+      "distribution",
+      "layout"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "creation-options.spec.ts",
+    "title": "音声サンプル irodori-female は1クリックで開き、戻る・連打でも生成しない",
+    "lane": "related",
+    "domains": [
+      "generation",
+      "import",
+      "distribution",
+      "layout"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "creation-options.spec.ts",
+    "title": "音声サンプルはTab・Shift+TabとEnterで5種類を直接開ける",
+    "lane": "related",
+    "domains": [
+      "generation",
+      "import",
+      "distribution",
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "creation-options.spec.ts",
+    "title": "音声サンプル irodori-male は1クリックで開き、戻る・連打でも生成しない",
+    "lane": "manual_full",
+    "domains": [
+      "generation",
+      "import",
+      "distribution",
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "creation-options.spec.ts",
+    "title": "音声サンプル irodori-female は1クリックで開き、戻る・連打でも生成しない",
+    "lane": "manual_full",
+    "domains": [
+      "generation",
+      "import",
+      "distribution",
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "creation-options.spec.ts",
+    "title": "音声サンプルはTab・Shift+TabとEnterで5種類を直接開ける",
+    "lane": "manual_full",
+    "domains": [
+      "generation",
+      "import",
+      "distribution",
       "layout"
     ]
   },

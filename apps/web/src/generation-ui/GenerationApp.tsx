@@ -13,6 +13,8 @@ import { decodeAozoraHtml } from '../reader/aozora-import';
 import { InputFormatControl } from '../reader/ui/InputFormatControl';
 import { resolveInputFormat, type InputFormat } from '../reader/input-format';
 import { GeminiCostPreview } from './GeminiCostPreview';
+import { IrodoriPanel } from './IrodoriPanel';
+import type { IrodoriSettings } from '../generation/irodori-contracts';
 import './generation.css';
 
 const SAMPLE = '朝の図書館は静かです。窓辺で本を開きました。今日はゆっくり読んでみましょう。';
@@ -28,6 +30,9 @@ export function parseReadings(value: string): ReadingOverride[] {
 }
 
 function message(error: unknown): string { return error instanceof Error ? error.message : '処理を完了できませんでした。'; }
+function voicesFor(config: GenerationConfig | undefined, provider: GenerationOptions['provider']) {
+  return provider === 'voicevox' ? config?.voicevox.voices : provider === 'gemini' ? config?.gemini.voices : config?.providers?.find(value => value.id === 'irodori')?.voices;
+}
 
 export interface HomeGenerationProps {
   input: ReactNode;
@@ -55,14 +60,16 @@ export function GenerationApp({ home }: { home?: HomeGenerationProps }) {
   const [raw, setRaw] = useState('');
   const [title, setTitle] = useState('');
   const [format, setFormat] = useState<InputFormat>('auto');
-  const [provider, setProvider] = useState<'voicevox' | 'gemini'>('voicevox');
+  const [provider, setProvider] = useState<GenerationOptions['provider']>('voicevox');
+  const [irodori, setIrodori] = useState<IrodoriSettings>();
+  const [irodoriBusy, setIrodoriBusy] = useState(false);
   const [automaticChunking, setAutomaticChunking] = useState(false);
   const [voice, setVoice] = useState('');
   const [model, setModel] = useState<typeof GEMINI_MODELS[number]>(GEMINI_MODELS[0]);
   const [transport, setTransport] = useState<GenerationOptions['transport']>('direct');
   const [readings, setReadings] = useState('');
   const [style, setStyle] = useState('');
-  const selectedProviderAvailable = provider === 'voicevox' ? config?.voicevox.available : Boolean(config?.gemini.available && config.transports.find(value => value.id === transport)?.available);
+  const selectedProviderAvailable = provider === 'voicevox' ? config?.voicevox.available : provider === 'irodori' ? Boolean(irodori && !irodoriBusy && config?.providers?.find(value => value.id === 'irodori')?.available) : Boolean(config?.gemini.available && config.transports.find(value => value.id === transport)?.available);
   const selectedTransportMessage = config?.transports.find(value => value.id === transport)?.message;
   const [selected, setSelected] = useState<string[]>();
   const [plan, setPlan] = useState<GenerationPlan>();
@@ -92,12 +99,13 @@ export function GenerationApp({ home }: { home?: HomeGenerationProps }) {
       const value = await getGenerationConfig();
       if (!mounted.current || id !== configRequest.current) return;
       setConfig(value); setConfigState('ready'); setConfigCheckedAt(new Date());
-      setVoice(previous => { const voices = providerRef.current === 'voicevox' ? value.voicevox.voices : value.gemini.voices; return voices.some(voice => voice.id === previous) ? previous : providerRef.current === 'voicevox' ? defaultVoicevoxVoice(voices) : voices[0]?.id ?? ''; });
+      setVoice(previous => { const voices = voicesFor(value, providerRef.current) ?? []; return voices.some(voice => voice.id === previous) ? previous : providerRef.current === 'voicevox' ? defaultVoicevoxVoice(voices) : voices[0]?.id ?? ''; });
     } catch (error) {
       if (!mounted.current || id !== configRequest.current) return;
       setConfigState('error'); setConfigError(message(error)); setConfigCheckedAt(new Date());
     }
   }, []);
+  const irodoriSettingsChanged = useCallback((settings: IrodoriSettings) => { setIrodori(settings); setPlan(undefined); setPreview(undefined); setSelected(undefined); setPaidConfirmed(false); operationId.current = ''; }, []);
 
   useEffect(() => {
     mounted.current = true;
@@ -123,10 +131,11 @@ export function GenerationApp({ home }: { home?: HomeGenerationProps }) {
     if (resetTargets) { setPreview(undefined); setSelected(undefined); setChunkPage(0); }
   }
   function changeProvider(value: string | null) {
-    if (value !== 'voicevox' && value !== 'gemini') return;
+    if (value !== 'voicevox' && value !== 'gemini' && value !== 'irodori') return;
     setProvider(value);
-    if (value === 'voicevox') setTransport('direct');
-    setVoice(value === 'voicevox' ? defaultVoicevoxVoice(config?.voicevox.voices ?? []) : config?.gemini.voices[0]?.id ?? '');
+    if (value === 'irodori') setIrodori(undefined);
+    if (value !== 'gemini') setTransport('direct');
+    setVoice(value === 'voicevox' ? defaultVoicevoxVoice(config?.voicevox.voices ?? []) : voicesFor(config, value)?.[0]?.id ?? '');
     invalidate(true);
   }
   function draftChanged() { setDocument(undefined); setPreview(undefined); setSelected(undefined); setChunkPage(0); invalidate(); }
@@ -174,7 +183,7 @@ export function GenerationApp({ home }: { home?: HomeGenerationProps }) {
       const prepared = source ? { ...source, title: resolveDocumentTitle(source.title) } : undefined;
       if (!home && prepared) setDocument(prepared);
       if (!prepared || id !== request.current) return;
-      const options: GenerationOptions = { provider, voice, transport, readings: parseReadings(readings), chunking: { mode: automaticChunking ? 'auto' : 'sentence' }, ...(provider === 'gemini' ? { model, style: transport === 'direct' ? style : '' } : {}), ...(selected ? { selectedChunkIds: selected } : {}) };
+      const options: GenerationOptions = { provider, voice, transport, readings: parseReadings(readings), chunking: { mode: provider === 'irodori' || automaticChunking ? 'auto' : 'sentence' }, ...(provider === 'gemini' ? { model, style: transport === 'direct' ? style : '' } : provider === 'irodori' ? { model: 'irodori-tts-mf' as const, irodori } : {}), ...(selected ? { selectedChunkIds: selected } : {}) };
       const result = await prepareGeneration({ data: { document: prepared, options } });
       if (!mounted.current || id !== request.current) return;
       setPlan(result); if (!selected) setPreview(result);
@@ -215,7 +224,7 @@ export function GenerationApp({ home }: { home?: HomeGenerationProps }) {
     finally { setBusy(''); }
   }
 
-  const voices = provider === 'voicevox' ? config?.voicevox.voices : config?.gemini.voices;
+  const voices = voicesFor(config, provider);
   const chosenIds = selected ?? preview?.chunks.map(chunk => chunk.id) ?? [];
   const chunkPageCount = Math.ceil((preview?.chunks.length ?? 0) / 20);
   const canResume = job && ['cancelled', 'failed', 'outcome-unknown'].includes(job.status) && job.chunks.some(chunk => ['pending', 'failed', 'audio-ready'].includes(chunk.status));
@@ -258,10 +267,11 @@ export function GenerationApp({ home }: { home?: HomeGenerationProps }) {
         <div className="audio-disclosure-heading"><div><strong>音声も生成する</strong><span className="advanced-label">アドバンスド設定</span><p>声や読みを選んで、同じ文章に音声を付けます。</p></div><Switch role="switch" aria-label="音声も生成する" aria-controls="home-audio-settings" checked={audioEnabled} disabled={Boolean(busy) || home.textBusy} onChange={event => home.onToggle(event.currentTarget.checked)} size="md" /></div>
       </div>}
       {audioEnabled && <section id={home ? 'home-audio-settings' : undefined} className={home ? 'home-audio-settings' : 'generation-card'}>{!home && <h2>2. 読みと声</h2>}
-        <Select label={home ? "生成方法" : "生成手段"} value={provider} onChange={changeProvider} data={[{ value: 'voicevox', label: '無料 · VOICEVOX' }, { value: 'gemini', label: '有料 · Gemini' }]} allowDeselect={false} disabled={Boolean(busy)} />
+        <Select label={home ? "生成方法" : "生成手段"} value={provider} onChange={changeProvider} data={[{ value: 'voicevox', label: '無料 · VOICEVOX' }, { value: 'gemini', label: '有料 · Gemini' }, { value: 'irodori', label: '任意追加 · Irodori（このPC）' }]} allowDeselect={false} disabled={Boolean(busy) || irodoriBusy} />
+        {provider === 'irodori' && <IrodoriPanel onSettingsChange={irodoriSettingsChanged} onBusyChange={setIrodoriBusy} onChange={() => { invalidate(true); void refreshConfig(); }} disabled={Boolean(busy) || Boolean(job && ['queued', 'running', 'cancel-requested'].includes(job.status))} />}
         <div className="generation-connection" role="region" aria-label="音声生成の利用状態"><div className="environment-heading"><Badge color="gray" variant="light">ローカルPC版</Badge><span role="status">{configState === 'checking' ? '確認中…' : configState === 'error' ? '状態を確認できませんでした' : provider === 'voicevox' ? config?.voicevox.available ? '最終確認：VOICEVOXに接続あり' : '最終確認：VOICEVOX未接続' : selectedProviderAvailable ? '選択経路のサーバー設定あり' : 'サーバー設定が必要'}</span></div>
           {configCheckedAt && <p className="connection-time">最終確認：<time dateTime={configCheckedAt.toISOString()}>{configCheckedAt.toLocaleTimeString()}</time> · {provider === 'voicevox' ? '確認時点の結果です。' : '設定の確認です。合成接続の成功を意味しません。'}</p>}
-          {configState === 'error' ? <p className="muted">{configError} 原稿を保ったまま再確認できます。</p> : provider === 'voicevox' ? <p className="muted">{configState === 'checking' ? 'このPCのVOICEVOX Engineを確認しています。' : config?.voicevox.available ? 'このPCのEngineを利用できます。音声合成はまだ開始していません。' : 'このPCでVOICEVOX Engineを起動してから再確認してください。'} 黙読と準備済み音声は、接続なしでも使えます。</p> : <p className="muted">{config?.gemini.message} {selectedTransportMessage} {home ? transport === 'direct' ? '本文をGoogleに送信します。内容と費用を確認してから生成します。' : '本文をCloudflareに送信し、Googleモデルで合成します。課金元はGatewayの設定に従います。' : '認証情報の値はブラウザへ渡しません。'}</p>}
+          {configState === 'error' ? <p className="muted">{configError} 原稿を保ったまま再確認できます。</p> : provider === 'voicevox' ? <p className="muted">{configState === 'checking' ? 'このPCのVOICEVOX Engineを確認しています。' : config?.voicevox.available ? 'このPCのEngineを利用できます。音声合成はまだ開始していません。' : 'このPCでVOICEVOX Engineを起動してから再確認してください。'} 黙読と準備済み音声は、接続なしでも使えます。</p> : provider === 'irodori' ? <p className="muted">{config?.providers?.find(value => value.id === 'irodori')?.message ?? 'このPCの任意追加Irodoriを使います。'} 本文をクラウドへ送信しません。</p> : <p className="muted">{config?.gemini.message} {selectedTransportMessage} {home ? transport === 'direct' ? '本文をGoogleに送信します。内容と費用を確認してから生成します。' : '本文をCloudflareに送信し、Googleモデルで合成します。課金元はGatewayの設定に従います。' : '認証情報の値はブラウザへ渡しません。'}</p>}
           <Button variant="subtle" disabled={Boolean(busy) || configState === 'checking'} loading={configState === 'checking'} onClick={() => void refreshConfig()}>接続を再確認</Button>
         </div>
         <div className="generation-connection" data-testid="alignment-setup-status" role="region" aria-label="音声補正の準備状態">
@@ -269,10 +279,11 @@ export function GenerationApp({ home }: { home?: HomeGenerationProps }) {
           <p className="muted">{configState === 'error' ? '接続を再確認してください。' : config?.alignment?.automatic?.message ?? 'リポジトリのフォルダーで pnpm setup:audio を実行し、完了後 pnpm dev を起動してください。'}</p>
           {config?.alignment?.automatic?.status !== 'ready' && <p className="muted">セットアップはモデル約387 MBと専用Python環境を準備します。未準備の場合も音声は保存できますが、音声に基づく時刻の補正は使えません。</p>}
         </div>
-        <details className="home-advanced-row"><summary>音声の区切りを調整する（任意）</summary>
+        {provider !== 'irodori' && <details className="home-advanced-row"><summary>音声の区切りを調整する（任意）</summary>
           <Checkbox label="音声の区切りを自動調整する（実験）" checked={automaticChunking} disabled={Boolean(busy)} onChange={event => { setAutomaticChunking(event.currentTarget.checked); invalidate(true); }} />
           <p className="muted">通常は文ごとに生成します。自動調整は短い文をまとめ、長い文を分けます。実際の音声合成での速度・聞きやすさの改善は未検証です。</p>
-        </details>
+        </details>}
+        {provider === 'irodori' && <p className="muted">Irodoriは本文上限に合わせて短く自動分割します。推定時間で分けた後も、完成音声の長さを検査します。</p>}
         {provider === 'gemini' && <Select label="Geminiモデル" value={model} onChange={value => { if (value === GEMINI_MODELS[0] || value === GEMINI_MODELS[1]) { setModel(value); invalidate(true); } }} data={[{ value: GEMINI_MODELS[0], label: 'Flash-Lite · 既定' }, { value: GEMINI_MODELS[1], label: 'Flash' }]} allowDeselect={false} disabled={Boolean(busy)} />}
 
         <Select label="声・スタイル" value={voice || null} data={(voices ?? []).map(value => ({ value: value.id, label: value.name }))} searchable allowDeselect={false} disabled={Boolean(busy) || configState !== 'ready' || !selectedProviderAvailable || !voices?.length} onChange={value => { if (value) { setVoice(value); invalidate(true); } }} placeholder="接続できる声を選択" />
@@ -289,8 +300,9 @@ export function GenerationApp({ home }: { home?: HomeGenerationProps }) {
       {home && <><div className="home-generation-actions">{audioEnabled && <Button onClick={() => void prepare()} disabled={!voice || Boolean(busy) || home.textBusy || configState !== 'ready' || !selectedProviderAvailable}>生成内容を確認する</Button>}<Button variant={audioEnabled ? 'outline' : 'filled'} onClick={home.onRead} disabled={Boolean(busy) || home.textBusy}>テキストのみ生成して読む</Button></div><p className="home-action-note">{audioEnabled ? '音声生成は、内容を確認してから開始します。' : 'テキストは端末内で準備します。本文を外へ送りません。'}</p></>}
       </div>
       {!home && selection}
-      {audioEnabled && plan && <section className="generation-card generation-confirm"><h2>{home ? '開始前に確認' : '4. 開始前に確認'}</h2><dl><dt>送信先</dt><dd>{plan.options.provider === 'voicevox' ? 'VOICEVOX · このPC' : `${plan.options.transport === 'gateway' ? 'Cloudflare · Googleモデル' : 'Google'} · ${plan.options.model}`}</dd><dt>接続先</dt><dd>{plan.endpoint}</dd><dt>課金先</dt><dd>{plan.options.provider === 'voicevox' ? '無料 · このPC' : plan.options.transport === 'gateway' ? 'Cloudflare Gatewayの設定に従います' : 'Googleアカウント'}</dd><dt>対象</dt><dd>{plan.chunks.length}{plan.chunkPlan ? '区間' : '文'} · 保存音声の再利用 {plan.chunks.filter(chunk => chunk.cacheHit).length}{plan.chunkPlan ? '区間' : '文'}</dd><dt>音声の長さ（目安）</dt><dd>約{Math.ceil(plan.estimatedSeconds / 60)}分</dd><dt>概算費用</dt><dd>{plan.options.provider === 'voicevox' ? '無料' : `$${plan.estimatedOutputUsd.toFixed(4)} + 入力等`}<p className="muted">{plan.estimateNote}</p></dd></dl>
+      {audioEnabled && plan && <section className="generation-card generation-confirm"><h2>{home ? '開始前に確認' : '4. 開始前に確認'}</h2><dl><dt>送信先</dt><dd>{plan.options.provider === 'voicevox' ? 'VOICEVOX · このPC' : plan.options.provider === 'irodori' ? 'Irodori MF · このPC' : `${plan.options.transport === 'gateway' ? 'Cloudflare · Googleモデル' : 'Google'} · ${plan.options.model}`}</dd><dt>接続先</dt><dd>{plan.endpoint}</dd><dt>課金先</dt><dd>{plan.options.provider !== 'gemini' ? '無料 · このPC' : plan.options.transport === 'gateway' ? 'Cloudflare Gatewayの設定に従います' : 'Googleアカウント'}</dd><dt>対象</dt><dd>{plan.chunks.length}{plan.chunkPlan ? '区間' : '文'} · 保存音声の再利用 {plan.chunks.filter(chunk => chunk.cacheHit).length}{plan.chunkPlan ? '区間' : '文'}</dd><dt>音声の長さ（目安）</dt><dd>約{Math.ceil(plan.estimatedSeconds / 60)}分</dd><dt>概算費用</dt><dd>{plan.options.provider !== 'gemini' ? '無料' : `$${plan.estimatedOutputUsd.toFixed(4)} + 入力等`}<p className="muted">{plan.estimateNote}</p></dd></dl>
         {plan.chunkPlan && <p className="muted">自然な区切りで複数の文を音声区間にまとめます。区間内のフレーズ時刻は、補正がない部分では表示用の推定です。</p>}
+        {plan.options.provider === 'irodori' && <p>固定voice: {plan.options.voice} · MF {plan.options.irodori?.steps ?? 4} steps · 速度 {plan.options.irodori?.speed ?? 1} · seed {plan.options.irodori?.seed ?? 42}。{plan.options.irodori?.instructions && `読み上げ指示: ${plan.options.irodori.instructions}`}</p>}
         <details><summary>正確な送信本文を確認（{plan.sendingText.length.toLocaleString()}文字）</summary><pre>{plan.sendingText}</pre>{plan.options.style && <p>読み上げ指示：{plan.options.style}</p>}</details>
         {!plan.sendingText && plan.chunks.length > 0 && <p className="muted">すべて保存音声を再利用するため、今回APIへ送る本文はありません。</p>}
         {plan.warnings.map((warning, i) => <p className="muted" key={i}>{warning}</p>)}
@@ -313,7 +325,7 @@ export function GenerationApp({ home }: { home?: HomeGenerationProps }) {
                   : '一部の音声の圧縮を完了できませんでした。該当する元音声を保持しているため、再生できます。'}</p>}
           {job.error && <Alert color="yellow" mt="md">{job.error}</Alert>}
           {job.status === 'outcome-unknown' && <Alert color="yellow" mt="md">送信後の結果が不明な文は自動再送しません。追加課金を避けるため、別途確認が必要です。</Alert>}
-          <div className="generation-actions">{['queued', 'running'].includes(job.status) && <Button color="gray" variant="light" disabled={Boolean(busy)} onClick={() => void controlJob('cancel')}>ここで停止する</Button>}{canResume && <Button disabled={Boolean(busy)} onClick={() => { if (job.provider === 'gemini') void prepareResume(); else void controlJob('resume'); }}>{job.provider === 'gemini' ? '再開する対象と費用を確認' : '保存済み音声を使って未完了分を再開'}</Button>}{job.completedChunks > 0 && <Button component="a" href={`/library?book=${encodeURIComponent(job.bookId)}&revision=${encodeURIComponent(job.revision)}`} variant="light">保存音声を読む</Button>}</div>
+          <div className="generation-actions">{['queued', 'running'].includes(job.status) && <Button color="gray" variant="light" disabled={Boolean(busy)} onClick={() => void controlJob('cancel')}>ここで停止する</Button>}{canResume && <Button disabled={Boolean(busy)} onClick={() => { if (job.provider === 'gemini') void prepareResume(); else void controlJob('resume'); }}>{job.provider === 'gemini' ? '再開する対象と費用を確認' : '保存済み音声を使って未完了分を再開'}</Button>}{job.completedChunks > 0 && <Button component="a" href={`/library?book=${encodeURIComponent(job.bookId)}&revision=${encodeURIComponent(job.revision)}&job=${encodeURIComponent(job.id)}`} variant="light">保存音声を読む</Button>}</div>
           {resumePlan && <div className="generation-resume"><h3>有料生成の再開前に確認</h3><p>{resumePlan.options.transport === 'gateway' ? 'Cloudflare AI Gateway' : 'Google課金'} · {resumePlan.options.model} · {resumePlan.endpoint}</p><p>{resumePlan.chunks.length}文 · 概算 ${resumePlan.estimatedOutputUsd.toFixed(4)} + 入力等</p><p className="muted">{resumePlan.estimateNote}</p><details><summary>再開時の正確な送信本文</summary><pre>{resumePlan.sendingText}</pre>{resumePlan.options.style && <p>読み上げ指示：{resumePlan.options.style}</p>}</details>{!resumePlan.available && <Alert color="yellow" mt="md">{resumePlan.unavailableReason}</Alert>}<Checkbox mt="md" checked={resumeConfirmed} disabled={Boolean(busy)} onChange={event => setResumeConfirmed(event.currentTarget.checked)} label="未完了分の送信先・本文・費用を確認し、有料生成を再開します。" /><Button mt="md" disabled={Boolean(busy) || !resumeConfirmed || !resumePlan.available} onClick={() => void controlJob('resume')}>確認した未完了分だけを有料生成する</Button></div>}
           <p className="muted">停止は以降の送信を止めます。送信中の処理や課金を取り消せるとは限りません。保存した音声は残り、再開時に再利用します。</p><details><summary>文ごとの状態</summary><ol>{job.chunks.map(chunk => <li key={chunk.id}>{CHUNK_STATUS[chunk.status]} {chunk.reused ? '· 再利用' : ''}{chunk.error ? ` · ${chunk.error}` : ''}</li>)}</ol></details>
         </>}
