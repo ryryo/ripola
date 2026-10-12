@@ -10,10 +10,10 @@ function storage() {
 test('preferences retain separate speeds and shared display settings without manuscript data', () => {
   const local = storage();
   writePreferences({ audioRate: '5' }, local);
-  writePreferences({ settings: { ...DEFAULT_SETTINGS, cpm: 850, contrast: 'night', ruby: false, fontSize: 72, writingMode: 'vertical-rl' } }, local);
+  writePreferences({ settings: { ...DEFAULT_SETTINGS, cpm: 850, ruby: false, fontSize: 72, writingMode: 'vertical-rl' } }, local);
   assert.equal(readPreferences(local).audioRate, '5');
   assert.equal(readPreferences(local).settings.cpm, 850);
-  assert.equal(readPreferences(local).settings.contrast, 'night');
+  assert.equal('contrast' in readPreferences(local).settings, false);
   assert.equal(readPreferences(local).settings.writingMode, 'vertical-rl');
   assert.deepEqual(Object.keys(JSON.parse(local.getItem(PREFERENCES_KEY)!)).sort(), ['audioRate', 'schemaVersion', 'settings']);
 });
@@ -38,7 +38,7 @@ test('old audio display preferences migrate; reset preserves both speeds and rhy
   const local = storage();
   const settings = { ...DEFAULT_SETTINGS, fontFamily: 'noto-serif-jp' as const, cpm: 900, punctuationPause: false, fontSize: 72, contrast: 'night' as const, writingMode: 'vertical-rl' as const };
   local.setItem('rsvp-audio-reading-options-v2', JSON.stringify(settings));
-  assert.deepEqual(readPreferences(local).settings, settings);
+  assert.deepEqual(readPreferences(local).settings, { ...DEFAULT_SETTINGS, fontFamily: settings.fontFamily, cpm: 900, punctuationPause: false, fontSize: 72, writingMode: settings.writingMode });
   writePreferences({ audioRate: '4.75', settings: resetDisplaySettings(settings) }, local);
   assert.deepEqual(readPreferences(local), { audioRate: '4.75', settings: { ...DEFAULT_SETTINGS, cpm: 900, punctuationPause: false } });
   assert.equal(JSON.parse(local.getItem('rsvp-audio-reading-options-v2')!).contrast, 'night');
