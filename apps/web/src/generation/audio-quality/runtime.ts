@@ -2,6 +2,7 @@ import { execFile, spawn } from 'node:child_process';
 import { promisify } from 'node:util';
 import { dirname, join } from 'node:path';
 import type { GenerationServerConfig } from '../core/config';
+import { trackNativeProcess } from '../core/native-processes';
 import type { AsrCandidate } from './contracts';
 import { REAZON_ASR_VERSION } from './contracts';
 
@@ -74,6 +75,7 @@ export function localReazonAsr(config: GenerationServerConfig): AsrAdapter | und
   return { version: REAZON_ASR_VERSION, qualification: 'unvalidated', transcribe(audioPath, mediaHash) {
     return new Promise<AsrCandidate>((resolve, reject) => {
       const child = spawn(config.alignmentPython!, [script], { shell: false, env, stdio: ['pipe', 'pipe', 'pipe'] });
+      trackNativeProcess(child);
       let output = '', failed = false;
       const stop = () => { failed = true; child.kill('SIGKILL'); };
       const timer = setTimeout(stop, 120_000);
