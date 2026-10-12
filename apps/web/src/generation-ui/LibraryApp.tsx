@@ -47,7 +47,7 @@ function LocalLibraryApp() {
         if (initial) setBook(selected);
         if (current === request) { setBooks(library); setError(''); setCatalogStatus('ready'); }
       } catch (error) { if (active && current === request) { setError(error instanceof Error ? error.message : '保存音声を開けませんでした。'); setCatalogStatus('failed'); } }
-      finally { if (active && current === request) setLoading(false); }
+      finally { if (active && initial) setLoading(false); }
     };
     const refresh = () => { void load(); };
     const changed = (event: StorageEvent) => { if (event.key === null || event.key.startsWith('rsvp-audio-position:')) refresh(); };
