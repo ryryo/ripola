@@ -43,6 +43,9 @@ test('Irodori未導入は容量と追加入口を示し通常利用では取得�
   await expect(panel).toContainText('未導入'); await expect(panel).toContainText('約1.91GB'); await expect(panel).toContainText('約2.2GB');
   await expect(panel).toContainText('丁寧な受付'); await expect(panel).toContainText('指示文を変更');
   await expect(panel.getByRole('button', { name: 'Irodoriを追加する（約1.91GB）', exact: true })).toBeVisible();
+  const voice = page.getByRole('combobox', { name: '声・スタイル', exact: true }); await expect(voice).toHaveValue('丁寧な受付（女）');
+  await voice.click(); await page.getByRole('option', { name: '丁寧な受付（男）', exact: true }).click();
+  await expect(panel.getByLabel('声・読み上げ方のプロンプト', { exact: true })).toHaveValue('明朗快活な男性の受付スタッフ。明るく丁寧にてきぱきと');
   await expect(page.getByRole('button', { name: '生成計画を確認する', exact: true })).toBeDisabled();
   await panel.getByText('合成設定・取得資材の詳細', { exact: true }).click();
   await expect(panel).toContainText('減らしてもモデルの保存容量は減りません');

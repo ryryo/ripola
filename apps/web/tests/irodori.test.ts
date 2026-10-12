@@ -302,6 +302,10 @@ test('normal reception voices retain independent editable defaults and reject in
   await writeFile(join(directory, 'voice.json'), '{broken legacy voice');
   assert.deepEqual((await irodoriAdapter(controller).voices()).map(value => value.id), ['reception-female', 'reception-male']);
   assert.equal((await controller.status()).voiceAvailable, true);
+  const service = new GenerationService({ libraryDir: join(directory, 'config-library'), localOrigin: 'http://127.0.0.1:4173', paidEnabled: false, automaticCompression: false }, { providers: { irodori: irodoriAdapter(controller) }, voicevox: { async voices() { return []; }, async synthesize() { throw new Error('Must not synthesize'); } } });
+  const provider = (await service.getGenerationConfig()).providers!.find(value => value.id === 'irodori')!;
+  assert.equal(provider.available, false); assert.deepEqual(provider.voices.map(value => value.id), ['reception-female', 'reception-male']);
+  assert.equal(controller.runtime.status, 'stopped');
 });
 
 test('normal reception sends the audition CFG, uses no reference, and separates prompt caches', async t => {
