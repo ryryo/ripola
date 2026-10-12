@@ -70,15 +70,16 @@ export interface ReaderSettings {
   punctuationPause: boolean;
   ruby: boolean;
   guide: boolean;
-  contrast: 'paper' | 'night';
 }
 export const DEFAULT_SETTINGS: ReaderSettings = {
   readingPace: 'legacy',
   settingsVersion: 2, fontFamily: 'system', groupTarget: 0, groupMinimum: 0, context: true, mode: 'flash', writingMode: 'horizontal-tb',
-  cpm: 400, fontSize: 56, punctuationPause: true, ruby: true, guide: true, contrast: 'paper',
+  cpm: 400, fontSize: 56, punctuationPause: true, ruby: true, guide: true,
 };
 export function migrateReaderSettings(settings: ReaderSettings): ReaderSettings {
-  return { ...DEFAULT_SETTINGS, ...settings, readingPace: settings.readingPace === 'text-load' ? 'text-load' : 'legacy', writingMode: settings.writingMode === 'vertical-rl' ? 'vertical-rl' : 'horizontal-tb', settingsVersion: 2 };
+  const migrated: ReaderSettings & { contrast?: unknown } = { ...DEFAULT_SETTINGS, ...settings, readingPace: settings.readingPace === 'text-load' ? 'text-load' : 'legacy', writingMode: settings.writingMode === 'vertical-rl' ? 'vertical-rl' : 'horizontal-tb', settingsVersion: 2 };
+  delete migrated.contrast;
+  return migrated;
 }
 export const MAX_INPUT_BYTES = 20 * 1024 * 1024;
 export const MAX_TEXT_LENGTH = 1_000_000;

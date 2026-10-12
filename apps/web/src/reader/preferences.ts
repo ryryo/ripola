@@ -21,7 +21,6 @@ export function normalizeSettings(value: unknown): ReaderSettings {
   if (stored.writingMode === 'horizontal-tb' || stored.writingMode === 'vertical-rl') settings.writingMode = stored.writingMode;
   if (stored.mode === 'flash' || stored.mode === 'guide') settings.mode = stored.mode;
   if (stored.readingPace === 'legacy' || stored.readingPace === 'text-load') settings.readingPace = stored.readingPace;
-  if (stored.contrast === 'paper' || stored.contrast === 'night') settings.contrast = stored.contrast;
   return settings;
 }
 
