@@ -32,24 +32,16 @@
 .audio-sentence { font-size: clamp(24px, 4vw, 42px); font-family: var(--reading-font); font-weight: 500; line-height: 1.9; overflow-wrap: anywhere; text-align: center; margin: 0; max-width: 100%; flex-shrink: 0; }
 .audio-sentence ruby { ruby-position: over; }
 .audio-sentence rt { font-size: .4em; font-weight: 400; }
-.audio-alignment-status { margin: -8px 0 24px; font-size: 13px; color: var(--muted); overflow-wrap: anywhere; }
-.audio-alignment-status span { display: block; margin-top: 6px; line-height: 1.7; }
-.audio-phrase-controls { display: flex; justify-content: center; gap: 16px; margin: -10px 0 26px; }
 .audio-source button.audio-source-phrase { width: auto; display: inline-block; margin-right: 8px; }
 .audio-source mark { background: var(--accent-soft); color: inherit; }
 .audio-progress label { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; font-size: 14px; }
 .audio-progress input { width: 100%; margin: 16px 0; accent-color: var(--accent); min-height: 30px; }
-.audio-controls { display: flex; justify-content: center; align-items: center; gap: 16px; margin: 12px 0 26px; }
-.audio-options { display: flex; align-items: flex-end; gap: 20px; flex-wrap: wrap; margin-bottom: 24px; }
-.audio-options .mantine-Select-root { width: 145px; }
-.audio-options .mantine-Switch-root { align-self: center; }
 .audio-source section { padding: 14px 0; border-bottom: 1px solid var(--line); }
 .audio-source p { line-height: 1.9; white-space: pre-wrap; overflow-wrap: anywhere; }
 .audio-source button { display: block; border: 1px solid var(--line); border-radius: 10px; padding: 12px; width: 100%; margin: 8px 0; background: var(--panel); color: var(--ink); line-height: 1.7; text-align: left; cursor: pointer; }
 .audio-source button[aria-current='true'] { background: var(--accent-soft); border-color: var(--brand); }
-.audio-sharing { margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--line); }
 .audio-attribution { margin-top: 28px; color: var(--muted); font-size: 14px; }
-@media (max-width: 700px) { .generation-grid, .library-grid { grid-template-columns: 1fr; gap: 0; } .generation-shell main { padding: 26px 16px 48px; } .generation-header { padding: 18px 16px; } .generation-header nav { gap: 12px; } .generation-title { flex-direction: column; } .generation-card { padding: 20px 16px; } .generation-shell dl { grid-template-columns: 1fr; gap: 6px; } .generation-shell dd { margin-bottom: 12px; } .audio-stage { height: 250px; min-height: 250px; } .audio-stage .phrase-container { padding: 18px 20px 20px; } .audio-controls { gap: 8px; } .audio-controls button { padding-inline: 12px; } .audio-options { gap: 16px; } }
+@media (max-width: 700px) { .generation-grid, .library-grid { grid-template-columns: 1fr; gap: 0; } .generation-shell main { padding: 26px 16px 48px; } .generation-header { padding: 18px 16px; } .generation-header nav { gap: 12px; } .generation-title { flex-direction: column; } .generation-card { padding: 20px 16px; } .generation-shell dl { grid-template-columns: 1fr; gap: 6px; } .generation-shell dd { margin-bottom: 12px; } .audio-stage { height: 250px; min-height: 250px; } .audio-stage .phrase-container { padding: 18px 20px 20px; } }
 
 .home-generation { min-height: 0; background: transparent; color: var(--ink); }
 .home-generation .audio-disclosure { margin-top: 18px; padding: 16px 18px; background: var(--accent-soft); border: 1px solid var(--line); border-left: 4px solid var(--brand); border-radius: 10px; }
@@ -91,18 +83,15 @@
 .generation-title p { color: var(--muted); line-height: 1.8; }
 .generation-shell:not(.audio-reader):not(.home-generation) > main, .generation-main { max-width: 888px; }
 .generation-card { box-shadow: 0 10px 32px #21394404; }
-.generation-actions .mantine-Button-root, .audio-controls .mantine-Button-root { min-height: 44px; }
-.audio-options { padding: 20px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius-panel); }
+.generation-actions .mantine-Button-root { min-height: 44px; }
 .audio-source mark { color: var(--accent-ink); border-radius: 3px; }
 .audio-source button:hover { background: var(--accent-hover); }
 @media(max-width:700px) {
   .generation-header { min-height: 64px; padding: 15px 16px; }
   .generation-header .brand-lockup { width: 117px; height: 30px; }
   .generation-main { padding: 26px 16px 48px; }
-  .audio-options { padding: 16px; }
 }
 
-.audio-alignment-status { min-height: 5em; }
 .audio-time-label { min-width: 8ch; text-align: right; font-variant-numeric: tabular-nums; }
 
 .gemini-cost-preview{min-width:0;padding:16px;border:1px solid var(--line);border-radius:var(--radius-control);background:var(--panel);color:var(--ink)}
