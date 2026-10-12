@@ -301,18 +301,6 @@
   },
   {
     "project": "desktop-chromium",
-    "file": "creation-options.spec.ts",
-    "title": "音声サンプルはTab・Shift+TabとEnterで3種類を直接開ける",
-    "lane": "related",
-    "domains": [
-      "generation",
-      "import",
-      "distribution",
-      "layout"
-    ]
-  },
-  {
-    "project": "desktop-chromium",
     "file": "generation.spec.ts",
     "title": "real Cloudflare state explains a missing Gateway without requesting a manual token",
     "lane": "related",
@@ -1003,18 +991,6 @@
     "lane": "manual_full",
     "domains": [
       "generation"
-    ]
-  },
-  {
-    "project": "mobile-chromium",
-    "file": "creation-options.spec.ts",
-    "title": "音声サンプルはTab・Shift+TabとEnterで3種類を直接開ける",
-    "lane": "manual_full",
-    "domains": [
-      "generation",
-      "import",
-      "distribution",
-      "layout"
     ]
   },
   {
