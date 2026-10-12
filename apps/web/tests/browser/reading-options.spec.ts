@@ -14,7 +14,11 @@ async function read(page: Page, text = manuscript) {
   await expect(page.getByRole('button', { name: '再生', exact: true })).toBeEnabled();
 }
 async function settings(page: Page) { await page.getByRole('button', { name: '表示設定', exact: true }).click(); }
-async function close(page: Page) { await page.getByRole('button', { name: '閉じる', exact: true }).click(); }
+async function bookActions(page: Page) { await page.getByRole('button', { name: '本の操作', exact: true }).click(); }
+async function close(page: Page) {
+  await page.getByRole('button', { name: '閉じる', exact: true }).click();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+}
 
 test('optional fonts load from the same origin only, keep anchor paused and fit ruby at both sizes', async ({ page, baseURL }, info) => {
   const transfers: Array<Promise<{ url: string; bytes: number }>> = [];
@@ -227,10 +231,17 @@ test('sentence lists pause on opening/selection and close on every explicit resu
   await page.locator('.sentence-row').nth(1).click();
   await expect.poll(async () => Number(await page.getByRole('slider', { name: '音声の再生位置', exact: true }).inputValue())).toBeCloseTo(12, 2);
   if (mobile) await page.getByRole('button', { name: '文一覧を開く', exact: true }).click();
-  if (mobile) { await page.getByRole('button', { name: '一覧を閉じて再生', exact: true }).focus(); await page.keyboard.press('Space'); }
+  if (mobile) {
+    const resume = page.getByRole('button', { name: '一覧を閉じて再生', exact: true });
+    await resume.click({ trial: true });
+    await resume.focus();
+    await expect(resume).toBeFocused();
+    await page.keyboard.press('Space');
+  }
   else { await page.locator('.generation-title h1').click(); await page.keyboard.press('Space'); }
   await expect(page.getByRole('button', { name: '一時停止', exact: true })).toBeVisible();
   await expect(page.getByTestId('sentence-list')).toHaveCount(0);
+  await expect.poll(async () => Number(await page.getByRole('slider', { name: '音声の再生位置', exact: true }).inputValue())).toBeGreaterThan(12);
   await page.getByRole('button', { name: '一時停止', exact: true }).click();
 });
 
@@ -464,8 +475,10 @@ test('黙読ペース評価は同じ速度で比較でき、停止・seek・下�
   await read(page, 'あいうえ。\n\n1234。\n\n（ABCD）を読む。\n\n𠮷が👩‍💻と、長い句の続きを落ち着いて確認する。\n\n' + '最後の文を落ち着いて確かめる。'.repeat(20));
   await page.getByLabel('読む速さ（字/分）', { exact: true }).fill('600');
   await expect(page.getByTestId('reading-pace-controls')).toHaveCount(0);
-  await settings(page);
-  const controls = page.getByTestId('reading-pace-controls').first();
+  await bookActions(page);
+  await expect(page.getByRole('heading', { name: '黙読のペース', exact: true })).toBeVisible();
+  const controls = page.getByTestId('reading-pace-controls');
+  await expect(controls).toHaveCount(1);
   const select = controls.getByRole('combobox', { name: '黙読ペース', exact: true });
   await expect(select).toHaveValue('legacy');
   const budget = await controls.getByTestId('pace-budget').innerText();
@@ -485,7 +498,7 @@ test('黙読ペース評価は同じ速度で比較でき、停止・seek・下�
   await expect.poll(fraction).toBeGreaterThan(frozen);
   await page.getByRole('button', { name: '1つ進む', exact: true }).click();
   const position = await page.getByTestId('current-phrase').innerText();
-  await settings(page); await select.selectOption('legacy'); await select.selectOption('text-load'); await close(page);
+  await bookActions(page); await select.selectOption('legacy'); await select.selectOption('text-load'); await close(page);
   await expect(page.getByTestId('current-phrase')).toHaveText(position);
   await page.locator('.document-heading h1').click(); await page.keyboard.press('Home');
   await expect(page.getByTestId('current-phrase')).toContainText('あいうえ');
@@ -494,25 +507,26 @@ test('黙読ペース評価は同じ速度で比較でき、停止・seek・下�
   await expect(page.getByTestId('current-phrase')).toContainText('1234');
   expect(await fraction()).toBeGreaterThan(0);
   await page.getByLabel('読む速さ（字/分）', { exact: true }).fill('3000');
-  await settings(page); await expect(controls.getByTestId('pace-constraint')).toBeVisible(); await close(page);
+  await bookActions(page); await expect(controls.getByTestId('pace-constraint')).toBeVisible(); await close(page);
   await page.getByRole('button', { name: '端末に保存', exact: true }).click();
   await expect(page.getByRole('status')).toContainText('保存しました');
   await page.reload(); await page.getByRole('button', { name: '続きから開く', exact: true }).click();
   await expect(page.getByTestId('current-phrase')).toContainText('1234');
-  await settings(page); await expect(select).toHaveValue('text-load'); await close(page);
+  await bookActions(page); await expect(select).toHaveValue('text-load'); await close(page);
   await expect(page.getByLabel('読む速さ（字/分）', { exact: true })).toHaveValue('3000');
   await settings(page); await page.getByRole('button', { name: '表示設定をリセット', exact: true }).click();
-  await expect(page.getByTestId('reading-pace-controls').last().getByRole('combobox', { name: '黙読ペース', exact: true })).toHaveValue('text-load');
+  await expect(controls).toHaveCount(0);
   await close(page);
+  await bookActions(page); await expect(select).toHaveValue('text-load'); await close(page);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 2)).toBe(true);
-  await settings(page); const box = await select.boundingBox(); expect(box!.height).toBeGreaterThanOrEqual(44);
+  await bookActions(page); const box = await select.boundingBox(); expect(box!.height).toBeGreaterThanOrEqual(44);
   await info.attach('pace-controls', { body: await page.screenshot({ fullPage: true }), contentType: 'image/png' });
   expect(failures).toEqual([]);
 });
 
 test('黙読評価の保存設定は音声のmedia時計・倍速・seekへ影響しない', async ({ page }) => {
   await read(page, '数字1234と英字ABCDを確認する。');
-  await settings(page);
+  await bookActions(page);
   await page.getByRole('dialog').getByRole('combobox', { name: '黙読ペース', exact: true }).selectOption('text-load'); await close(page);
   await page.getByLabel('読む速さ（字/分）', { exact: true }).fill('3000');
   await audioFixture(page, 60);
