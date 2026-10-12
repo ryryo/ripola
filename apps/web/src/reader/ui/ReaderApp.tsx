@@ -13,6 +13,7 @@ import { NavigationLayout } from './NavigationLayout';
 import { AozoraInfo } from './AozoraInfo';
 import type { DraftDocument } from '../model';
 import { Brand } from '../../ui/Brand';
+import { ThemeControl } from '../../ui/ThemeControl';
 import { AudioDemo } from './AudioDemo';
 import { PhraseDisplay, RubyText } from './PhraseDisplay';
 import { WritingModeSelect } from './WritingModeSelect';
@@ -301,8 +302,8 @@ export function ReaderApp() {
     <p className="input-note import-scope">横書き1段のテキスト層付きPDF・青空文庫HTMLに対応。OCR・縦書き・段組PDFの自動復元には対応していません。</p>
   </>;
 
-  return <div style={font.style} className={`app-shell ${document ? 'is-reading' : 'home-shell'} ${settings.contrast === 'night' ? 'night' : ''}`}>
-    <header className="app-header"><Brand /><div className="header-actions">
+  return <div style={font.style} className={`app-shell ${document ? 'is-reading' : 'home-shell'}`}>
+    <header className="app-header"><Brand /><div className="header-actions"><ThemeControl />
       <Button component="a" href={`${import.meta.env.BASE_URL}${CAPABILITIES.audioRoute}`} variant="light" size="sm">{CAPABILITIES.localGeneration ? 'このPCの本棚' : '本棚'}</Button>
       <Button variant="subtle" size="sm" onClick={() => { controller.pause(); setHelpOpen(true); }}>使い方</Button>{document && <Button variant="subtle" size="sm" onClick={() => { controller.pause(); setImportOpen(true); setError(''); }}>別の文章を開く</Button>}</div></header>
     <main className={document ? 'reading-main' : 'welcome-main'}>
@@ -350,9 +351,9 @@ export function ReaderApp() {
       </div>
     </main>
     <footer className="app-footer"><span>BudouXでフレーズ分割。厳密な文法的文節とは異なります。</span><span>速さより、読みやすさを。</span><details onToggle={() => controller.pause()}><summary>ページURLを共有</summary><ShareLink title="リーダー" /></details></footer>
-    <Drawer className={`reader-drawer ${settings.contrast === 'night' ? 'night' : ''}`} closeButtonProps={{ 'aria-label': '閉じる' }} opened={importOpen} onClose={() => setImportOpen(false)} title="別の文章を開く" position="right" size="lg">{error && <Alert color="red" role="alert" mb="md">{error}</Alert>}{error && fallbackRaw && <Textarea label="処理前の原文・抽出本文" value={fallbackRaw} readOnly rows={8} mb="md" />}{loading && <div role="status"><p>{phase}</p><Button onClick={cancel}>読み込みを取り消す</Button></div>}{importPanel}</Drawer>
-    <Drawer className={`reader-drawer ${settings.contrast === 'night' ? 'night' : ''}`} closeButtonProps={{ 'aria-label': '閉じる' }} opened={sourceOpen} onClose={() => setSourceOpen(false)} title="原文を確認" position="right" size="xl">{document && <SourceView document={document} current={current} index={playback.index} pdfData={pdfData} onSeek={index => controller.seek(index)} />}</Drawer>
-    <Drawer className={`reader-drawer ${settings.contrast === 'night' ? 'night' : ''}`} closeButtonProps={{ 'aria-label': '閉じる' }} opened={settingsOpen} onClose={() => setSettingsOpen(false)} title="表示設定" position="right" size="md">
+    <Drawer className="reader-drawer" closeButtonProps={{ 'aria-label': '閉じる' }} opened={importOpen} onClose={() => setImportOpen(false)} title="別の文章を開く" position="right" size="lg">{error && <Alert color="red" role="alert" mb="md">{error}</Alert>}{error && fallbackRaw && <Textarea label="処理前の原文・抽出本文" value={fallbackRaw} readOnly rows={8} mb="md" />}{loading && <div role="status"><p>{phase}</p><Button onClick={cancel}>読み込みを取り消す</Button></div>}{importPanel}</Drawer>
+    <Drawer className="reader-drawer" closeButtonProps={{ 'aria-label': '閉じる' }} opened={sourceOpen} onClose={() => setSourceOpen(false)} title="原文を確認" position="right" size="xl">{document && <SourceView document={document} current={current} index={playback.index} pdfData={pdfData} onSeek={index => controller.seek(index)} />}</Drawer>
+    <Drawer className="reader-drawer" closeButtonProps={{ 'aria-label': '閉じる' }} opened={settingsOpen} onClose={() => setSettingsOpen(false)} title="表示設定" position="right" size="md">
       <div className="settings-panel">
         {document && <section className="settings-section"><h2>本文の名前</h2><TitleEditor title={document.title} onRename={renameDocument} /></section>}
         <section className="settings-section"><h2>文字と表示</h2>
@@ -363,7 +364,6 @@ export function ReaderApp() {
           <label className="font-size-setting">文字サイズ <strong>{settings.fontSize} px</strong><input aria-label="文字サイズ" type="range" min="24" max="96" step="2" value={settings.fontSize} onChange={e => update({ fontSize: Number(e.target.value) })} /></label>
           <Switch label="ルビを表示" checked={settings.ruby} onChange={e => update({ ruby: e.currentTarget.checked })} />
           <Switch label="注視点ガイド" checked={settings.guide} onChange={e => update({ guide: e.currentTarget.checked })} />
-          <Switch label="暗い背景" checked={settings.contrast === 'night'} onChange={e => update({ contrast: e.currentTarget.checked ? 'night' : 'paper' })} />
           <p className="muted">長いフレーズは、画面に収まる大きさに調整します。</p><Button variant="light" onClick={() => { controller.pause(); update(resetDisplaySettings(settings)); }}>表示設定をリセット</Button>
         </section>
         <section className="settings-section"><h2>読むリズム</h2>
@@ -378,7 +378,7 @@ export function ReaderApp() {
         <p className="settings-footnote">BudouXのフレーズ分割は、厳密な文法的文節とは異なります。</p>
       </div>
     </Drawer>
-    <Drawer className={`reader-drawer ${settings.contrast === 'night' ? 'night' : ''}`} opened={helpOpen} onClose={() => setHelpOpen(false)} title="使い方" position="right" size="md" closeButtonProps={{'aria-label':'閉じる'}}><p className="muted">文章を貼り付けるかファイルを選び、「テキストのみ生成して読む」で読みはじめます。</p>{LocalGeneration && <p className="muted">「音声も生成する」をオンにすると、声・読み・生成する文を選べます。無料VOICEVOXはこのPCのEngineを使用します。有料Geminiは本文をGoogleに送信するため、送信内容と概算費用を確認してから開始します。</p>}<p className="muted">貼り付け形式は自動判定です。「変更」でテキスト・Markdownを指定できます。フォーム下の3つのサンプルは、音声付き冒頭・短い黙読・全文11章から直接開けます。</p>{!LocalGeneration && <p className="muted">公開デモと個人用Workerは、端末内のテキスト取り込み・RSVP生成と準備済み音声の再生に対応します。Gemini・VOICEVOXの音声生成はローカルPC版限定です。</p>}<p className="muted">読書は一時停止や前後の移動ができ、原文も確認できます。急がず、自分のペースでどうぞ。</p></Drawer>
+    <Drawer className="reader-drawer" opened={helpOpen} onClose={() => setHelpOpen(false)} title="使い方" position="right" size="md" closeButtonProps={{'aria-label':'閉じる'}}><p className="muted">文章を貼り付けるかファイルを選び、「テキストのみ生成して読む」で読みはじめます。</p>{LocalGeneration && <p className="muted">「音声も生成する」をオンにすると、声・読み・生成する文を選べます。無料VOICEVOXはこのPCのEngineを使用します。有料Geminiは本文をGoogleに送信するため、送信内容と概算費用を確認してから開始します。</p>}<p className="muted">貼り付け形式は自動判定です。「変更」でテキスト・Markdownを指定できます。フォーム下の3つのサンプルは、音声付き冒頭・短い黙読・全文11章から直接開けます。</p>{!LocalGeneration && <p className="muted">公開デモと個人用Workerは、端末内のテキスト取り込み・RSVP生成と準備済み音声の再生に対応します。Gemini・VOICEVOXの音声生成はローカルPC版限定です。</p>}<p className="muted">読書は一時停止や前後の移動ができ、原文も確認できます。急がず、自分のペースでどうぞ。</p></Drawer>
   </div>;
 }
 
