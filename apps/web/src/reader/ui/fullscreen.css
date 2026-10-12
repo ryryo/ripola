@@ -75,7 +75,7 @@
   border-radius: 0;
 }
 .fullscreen-reader[data-fullscreen='true'] .phrase-container { min-height: 0; flex: 1; padding: 28px max(16px, env(safe-area-inset-right)) 28px max(16px, env(safe-area-inset-left)); }
-.fullscreen-reader[data-fullscreen='true'] .static-notice { min-height: 0; overflow: auto; padding-top: 64px; }
+.fullscreen-reader[data-fullscreen='true'] .static-notice { min-height: 0; overflow: auto; justify-content: safe center; padding-top: 64px; }
 .fullscreen-reader[data-fullscreen='true'] > .stopped-context {
   position: absolute;
   left: 50%;
