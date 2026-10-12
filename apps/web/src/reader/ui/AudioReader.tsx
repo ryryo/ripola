@@ -2,7 +2,7 @@ import { Brand } from '../../ui/Brand';
 import { ThemeControl } from '../../ui/ThemeControl';
 import { Alert, Badge, Button, Drawer, Select, Switch } from '@mantine/core';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { adjacentAudioPhrase, audioDisplayAt, audioPhraseTargets, audioSegments, audioTimeLabel, locateAudioTime, mediaPosition } from '../audio-clock';
+import { adjacentAudioPhrase, audioDisplayAt, audioPhraseTargets, audioSegments, audioTimeLabel, locateAudioTime, mediaPosition, type PlayableAudioChunk } from '../audio-clock';
 import { audioSentenceIndexAt, audioSentenceTargets } from '../audio-sentences';
 import { type ReaderSettings, type RubySpan, type TextBlock } from '../model';
 import { inspectAudioPresentation, requireAudioPresentation } from '../audio-presentation';
@@ -25,7 +25,7 @@ import { useScreenWakeLock } from './useScreenWakeLock';
 import { ReadingModeControls } from './ReadingModeControls';
 import { useReaderPreferences } from './useReaderPreferences';
 import { resetDisplaySettings } from '../preferences';
-import { AudioPrefetch, audioAssetKey, browserPrefetchEnvironment } from '../audio-prefetch';
+import { AudioPrefetch, audioAssetKey, audioBufferReadyForAhead, browserPrefetchEnvironment } from '../audio-prefetch';
 import { continuation, contiguousChunks, playbackAnchor, restoreAnchor, savedPlaybackAnchor, serializePlaybackAnchor, type PlaybackAnchor, type ProgressiveBook } from '../audio-progressive';
 import type { JobStatus } from '../../generation/contracts';
 
@@ -123,6 +123,24 @@ export function AudioReader({ book, onClose, attribution, localTools, demo = fal
     return seconds;
   }, []);
 
+  const readyForAhead = useCallback((chunk: PlayableAudioChunk | undefined) => {
+    const clock = mediaClock.current;
+    const media = audio.current;
+    if (activeBook.current !== storageKey || prefetchBook.current !== storageKey || clock?.bookKey !== storageKey) return false;
+    if (!chunk || !segment || !clock || !media || clock.media !== media || media.readyState < 1 || !media.currentSrc || !audioSource) return false;
+    const targetAsset = audioAssetKey(chunk);
+    if (targetAsset !== audioAssetKey(segment.chunk) || targetAsset !== audioAssetKey(clock.segment.chunk)) return false;
+    try { if (media.currentSrc !== new URL(audioSource, media.ownerDocument.baseURI).href) return false; }
+    catch { return false; }
+    return audioBufferReadyForAhead(media, chunk.durationSeconds);
+  }, [storageKey, segment, audioSource]);
+
+  const reconcilePrefetch = useCallback((media = audio.current) => {
+    if (media !== audio.current || prefetchBook.current !== storageKey) return;
+    const localSeconds = media && media.readyState >= 1 ? media.currentTime : pendingSeek.current;
+    prefetch.current?.update(audioChunks, 0, localSeconds, Number(rate), intent.current, readyForAhead(audioChunks[0]));
+  }, [audioChunks, rate, readyForAhead, storageKey]);
+
   const pause = useCallback(() => {
     playRequest.current++;
     intent.current = false;
@@ -131,8 +149,8 @@ export function AudioReader({ book, onClose, attribution, localTools, demo = fal
     setPlaying(false);
     setBuffering(false);
     persist(sample());
-    prefetch.current?.update(audioChunks, 0, 0, Number(rate), false);
-  }, [persist, sample, audioChunks, rate]);
+    prefetch.current?.update(audioChunks, 0, 0, Number(rate), false, readyForAhead(audioChunks[0]));
+  }, [persist, sample, audioChunks, rate, readyForAhead]);
 
   const font = useReadingFont(book.document.blocks, options.fontFamily ?? 'system', pause);
   const fullscreen = useFullscreenReader(pause);
@@ -155,7 +173,7 @@ export function AudioReader({ book, onClose, attribution, localTools, demo = fal
     setPosition(nextPosition);
     persist(nextPosition);
     setError('');
-    prefetch.current?.update(contiguousChunks(book, segments[target.index]?.chunk.id ?? ''), 0, target.localSeconds, Number(rate), continuePlaying);
+    prefetch.current?.update(contiguousChunks(book, segments[target.index]?.chunk.id ?? ''), 0, target.localSeconds, Number(rate), continuePlaying, readyForAhead(segments[target.index]?.chunk));
     if (target.index === index && audio.current && audio.current.readyState >= 1) {
       audio.current.currentTime = target.localSeconds;
       if (continuePlaying) void audio.current.play().catch(() => { if (attempt !== playRequest.current) return; intent.current = false; setPlaying(false); setError('再生を開始できませんでした。「再生」をもう一度押してください。'); });
@@ -165,7 +183,7 @@ export function AudioReader({ book, onClose, attribution, localTools, demo = fal
       setPlaying(false);
       setBuffering(continuePlaying);
     }
-  }, [index, persist, segments, rate, book]);
+  }, [index, persist, segments, rate, book, readyForAhead]);
 
   const moveSentence = useCallback((direction: -1 | 1, seconds = sample()) => {
     const target = sentenceEntries[audioSentenceIndexAt(sentenceEntries, seconds) + direction];
@@ -179,10 +197,7 @@ export function AudioReader({ book, onClose, attribution, localTools, demo = fal
     return () => { owner.dispose(); if (prefetch.current === owner) prefetch.current = null; };
   }, [storageKey]);
 
-  useEffect(() => {
-    const localSeconds = audio.current && audio.current.readyState >= 1 ? audio.current.currentTime : pendingSeek.current;
-    prefetch.current?.update(audioChunks, 0, localSeconds, Number(rate), intent.current);
-  }, [segments, index, rate, playing, storageKey]);
+  useEffect(() => { reconcilePrefetch(); }, [reconcilePrefetch, playing, storageKey]);
 
   useLayoutEffect(() => {
     const media = audio.current;
@@ -304,7 +319,7 @@ export function AudioReader({ book, onClose, attribution, localTools, demo = fal
       return;
     }
     intent.current = true;
-    prefetch.current?.update(audioChunks, 0, media.currentTime, Number(rate), true);
+    prefetch.current?.update(audioChunks, 0, media.currentTime, Number(rate), true, readyForAhead(audioChunks[0]));
     try { await media.play(); }
     catch { if (attempt !== playRequest.current || media !== audio.current) return; intent.current = false; setPlaying(false); setBuffering(false); setError('音声を再生できませんでした。音声ファイルと端末の再生設定を確認してください。'); }
   }
@@ -344,6 +359,7 @@ export function AudioReader({ book, onClose, attribution, localTools, demo = fal
           audio.current.currentTime = Math.min(pendingSeek.current, audio.current.duration || segment.chunk.durationSeconds);
           audio.current.playbackRate = Number(rate);
           sample();
+          reconcilePrefetch(event.currentTarget);
           if (intent.current && !waitingFor) void audio.current.play().catch(() => { if (attempt !== playRequest.current) return; intent.current = false; setPlaying(false); setBuffering(false); setError('「再生」を押して音声を開始してください。'); });
         }}
         onPlay={event => { if (event.currentTarget !== audio.current) return; setPlaying(true); setBuffering(false); }}
@@ -353,11 +369,12 @@ export function AudioReader({ book, onClose, attribution, localTools, demo = fal
           // A delayed pause from seek or natural completion must not cancel continuation.
           if (event.currentTarget !== audio.current || !event.currentTarget.paused || event.currentTarget.ended) return;
           intent.current = false; setWaitingFor(null); setPlaying(false); setBuffering(false); persist(sample());
-          prefetch.current?.update(audioChunks, 0, 0, Number(rate), false);
+          prefetch.current?.update(audioChunks, 0, 0, Number(rate), false, readyForAhead(audioChunks[0]));
         }}
         onWaiting={event => { if (event.currentTarget !== audio.current) return; sample(); setBuffering(true); }}
         onSeeking={event => { if (event.currentTarget === audio.current) sample(); }} onSeeked={event => { if (event.currentTarget !== audio.current) return; sample(); setBuffering(false); }}
-        onTimeUpdate={event => { if (event.currentTarget !== audio.current) return; sample(); prefetch.current?.update(audioChunks, 0, event.currentTarget.currentTime, Number(rate), intent.current); }}
+        onLoadedData={event => reconcilePrefetch(event.currentTarget)} onProgress={event => reconcilePrefetch(event.currentTarget)} onCanPlayThrough={event => reconcilePrefetch(event.currentTarget)} onEmptied={event => reconcilePrefetch(event.currentTarget)}
+        onTimeUpdate={event => { if (event.currentTarget !== audio.current) return; sample(); reconcilePrefetch(event.currentTarget); }}
         onEnded={event => { if (event.currentTarget !== audio.current) return; advance(segment.chunk.id, intent.current); }}
         onError={event => { if (event.currentTarget !== audio.current) return; pause(); setError('保存音声を開けませんでした。ローカルサーバーと保存データを確認してください。音声の再生成は行いません。'); }} />
       <div className="audio-progress"><label htmlFor="audio-position">音声の再生位置 <span className="audio-time-label">{reading ? '\u00a0' : `${audioTimeLabel(position)} / ${audioTimeLabel(total)}`}</span></label><input id="audio-position" aria-label="音声の再生位置" type="range" min="0" max={total} step="0.01" value={Math.min(position, total)} onChange={event => seek(Number(event.target.value))} /></div>
