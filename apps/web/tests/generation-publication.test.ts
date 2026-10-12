@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, readdir, rm } from 'node:fs/promises';
+import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { performance } from 'node:perf_hooks';
@@ -165,16 +165,23 @@ for (const unknown of [false, true]) test(`a timer write failure republishes sav
   assert.equal((await f.readBook())!.completedChunks, unknown ? 2 : 3); assert.equal(f.calls(), 3);
 });
 
-test('a timer failure before the next paid send stops it without recording an unknown outcome', async t => {
+test('a timer failure before the next paid send stops it without recording an unknown outcome', { timeout: 10_000 }, async t => {
   const preflight = deferred(), send = deferred(), failedWrite = deferred();
   t.after(() => send.resolve());
   const f = await fixture(t, 'gemini');
   let preflights = 0;
   f.adapter.preflight = async () => { if (++preflights === 3) { preflight.resolve(); await send.promise; } };
+  const captured: { publisher?: BookPublisher } = {};
+  const originalChanged = BookPublisher.prototype.changed;
+  t.mock.method(BookPublisher.prototype, 'changed', function(this: BookPublisher) {
+    captured.publisher ??= this;
+    return originalChanged.call(this);
+  });
+  const diskFailure = new Error('fixture disk failure');
   const originalWrite = LibraryDisk.prototype.write;
   let publications = 0;
   t.mock.method(LibraryDisk.prototype, 'write', async function(this: LibraryDisk, parts: string[], value: unknown) {
-    if (parts[0] === 'books' && ++publications === 2) { failedWrite.resolve(); throw new Error('fixture disk failure'); }
+    if (parts[0] === 'books' && ++publications === 2) { failedWrite.resolve(); throw diskFailure; }
     await originalWrite.call(this, parts, value);
   });
   const job = await f.start();
@@ -182,7 +189,11 @@ test('a timer failure before the next paid send stops it without recording an un
   t.mock.timers.tick(1000);
   f.gates[1].audio.resolve(); await preflight.promise;
   t.mock.timers.tick(4000); await failedWrite.promise;
-  await eventually(async () => !(await readdir(join(f.disk.root, 'locks'))).some(name => name.startsWith('book-')));
+  await eventually(async () => {
+    assert.ok(captured.publisher);
+    try { captured.publisher.check(); return false; }
+    catch (error) { assert.equal(error, diskFailure); return true; }
+  });
   send.resolve();
   const failed = await f.service.waitForJob(job.id);
   assert.equal(failed.status, 'failed'); assert.equal(f.calls(), 2);
