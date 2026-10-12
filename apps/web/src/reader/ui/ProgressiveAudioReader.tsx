@@ -4,7 +4,7 @@ import type { AudioBookManifest } from '../../generation/contracts';
 import { useProgressiveBook } from '../progressive-session';
 import { AudioReader } from './AudioReader';
 
-type Props = Omit<ComponentProps<typeof AudioReader>, 'book' | 'generationStatus' | 'onPlaybackPosition' | 'localTools'> & {
+type Props = Omit<ComponentProps<typeof AudioReader>, 'book' | 'generationStatus' | 'localTools'> & {
   book: AudioBookManifest;
   requestedJobId?: string;
   renderTools?: (book: AudioBookManifest) => ReactNode;

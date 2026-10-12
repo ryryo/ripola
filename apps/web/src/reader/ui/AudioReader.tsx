@@ -28,7 +28,7 @@ import { AudioPrefetch, audioAssetKey, audioBufferReadyForAhead, browserPrefetch
 import { continuation, contiguousChunks, playbackAnchor, restoreAnchor, savedPlaybackAnchor, serializePlaybackAnchor, type PlaybackAnchor, type ProgressiveBook } from '../audio-progressive';
 import type { JobStatus } from '../../generation/contracts';
 
-export function AudioReader({ book, onClose, attribution, localTools, demo = false, onRename, generationStatus, onPlaybackPosition }: { book: ProgressiveBook; generationStatus?: JobStatus; onPlaybackPosition?: (chunkId: string) => void; onClose: () => void; attribution?: string; localTools?: ReactNode; demo?: boolean; onRename?: (title: string) => Promise<void> }) {
+export function AudioReader({ book, onClose, attribution, localTools, demo = false, onRename, generationStatus }: { book: ProgressiveBook; generationStatus?: JobStatus; onClose: () => void; attribution?: string; localTools?: ReactNode; demo?: boolean; onRename?: (title: string) => Promise<void> }) {
   const validation = useMemo(() => {
     try { return { report: requireAudioPresentation(book), valid: true }; }
     catch { return { report: inspectAudioPresentation(book), valid: false }; }
@@ -236,8 +236,7 @@ export function AudioReader({ book, onClose, attribution, localTools, demo = fal
     setPlaying(false);
     const wait = next.kind === 'waiting' && continuePlaying && !generationStopped;
     intent.current = Boolean(wait); setBuffering(Boolean(wait)); setWaitingFor(wait ? currentId : null);
-    if (wait) onPlaybackPosition?.(currentId);
-  }, [book, segments, seek, persist, generationStopped, onPlaybackPosition]);
+  }, [book, segments, seek, persist, generationStopped]);
 
   useLayoutEffect(() => {
     if (!anchor.current) return;
@@ -262,8 +261,6 @@ export function AudioReader({ book, onClose, attribution, localTools, demo = fal
   useEffect(() => {
     if (generationStopped && waitingFor) { intent.current = false; setWaitingFor(null); setPlaying(false); setBuffering(false); }
   }, [generationStopped, waitingFor]);
-
-  useEffect(() => { if (segment) onPlaybackPosition?.(segment.chunk.id); }, [segment, generationStatus, onPlaybackPosition]);
 
   useEffect(() => {
     if (audio.current) audio.current.playbackRate = Number(rate);
