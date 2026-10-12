@@ -66,20 +66,19 @@ test('同一音声内のフレーズ・ruby・seek・速度・chunk越え・背�
   await expect(page.getByTestId('audio-phrase')).toHaveText('私は');
   await page.locator('audio').evaluate(element => { (element as HTMLAudioElement & { uiIdentity?: string }).uiIdentity = 'same-media-node'; });
   const source = await page.locator('audio').getAttribute('src');
-  await page.getByRole('button', { name: '次のフレーズ', exact: true }).click();
+  await page.getByRole('button', { name: '一区切り進む', exact: true }).click();
   await expect(page.getByTestId('audio-phrase')).toHaveAttribute('data-unit-id', 'u1');
   await expect(page.locator('[data-testid="audio-phrase"] rt')).toHaveText('としょかん');
   expect(await page.locator('audio').getAttribute('src')).toBe(source);
   expect(await page.locator('audio').evaluate(element => (element as HTMLAudioElement & { uiIdentity?: string }).uiIdentity)).toBe('same-media-node');
-  await expect(page.getByTestId('audio-precision')).toHaveAttribute('data-precision', 'phrase');
-  await expect(page.getByTestId('audio-precision')).toHaveAttribute('data-method', 'forced-alignment');
-  await expect(page.getByTestId('audio-precision')).toContainText('時刻：整列結果（推定）');
+  await expect(page.getByTestId('audio-sentence')).toHaveAttribute('data-precision', 'phrase');
+  await expect(page.getByTestId('audio-sentence')).toHaveAttribute('data-method', 'forced-alignment');
   await page.getByRole('button', { name: '原文', exact: true }).click();
   await expect(page.getByRole('dialog').locator('mark')).toHaveText('図書館へ。');
   await page.getByRole('button', { name: '閉じる', exact: true }).click();
   await page.getByRole('combobox', { name: '音声の速さ', exact: true }).click();
   await page.getByRole('option', { name: '1.5倍', exact: true }).click();
-  const centerPlay = page.getByRole('button', { name: '再生（画面中央）', exact: true });
+  const centerPlay = page.getByRole('button', { name: '再生', exact: true });
   await centerPlay.click();
   await expect(centerPlay).toBeHidden();
   await expect.poll(() => page.locator('audio').evaluate((element: HTMLAudioElement) => element.currentTime)).toBeGreaterThan(1.9);
@@ -158,17 +157,16 @@ test('screen wake lock releases on audio error and unmount and tolerates refusal
 });
 
 for (const reason of ['low-score', 'silence', 'reading-mismatch'] as const) {
-  test(`${reason} でも全区切りを表示し推定時刻を明示する`, async ({ page }) => {
+  test(`${reason} でも全区切りを表示し推定時計を使う`, async ({ page }) => {
     await installAudioFixture(page, reason);
     await page.getByRole('slider', { name: '音声の再生位置', exact: true }).fill('0.4');
     await expect(page.getByTestId('audio-phrase')).toHaveText('私は');
-    await expect(page.getByTestId('audio-precision')).toHaveAttribute('data-method', 'estimated');
-    await expect(page.getByTestId('audio-precision')).toContainText('時刻未検証');
-    await expect(page.getByTestId('audio-precision')).not.toHaveAttribute('data-score');
-    await page.getByRole('button', { name: '次のフレーズ', exact: true }).click();
+    await expect(page.getByTestId('audio-sentence')).toHaveAttribute('data-method', 'estimated');
+    await expect(page.getByTestId('audio-sentence')).not.toHaveAttribute('data-score');
+    await page.getByRole('button', { name: '一区切り進む', exact: true }).click();
     await expect(page.getByTestId('audio-phrase')).toHaveAttribute('data-unit-id', 'u1');
     await expect(page.locator('[data-testid="audio-phrase"] rt')).toHaveText('としょかん');
-    await page.getByRole('button', { name: '次のフレーズ', exact: true }).click();
+    await page.getByRole('button', { name: '一区切り進む', exact: true }).click();
     await expect(page.getByTestId('audio-phrase')).toHaveAttribute('data-unit-id', 'u2');
     await page.getByRole('slider', { name: '音声の再生位置', exact: true }).fill('8');
     await expect(page.getByTestId('audio-phrase')).toHaveAttribute('data-unit-id', 'u3');
@@ -191,7 +189,7 @@ test('音声再生中は本文だけが切り替わり、番号・説明・時�
   if (page.viewportSize()!.width > 900) await page.getByRole('button', { name: '文一覧を開く', exact: true }).click();
   await page.getByRole('button', { name: '再生', exact: true }).click();
   await expect(page.getByRole('button', { name: '一時停止', exact: true })).toBeVisible();
-  await expect(page.getByTestId('audio-precision')).toContainText('推定を含む');
+  await expect(page.getByTestId('audio-sentence')).toHaveAttribute('data-precision', 'phrase');
   const observed = await inspectCalmPlayback(page);
   expect(observed.changedOutsideBody).toBe(false); expect(observed.bodyChanges).toBeGreaterThanOrEqual(2);
   expect(observed.progressIncreases).toBeGreaterThan(20); expect(observed.maxLayoutShift).toBeLessThan(1);
@@ -200,7 +198,7 @@ test('音声再生中は本文だけが切り替わり、番号・説明・時�
   // Stopping can land in a legitimate timing gap; select a known accepted cue
   // to verify that paused details refresh without depending on wall-clock scheduling.
   await page.getByRole('slider', { name: '音声の再生位置', exact: true }).fill('4.4');
-  await expect(page.getByTestId('audio-precision')).toContainText('整列結果（推定）');
+  await expect(page.getByTestId('audio-sentence')).toHaveAttribute('data-method', 'forced-alignment');
 });
 
 test('音声の上下ガイドはrubyと大きな文字にも重ならず、音声切替中も本文領域を避ける', async ({ page }) => {
@@ -272,7 +270,7 @@ test('切替commit直後の古いframeも新しい音声の時計を使い、進
   await expect.poll(async () => Number(await position.inputValue())).toBeGreaterThan(1.3);
   await page.getByRole('button', { name: '一時停止', exact: true }).click();
   const stopped = Number(await position.inputValue());
-  await page.getByRole('button', { name: '前のフレーズ', exact: true }).click();
+  await page.getByRole('button', { name: '一区切り戻る', exact: true }).click();
   expect(Number(await position.inputValue())).toBeLessThan(stopped);
   await page.getByRole('button', { name: '再生', exact: true }).click();
   await expect.poll(async () => Number(await position.inputValue())).toBeGreaterThan(.2);
