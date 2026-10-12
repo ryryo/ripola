@@ -7,6 +7,7 @@ import { distributionLoadError, loadDistributedBook, loadDistributionLibrary, ty
 import { AudioReader } from '../reader/ui/AudioReader';
 import { ShareLink } from '../sharing/ShareLink';
 import { Bookshelf, bookDurationLabel } from '../reader/ui/Bookshelf';
+import { BookReadingProgress } from '../reader/ui/BookReadingProgress';
 import '../generation-ui/generation.css';
 
 export function DistributedBooks() {
@@ -53,7 +54,7 @@ function DistributedLibrary() {
     {!loading && !error && !books.length && <Text>音声付きの本はまだ配置されていません。</Text>}
     {loading && <Text role="status">読み込んでいます…</Text>}
     {!loading && books.length > 0 && <Bookshelf count={books.length}>{books.map(entry => <li key={`${entry.id}/${entry.revision}`}><article className="generation-card bookshelf-book" aria-labelledby={`shelf-${entry.id}-${entry.revision}`}>
-      <div className="bookshelf-book-content"><h2 id={`shelf-${entry.id}-${entry.revision}`}>{entry.title}</h2><p className="bookshelf-book-meta"><span>保存音声</span><span>{bookDurationLabel(entry.durationSeconds)}</span></p><details className="bookshelf-book-details"><summary>著者・音声</summary><p>{entry.attribution}</p></details></div>
+      <div className="bookshelf-book-content"><h2 id={`shelf-${entry.id}-${entry.revision}`}>{entry.title}</h2><p className="bookshelf-book-meta"><span>保存音声</span><span>{bookDurationLabel(entry.durationSeconds)}</span></p><BookReadingProgress book={entry} /><details className="bookshelf-book-details"><summary>著者・音声</summary><p>{entry.attribution}</p></details></div>
       <div className="bookshelf-book-actions"><Button onClick={() => void open(entry)} disabled={loading} aria-describedby={`shelf-${entry.id}-${entry.revision}`}>音声付きで読む</Button></div>
     </article></li>)}</Bookshelf>}
     <ShareLink title={demo ? '音声デモ' : '音声ライブラリー'} />

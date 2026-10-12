@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { spawn, type ChildProcess } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { cp, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { cp, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
 import { resolve } from 'node:path';
@@ -14,7 +14,9 @@ import { importText } from '../../src/reader/text-import';
 
 const evidence = resolve('.reader-data/home-continue-reading');
 let root: string, origin: string, server: ChildProcess, disk: LibraryDisk, full: AudioBookManifest;
+let rpcIds: Record<string, string>;
 const hash = (value: string | Buffer) => createHash('sha256').update(value).digest('hex');
+const rpcId = (url: string) => new URL(url).pathname.split('/_serverFn/')[1];
 function tone(seconds: number) {
   const frames = 24000 * seconds, bytes = Buffer.alloc(44 + frames * 2);
   bytes.write('RIFF'); bytes.writeUInt32LE(bytes.length - 8, 4); bytes.write('WAVEfmt ', 8); bytes.writeUInt32LE(16, 16);
@@ -28,6 +30,12 @@ async function publish(indices = [0, 2]) {
   await disk.write(['books', `${full.id}_${full.revision}.json`], { ...full, chunks, completedChunks: chunks.length, durationSeconds: chunks.reduce((sum, chunk) => sum + chunk.durationSeconds, 0) });
 }
 test.beforeAll(async () => {
+  const assets = resolve('apps/web/dist/server/assets');
+  const functions = (await readdir(assets)).filter(name => /^functions-.*\.js$/.test(name));
+  const metadata = (await Promise.all(functions.map(name => readFile(resolve(assets, name), 'utf8')))).join('\n');
+  rpcIds = Object.fromEntries([...metadata.matchAll(/createServerRpc\(\{\s*id:\s*"([^"]+)",\s*name:\s*"([^"]+)"/g)].map(match => [match[2], match[1]]));
+  expect(rpcIds.getBook).toBeTruthy();
+  expect(rpcIds.listLibrary).toBeTruthy();
   await mkdir(evidence, { recursive: true });
   root = await mkdtemp(resolve(tmpdir(), 'ripola-home-continue-')); disk = new LibraryDisk(root);
   const document = await prepareDocument(importText('朝の窓を開きます。次の頁を読みます。最後に本を閉じます。', 'txt', '途中まで音声がある本'));
@@ -136,4 +144,82 @@ test('保存黙読もトップから保存位置で開ける', async ({ page }) 
   await expect(page.locator('.saved-card')).toContainText('ブラウザの黙読');
   await page.getByRole('button', { name: '続きから開く', exact: true }).click();
   await expect(page.getByTestId('current-phrase')).toHaveText(silentPosition);
+});
+
+test('本棚の読書位置はバーで表示し、途中生成・再開・別タブ・保存拒否を区別する', async ({ page }, testInfo) => {
+  test.setTimeout(60000);
+  await publish();
+  await page.addInitScript(({ id, revision }) => {
+    localStorage.setItem(`rsvp-audio-position:${id}:${revision}`, '5');
+    localStorage.setItem(`rsvp-audio-position:home-other-1:older-revision`, '26');
+    localStorage.setItem(`rsvp-audio-position:home-other-2:${revision}`, '13');
+    localStorage.setItem(`rsvp-audio-position:home-other-3:${revision}`, '999');
+    localStorage.setItem(`rsvp-audio-position:home-other-4:${revision}`, 'NaN');
+  }, { id: full.id, revision: full.revision });
+  const mediaRequests: string[] = [];
+  page.on('request', request => { if (/\/api\/local-audio\//.test(request.url()) || /\/_serverFn\//.test(request.url()) && request.method() === 'POST') mediaRequests.push(request.url()); });
+  await page.goto(`${origin}/library`);
+  const card = (title: string) => page.getByRole('article').filter({ has: page.getByRole('heading', { name: title, exact: true }) });
+  const partial = card(full.title);
+  await expect(partial.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '35');
+  await expect(partial).toContainText('保存済み音声内の位置');
+  await expect(partial).toContainText('生成途中');
+  await expect(card('保存音声 1').getByRole('progressbar')).toHaveAttribute('aria-valuenow', '0');
+  await expect(card('保存音声 1')).toContainText('保存位置なし');
+  await expect(card('保存音声 2').getByRole('progressbar')).toHaveAttribute('aria-valuenow', '50');
+  await expect(card('保存音声 3').getByRole('progressbar')).toHaveAttribute('aria-valuenow', '100');
+  await expect(card('保存音声 4')).toContainText('保存位置を取得できません');
+  await expect(card('保存音声 4').getByRole('progressbar')).not.toHaveAttribute('aria-valuenow');
+  await expect(card('音声がまだない本')).toContainText('音声を準備中');
+  expect(mediaRequests).toEqual([]);
+  await page.screenshot({ path: resolve(evidence, `${testInfo.project.name}-bookshelf-light.png`), fullPage: true });
+  let releaseBook!: () => void;
+  const pendingBook = new Promise<void>(resolve => { releaseBook = resolve; });
+  await page.route('**/_serverFn/**', async route => {
+    if (rpcId(route.request().url()) === rpcIds.getBook) await pendingBook;
+    await route.continue();
+  });
+  await partial.getByRole('button', { name: '保存音声を読む', exact: true }).click();
+  await expect(page.getByLabel('本棚を読み込み中', { exact: true })).toBeVisible();
+  const refreshed = page.waitForResponse(response => rpcId(response.url()) === rpcIds.listLibrary && response.status() === 200);
+  await page.evaluate(key => window.dispatchEvent(new StorageEvent('storage', { key })), `rsvp-audio-position:${full.id}:${full.revision}`);
+  await (await refreshed).finished();
+  await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+  await expect(page.getByRole('button', { name: '保存音声を読む', exact: true })).toHaveCount(0);
+  const openedBook = page.waitForResponse(response => rpcId(response.url()) === rpcIds.getBook && response.status() === 200);
+  releaseBook();
+  await (await openedBook).finished();
+  await page.unroute('**/_serverFn/**');
+  await expect(page.getByLabel('音声の再生位置', { exact: true })).toHaveValue('5');
+  await page.getByLabel('音声の再生位置', { exact: true }).evaluate((element: HTMLInputElement) => {
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(element, '14');
+    element.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+  await page.getByRole('button', { name: '本棚へ戻る', exact: true }).click();
+  await expect(partial.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '100');
+  await expect(partial).toContainText('生成途中');
+  await expect(partial).not.toContainText('読了');
+  await page.getByRole('button', { name: 'グリッド', exact: true }).click();
+  await publish([0, 1, 2]);
+  const otherTab = await page.context().newPage();
+  await otherTab.goto(`${origin}/library`);
+  await otherTab.evaluate(({ id, revision }) => localStorage.setItem(`rsvp-audio-position:${id}:${revision}`, '13'), { id: full.id, revision: full.revision });
+  await otherTab.close();
+  await expect(partial.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '50');
+  await expect(partial).not.toContainText('生成途中');
+  await expect(partial).toContainText('0分13秒 / 0分26秒');
+  await expect(page.getByRole('button', { name: 'グリッド', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await page.getByRole('button', { name: '配色を変更', exact: true }).click();
+  await page.getByRole('menuitem', { name: /^ダーク/ }).click();
+  await expect(page.getByRole('menu')).toHaveCount(0);
+  await page.getByRole('button', { name: 'グリッド', exact: true }).click();
+  await page.setViewportSize({ width: 320, height: 844 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+  await page.screenshot({ path: resolve(evidence, `${testInfo.project.name}-bookshelf-dark.png`), fullPage: true });
+  await page.evaluate(() => {
+    Object.defineProperty(window, 'localStorage', { get() { throw new DOMException('Denied', 'SecurityError'); } });
+    document.dispatchEvent(new Event('visibilitychange'));
+  });
+  await expect(partial).toContainText('保存位置を取得できません');
+  await expect(partial.getByRole('progressbar')).not.toHaveAttribute('aria-valuenow');
 });

@@ -7,6 +7,7 @@ import { audioSentenceIndexAt, audioSentenceTargets } from '../audio-sentences';
 import { type ReaderSettings, type RubySpan, type TextBlock } from '../model';
 import { inspectAudioPresentation, requireAudioPresentation } from '../audio-presentation';
 import { audioAlignmentWarning, audioFallbackMessage } from '../audio-labels';
+import { audioPositionKey, loadAudioPosition } from '../audio-position';
 import { ShareLink } from '../../sharing/ShareLink';
 import '../../generation-ui/generation.css';
 import { NavigationLayout } from './NavigationLayout';
@@ -73,7 +74,7 @@ export function AudioReader({ book, onClose, attribution, localTools, demo = fal
   const segment = segments[index];
   const audioChunks = useMemo(() => segment ? contiguousChunks(book, segment.chunk.id) : [], [book, segment]);
   const generationStopped = generationStatus && ['failed', 'cancelled', 'cancel-requested', 'outcome-unknown'].includes(generationStatus);
-  const storageKey = `rsvp-audio-position:${book.id}:${book.revision}`;
+  const storageKey = audioPositionKey(book);
   const assetIdentity = segment ? `${storageKey}:${audioAssetKey(segment.chunk)}` : storageKey;
   // Snapshot a ready URL only when changing files. Completing a speculative
   // fetch must never replace or restart the audio that is currently playing.
@@ -213,9 +214,10 @@ export function AudioReader({ book, onClose, attribution, localTools, demo = fal
 
   // New books restore once. Same-book publications retain the native clock.
   useLayoutEffect(() => {
-    let saved = 0;
+    const position = loadAudioPosition(book);
+    const saved = position.status === 'saved' ? position.seconds : 0;
     let stored: PlaybackAnchor | undefined;
-    try { saved = Number(localStorage.getItem(storageKey) ?? 0); stored = savedPlaybackAnchor(localStorage.getItem(`${storageKey}:source`)); } catch { /* Optional local position only. */ }
+    try { stored = savedPlaybackAnchor(localStorage.getItem(`${storageKey}:source`)); } catch { /* Optional local position only. */ }
     activeBook.current = storageKey;
     intent.current = false; playRequest.current++;
     setWaitingFor(null);

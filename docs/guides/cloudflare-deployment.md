@@ -11,7 +11,7 @@ pnpm build:worker
 pnpm audit:audio --distribution dist/distribution/worker
 ```
 
-`dist/distribution/worker` にReader、PDF資材、青空文庫サンプル、空の追加音声catalogを作ります。許可済みの同梱3音声デモは含み、個人のローカルlibraryは読み込みません。ビルドだけではデプロイしません。
+`dist/distribution/worker` にReader、PDF資材、青空文庫サンプル、空の追加音声catalogを作ります。許可済みの同梱5音声デモは含み、個人のローカルlibraryは読み込みません。ビルドだけではデプロイしません。
 
 ## 自分の配布先を確認する
 
