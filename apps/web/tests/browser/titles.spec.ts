@@ -14,7 +14,7 @@ test('blank and whitespace titles use local time, and renaming a saved browser d
   const phrase = await page.getByTestId('current-phrase').innerText();
   const position = await page.locator('.playback-position-label').innerText();
   await page.getByRole('button', { name: '端末に保存', exact: true }).click();
-  await page.getByRole('button', { name: '表示設定', exact: true }).click();
+  await page.getByRole('button', { name: '本の操作', exact: true }).click();
   await page.getByLabel('タイトルを変更', { exact: true }).fill('自作の読書記録');
   await page.getByRole('button', { name: '名前を変更', exact: true }).click();
   await expect(page.locator('.title-status')).toContainText('名前を変更');
