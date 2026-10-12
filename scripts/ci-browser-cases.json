@@ -1722,5 +1722,23 @@
       "audio",
       "generation"
     ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "irodori.spec.ts",
+    "title": "Irodoriの起動待ちを取り消し、古い起動エラーを表示せず再試行できる",
+    "lane": "related",
+    "domains": [
+      "generation"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "irodori.spec.ts",
+    "title": "Irodoriの起動待ちを取り消し、古い起動エラーを表示せず再試行できる",
+    "lane": "related",
+    "domains": [
+      "generation"
+    ]
   }
 ]
