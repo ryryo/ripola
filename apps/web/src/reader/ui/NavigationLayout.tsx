@@ -4,8 +4,8 @@ import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import type { SentenceLocation } from '../sentences';
 import './navigation.css';
 
-export function NavigationLayout({ children, entries, current, onJump, onPause, onResume, chapters = [], playing = false }: {
-  children: ReactNode; entries: SentenceLocation[]; current: number; onJump: (target: number) => void; onPause: () => void;
+export function NavigationLayout({ children, entries, current, onJump, onPause, onResume, chapters = [], playing = false, heading, actions }: {
+  heading?: ReactNode; actions?: ReactNode; children: ReactNode; entries: SentenceLocation[]; current: number; onJump: (target: number) => void; onPause: () => void;
   playing?: boolean;
   onResume?: () => void;
   chapters?: Array<{ title: string; target: number }>;
@@ -17,9 +17,10 @@ export function NavigationLayout({ children, entries, current, onJump, onPause, 
   useEffect(() => { if (playing) { setExpanded(false); setDrawer(false); } }, [playing]);
   const navigate = (target: number) => { onPause(); onJump(target); setDrawer(false); };
   const panel = <SentencePanel entries={entries} current={playing ? stoppedCurrent : current} onJump={navigate} chapters={chapters} />;
+  const navigation = <Button variant="subtle" size="sm" aria-controls={id} aria-expanded={!playing && (mobile ? drawer : expanded)}
+    onClick={() => { onPause(); if (mobile) setDrawer(true); else setExpanded(value => !value); }}>{mobile ? '文一覧を開く' : expanded ? '文一覧を閉じる' : '文一覧を開く'}</Button>;
   return <div className="navigation-layout" data-expanded={expanded && !mobile && !playing}>
-    <div className="navigation-reading"><div className="navigation-toolbar"><Button variant="subtle" size="sm" aria-controls={id} aria-expanded={!playing && (mobile ? drawer : expanded)}
-      onClick={() => { onPause(); if (mobile) setDrawer(true); else setExpanded(value => !value); }}>{mobile ? '文一覧を開く' : expanded ? '文一覧を閉じる' : '文一覧を開く'}</Button></div>{children}</div>
+    <div className="navigation-reading">{heading ? <div className="reader-book-heading">{heading}<div className="reader-book-actions">{navigation}{actions}</div></div> : <div className="navigation-toolbar">{navigation}</div>}{children}</div>
     {!mobile && expanded && !playing && <aside id={id} className="navigation-sidebar" aria-label="文を移動" onPointerDownCapture={onPause} onKeyDownCapture={onPause}>{panel}</aside>}
     <Drawer opened={mobile && drawer && !playing} onClose={() => setDrawer(false)} position="right" title="文を移動" size="md" closeButtonProps={{ 'aria-label': '文一覧を閉じる' }}><div id={mobile ? id : undefined}>{drawer && !playing && panel}</div>{onResume && <Button fullWidth mt="md" onClick={() => { setDrawer(false); onResume(); }}>一覧を閉じて再生</Button>}</Drawer>
   </div>;
@@ -39,7 +40,7 @@ function SentencePanel({ entries, current, onJump, chapters }: {
   const submit = () => { const value = Number(jump); if (Number.isInteger(value) && value >= 1 && value <= entries.length) { onJump(entries[value - 1].target); setJump(''); } };
   return <div className="sentence-panel">
     <div className="sentence-panel-heading"><h2>文を移動</h2><span data-testid="sentence-count">{current + 1} / {entries.length} 文</span></div>
-    <p className="navigation-hint">文を選ぶと、その位置で停止します。位置表示は一時停止時に更新します。</p>
+    <p className="navigation-hint">読みたい文を選んで移動できます。</p>
     <div className="sentence-navigation-buttons"><Button variant="light" disabled={current <= 0} onClick={() => onJump(entries[current - 1].target)}>前の文へ移動</Button><Button variant="light" disabled={current >= entries.length - 1} onClick={() => onJump(entries[current + 1].target)}>次の文へ移動</Button></div>
     {chapters.length > 0 && <label className="chapter-jump">章から移動<select aria-label="章から移動" value="" onChange={event => { if (event.target.value) onJump(Number(event.target.value)); }}><option value="">章を選ぶ</option>{chapters.map(chapter => <option key={chapter.target} value={chapter.target}>第{chapter.title}章</option>)}</select></label>}
     <form className="sentence-jump" onSubmit={event => { event.preventDefault(); submit(); }}><label>文番号<input aria-label="移動する文番号" type="number" min="1" max={entries.length} value={jump} onChange={event => setJump(event.target.value)} placeholder={String(current + 1)} /></label><Button type="submit" variant="light" disabled={!jump || Number(jump) < 1 || Number(jump) > entries.length}>移動</Button></form>
