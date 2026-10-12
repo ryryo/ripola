@@ -28,7 +28,7 @@ export class AudioPrefetch {
     this.environment = environment;
     this.budget = environment.saveData ? 1024 * 1024 : (environment.deviceMemory ?? 8) <= 2 ? 2 * 1024 * 1024 : 8 * 1024 * 1024;
     this.concurrency = environment.saveData || (environment.downlink ?? 10) < 1 ? 1 : 2;
-    this.dependencies = { fetch: globalThis.fetch, createURL: blob => URL.createObjectURL(blob), revokeURL: url => URL.revokeObjectURL(url), now: () => performance.now(), ...dependencies };
+    this.dependencies = { fetch: globalThis.fetch.bind(globalThis), createURL: blob => URL.createObjectURL(blob), revokeURL: url => URL.revokeObjectURL(url), now: () => performance.now(), ...dependencies };
   }
 
   source(chunk: PlayableAudioChunk): string { return this.entries.get(audioAssetKey(chunk))?.url ?? chunk.audioUrl; }
@@ -37,6 +37,8 @@ export class AudioPrefetch {
   update(chunks: PlayableAudioChunk[], current: number, localSeconds: number, rate: number, enabled: boolean): void {
     if (this.disposed) return;
     this.activeKey = chunks[current] ? audioAssetKey(chunks[current]) : '';
+    const active = this.entries.get(this.activeKey);
+    if (active && !active.url) this.release(this.activeKey, active);
     const wanted = new Map<string, PlayableAudioChunk>();
     if (enabled && chunks[current]) {
       const speed = Number.isFinite(rate) && rate > 0 ? rate : 1;
