@@ -57,7 +57,7 @@ export function GenerationApp({ home }: { home?: HomeGenerationProps }) {
   const [format, setFormat] = useState<InputFormat>('auto');
   const [provider, setProvider] = useState<'voicevox' | 'gemini'>('voicevox');
   const [voice, setVoice] = useState('');
-  const [model, setModel] = useState<GenerationOptions['model']>(GEMINI_MODELS[0]);
+  const [model, setModel] = useState<typeof GEMINI_MODELS[number]>(GEMINI_MODELS[0]);
   const [transport, setTransport] = useState<GenerationOptions['transport']>('direct');
   const [readings, setReadings] = useState('');
   const [style, setStyle] = useState('');
