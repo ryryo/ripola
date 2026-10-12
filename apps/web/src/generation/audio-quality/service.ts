@@ -4,11 +4,15 @@ import { inspectAudioPresentation } from '../../reader/audio-presentation';
 import { digest, LibraryDisk, requireId, requireKey } from '../core/disk';
 import { readReadyAudio } from '../core/audio-cache';
 import { prepareSpeech } from '../speech-source';
-import { AUDIO_INSPECTION_VERSION, type AudioInspection, type AudioInspectionReport, type InspectSavedAudioInput, type ReadingAlternative, type SourceSpan } from './contracts';
-import { compareContent, foldedCharacters } from './content';
+import { AUDIO_INSPECTION_VERSION, type AudioInspection, type AudioInspectionReport, type InspectSavedAudioInput, type ReadingAlternative, type SourceSpan, type ContentEvidence } from './contracts';
+import { foldedCharacters } from './text';
 import { inspectPcm } from './pcm';
 import { decodeMp3, decodeWave, InspectionUnavailable, validCandidate, type AsrAdapter } from './runtime';
 import { SPELLINGS_VERSION } from './spellings.generated';
+
+function uninspectedContent(reason = '内容検査は実行していません。軽量検査では読み飛ばしや繰り返しを判定できません。'): ContentEvidence {
+  return { status: 'indeterminate', method: 'not-run', spellingVersion: SPELLINGS_VERSION, reason };
+}
 
 type CachedInspection = Omit<AudioInspection, 'chunkId' | 'source' | 'key' | 'text'>;
 interface ChunkText { text: string; source: SourceSpan; alternatives: ReadingAlternative[] }
@@ -97,7 +101,7 @@ export class AudioInspectionService {
         const wav = await this.disk.readBytes(['audio', `${chunk.speechKey}.wav`]), mp3 = wav ? undefined : await this.disk.readBytes(['audio', `${chunk.speechKey}.mp3`]);
         results.push({ schemaVersion: 1, inspectionVersion: AUDIO_INSPECTION_VERSION, key: digest(`${hash}:${AUDIO_INSPECTION_VERSION}:invalid`), audioHash: hash, mediaHash: digest(wav ?? mp3 ?? 'unavailable'), mediaFormat: wav ? 'wav' : mp3 ? 'mp3' : chunk.mimeType === 'audio/mpeg' ? 'mp3' : 'wav',
           textHash: digest('unavailable'), inspectedAt: new Date().toISOString(), chunkId: chunk.id, text: '', status: 'fatal', lightweight: { status: 'fatal', reason: '元範囲または保存音声のhash検査に失敗しました。' },
-          content: compareContent('').evidence, issues: [{ severity: 'fatal', code: 'invalid-audio', message: '元範囲または保存音声の整合性を確認できません。再合成は行いません。' }] });
+          content: uninspectedContent(), issues: [{ severity: 'fatal', code: 'invalid-audio', message: '元範囲または保存音声の整合性を確認できません。再合成は行いません。' }] });
         continue;
       }
       const audioHash = audio.sourceAudioHash, mediaHash = digest(audio.bytes), textHash = this.textHash(input, chunk.durationSeconds);
@@ -106,7 +110,7 @@ export class AudioInspectionService {
       const outcome = await this.disk.withLock(`qa-${key}`, async () => {
         const cached = request.refresh ? undefined : await this.disk.read<CachedInspection>(parts);
         if (validCached(cached, audioHash, mediaHash, textHash)) return { cached, reused: true };
-        const value: CachedInspection = { schemaVersion: 1, inspectionVersion: AUDIO_INSPECTION_VERSION, audioHash, mediaHash, mediaFormat: audio.format, textHash, inspectedAt: new Date().toISOString(), status: 'indeterminate', lightweight: { status: 'indeterminate' }, content: compareContent(input.text).evidence, issues: [] };
+        const value: CachedInspection = { schemaVersion: 1, inspectionVersion: AUDIO_INSPECTION_VERSION, audioHash, mediaHash, mediaFormat: audio.format, textHash, inspectedAt: new Date().toISOString(), status: 'indeterminate', lightweight: { status: 'indeterminate' }, content: uninspectedContent(), issues: [] };
         const temporary = ['audio-inspection-input', `${randomUUID()}.${audio.format}`];
         await this.disk.writeBytes(temporary, audio.bytes);
         try {
@@ -125,10 +129,11 @@ export class AudioInspectionService {
             try {
               const candidate = await this.asr.transcribe(path, mediaHash);
               if (!validCandidate(candidate, mediaHash, this.asr.version)) throw new InspectionUnavailable('音声のみASRの応答・hashが正しくありません。');
+              const { compareContent } = await import('./content');
               const comparison = compareContent(input.text, candidate, undefined, input.alternatives, this.asr.qualification);
               value.content = comparison.evidence; value.issues.push(...comparison.issues);
-            } catch { value.content = compareContent(input.text, undefined, '手元ASRの実行に失敗しました。認識精度や内容の正しさは判定不能です。').evidence; }
-          } else if (request.content) value.content = compareContent(input.text, undefined, !this.asr ? '手元ASRが未設定です。追加モデルの取得は明示opt-inで別途設定してください。' : '構造不正、PCM判定不能、または30秒のASR上限のため内容は判定不能です。').evidence;
+            } catch { value.content = uninspectedContent('手元ASRの実行に失敗しました。認識精度や内容の正しさは判定不能です。'); }
+          } else if (request.content) value.content = uninspectedContent(!this.asr ? '手元ASRが未設定です。追加モデルの取得は明示opt-inで別途設定してください。' : '構造不正、PCM判定不能、または30秒のASR上限のため内容は判定不能です。');
           value.status = value.issues.some(i => i.severity === 'fatal') ? 'fatal' : value.issues.length ? 'warning' : 'indeterminate';
           // Failed/unavailable ASR is retryable. Do not freeze transient failure into a successful cache hit.
           if (!request.content || value.content.method !== 'not-run' || !this.asr) await this.disk.write(parts, value);
