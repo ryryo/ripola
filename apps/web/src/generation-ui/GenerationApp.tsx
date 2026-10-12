@@ -56,6 +56,7 @@ export function GenerationApp({ home }: { home?: HomeGenerationProps }) {
   const [title, setTitle] = useState('');
   const [format, setFormat] = useState<InputFormat>('auto');
   const [provider, setProvider] = useState<'voicevox' | 'gemini'>('voicevox');
+  const [automaticChunking, setAutomaticChunking] = useState(false);
   const [voice, setVoice] = useState('');
   const [model, setModel] = useState<typeof GEMINI_MODELS[number]>(GEMINI_MODELS[0]);
   const [transport, setTransport] = useState<GenerationOptions['transport']>('direct');
@@ -173,7 +174,7 @@ export function GenerationApp({ home }: { home?: HomeGenerationProps }) {
       const prepared = source ? { ...source, title: resolveDocumentTitle(source.title) } : undefined;
       if (!home && prepared) setDocument(prepared);
       if (!prepared || id !== request.current) return;
-      const options: GenerationOptions = { provider, voice, transport, readings: parseReadings(readings), ...(provider === 'gemini' ? { model, style: transport === 'direct' ? style : '' } : {}), ...(selected ? { selectedChunkIds: selected } : {}) };
+      const options: GenerationOptions = { provider, voice, transport, readings: parseReadings(readings), chunking: { mode: automaticChunking ? 'auto' : 'sentence' }, ...(provider === 'gemini' ? { model, style: transport === 'direct' ? style : '' } : {}), ...(selected ? { selectedChunkIds: selected } : {}) };
       const result = await prepareGeneration({ data: { document: prepared, options } });
       if (!mounted.current || id !== request.current) return;
       setPlan(result); if (!selected) setPreview(result);
@@ -228,9 +229,9 @@ export function GenerationApp({ home }: { home?: HomeGenerationProps }) {
   const costPreview = provider === 'gemini' && <GeminiCostPreview raw={costRaw} format={resolveInputFormat(costRaw, home?.inputFormat ?? format)} document={document} readings={costReadings.values} readingsError={costReadings.error} ranges={costRanges} model={model ?? GEMINI_MODELS[0]} transport={transport} />;
 
   const JobsContainer = home ? 'details' : 'section';
-  const selection = preview && <section className="generation-card"><h2>3. 生成対象</h2><p>{chosenIds.length} / {preview.chunks.length}文を選択。本文・読み・声の変更後は計画をもう一度確認してください。</p><div className="generation-actions"><Button variant="light" disabled={Boolean(busy)} onClick={() => { setSelected(undefined); invalidate(); }}>すべて選択</Button><Button variant="light" disabled={Boolean(busy)} onClick={() => { setSelected(preview.chunks.filter(chunk => !chunk.cacheHit).map(chunk => chunk.id)); invalidate(); }}>未保存の文だけ</Button></div>
+  const selection = preview && <section className="generation-card"><h2>3. 生成対象</h2><p>{chosenIds.length} / {preview.chunks.length}{preview.chunkPlan ? '区間' : '文'}を選択。本文・読み・声の変更後は計画をもう一度確認してください。</p><div className="generation-actions"><Button variant="light" disabled={Boolean(busy)} onClick={() => { setSelected(undefined); invalidate(); }}>すべて選択</Button><Button variant="light" disabled={Boolean(busy)} onClick={() => { setSelected(preview.chunks.filter(chunk => !chunk.cacheHit).map(chunk => chunk.id)); invalidate(); }}>{preview.chunkPlan ? '未保存の区間だけ' : '未保存の文だけ'}</Button></div>
         <div className="chunk-selection">{preview.chunks.slice(chunkPage * 20, (chunkPage + 1) * 20).map((chunk, i) => <Checkbox key={chunk.id} checked={chosenIds.includes(chunk.id)} disabled={Boolean(busy)} label={<span>{chunkPage * 20 + i + 1}. {chunk.originalText} {chunk.cacheHit && <Badge color="ripola" size="xs">再利用</Badge>}</span>} onChange={event => { setSelected(event.currentTarget.checked ? [...chosenIds, chunk.id] : chosenIds.filter(id => id !== chunk.id)); invalidate(); }} />)}</div>
-        {chunkPageCount > 1 && <div className="generation-actions"><Button variant="subtle" disabled={chunkPage === 0} onClick={() => setChunkPage(value => value - 1)}>前の20文</Button><span>{chunkPage + 1} / {chunkPageCount}</span><Button variant="subtle" disabled={chunkPage >= chunkPageCount - 1} onClick={() => setChunkPage(value => value + 1)}>次の20文</Button></div>}
+        {chunkPageCount > 1 && <div className="generation-actions"><Button variant="subtle" disabled={chunkPage === 0} onClick={() => setChunkPage(value => value - 1)}>前の20{preview.chunkPlan ? '区間' : '文'}</Button><span>{chunkPage + 1} / {chunkPageCount}</span><Button variant="subtle" disabled={chunkPage >= chunkPageCount - 1} onClick={() => setChunkPage(value => value + 1)}>次の20{preview.chunkPlan ? '区間' : '文'}</Button></div>}
         {!plan && <Button mt="md" onClick={() => void prepare()} disabled={Boolean(busy) || chosenIds.length === 0}>選択した対象で計画を確認</Button>}
       </section>;
 
@@ -268,6 +269,10 @@ export function GenerationApp({ home }: { home?: HomeGenerationProps }) {
           <p className="muted">{configState === 'error' ? '接続を再確認してください。' : config?.alignment?.automatic?.message ?? 'リポジトリのフォルダーで pnpm setup:audio を実行し、完了後 pnpm dev を起動してください。'}</p>
           {config?.alignment?.automatic?.status !== 'ready' && <p className="muted">セットアップはモデル約387 MBと専用Python環境を準備します。未準備の場合も音声は保存できますが、音声に基づく時刻の補正は使えません。</p>}
         </div>
+        <details className="home-advanced-row"><summary>音声の区切りを調整する（任意）</summary>
+          <Checkbox label="音声の区切りを自動調整する（実験）" checked={automaticChunking} disabled={Boolean(busy)} onChange={event => { setAutomaticChunking(event.currentTarget.checked); invalidate(true); }} />
+          <p className="muted">通常は文ごとに生成します。自動調整は短い文をまとめ、長い文を分けます。実際の音声合成での速度・聞きやすさの改善は未検証です。</p>
+        </details>
         {provider === 'gemini' && <Select label="Geminiモデル" value={model} onChange={value => { if (value === GEMINI_MODELS[0] || value === GEMINI_MODELS[1]) { setModel(value); invalidate(true); } }} data={[{ value: GEMINI_MODELS[0], label: 'Flash-Lite · 既定' }, { value: GEMINI_MODELS[1], label: 'Flash' }]} allowDeselect={false} disabled={Boolean(busy)} />}
 
         <Select label="声・スタイル" value={voice || null} data={(voices ?? []).map(value => ({ value: value.id, label: value.name }))} searchable allowDeselect={false} disabled={Boolean(busy) || configState !== 'ready' || !selectedProviderAvailable || !voices?.length} onChange={value => { if (value) { setVoice(value); invalidate(true); } }} placeholder="接続できる声を選択" />
@@ -284,7 +289,8 @@ export function GenerationApp({ home }: { home?: HomeGenerationProps }) {
       {home && <><div className="home-generation-actions">{audioEnabled && <Button onClick={() => void prepare()} disabled={!voice || Boolean(busy) || home.textBusy || configState !== 'ready' || !selectedProviderAvailable}>生成内容を確認する</Button>}<Button variant={audioEnabled ? 'outline' : 'filled'} onClick={home.onRead} disabled={Boolean(busy) || home.textBusy}>テキストのみ生成して読む</Button></div><p className="home-action-note">{audioEnabled ? '音声生成は、内容を確認してから開始します。' : 'テキストは端末内で準備します。本文を外へ送りません。'}</p></>}
       </div>
       {!home && selection}
-      {audioEnabled && plan && <section className="generation-card generation-confirm"><h2>{home ? '開始前に確認' : '4. 開始前に確認'}</h2><dl><dt>送信先</dt><dd>{plan.options.provider === 'voicevox' ? 'VOICEVOX · このPC' : `${plan.options.transport === 'gateway' ? 'Cloudflare · Googleモデル' : 'Google'} · ${plan.options.model}`}</dd><dt>接続先</dt><dd>{plan.endpoint}</dd><dt>課金先</dt><dd>{plan.options.provider === 'voicevox' ? '無料 · このPC' : plan.options.transport === 'gateway' ? 'Cloudflare Gatewayの設定に従います' : 'Googleアカウント'}</dd><dt>対象</dt><dd>{plan.chunks.length}文 · 保存音声の再利用 {plan.chunks.filter(chunk => chunk.cacheHit).length}文</dd><dt>音声の長さ（目安）</dt><dd>約{Math.ceil(plan.estimatedSeconds / 60)}分</dd><dt>概算費用</dt><dd>{plan.options.provider === 'voicevox' ? '無料' : `$${plan.estimatedOutputUsd.toFixed(4)} + 入力等`}<p className="muted">{plan.estimateNote}</p></dd></dl>
+      {audioEnabled && plan && <section className="generation-card generation-confirm"><h2>{home ? '開始前に確認' : '4. 開始前に確認'}</h2><dl><dt>送信先</dt><dd>{plan.options.provider === 'voicevox' ? 'VOICEVOX · このPC' : `${plan.options.transport === 'gateway' ? 'Cloudflare · Googleモデル' : 'Google'} · ${plan.options.model}`}</dd><dt>接続先</dt><dd>{plan.endpoint}</dd><dt>課金先</dt><dd>{plan.options.provider === 'voicevox' ? '無料 · このPC' : plan.options.transport === 'gateway' ? 'Cloudflare Gatewayの設定に従います' : 'Googleアカウント'}</dd><dt>対象</dt><dd>{plan.chunks.length}{plan.chunkPlan ? '区間' : '文'} · 保存音声の再利用 {plan.chunks.filter(chunk => chunk.cacheHit).length}{plan.chunkPlan ? '区間' : '文'}</dd><dt>音声の長さ（目安）</dt><dd>約{Math.ceil(plan.estimatedSeconds / 60)}分</dd><dt>概算費用</dt><dd>{plan.options.provider === 'voicevox' ? '無料' : `$${plan.estimatedOutputUsd.toFixed(4)} + 入力等`}<p className="muted">{plan.estimateNote}</p></dd></dl>
+        {plan.chunkPlan && <p className="muted">自然な区切りで複数の文を音声区間にまとめます。区間内のフレーズ時刻は、補正がない部分では表示用の推定です。</p>}
         <details><summary>正確な送信本文を確認（{plan.sendingText.length.toLocaleString()}文字）</summary><pre>{plan.sendingText}</pre>{plan.options.style && <p>読み上げ指示：{plan.options.style}</p>}</details>
         {!plan.sendingText && plan.chunks.length > 0 && <p className="muted">すべて保存音声を再利用するため、今回APIへ送る本文はありません。</p>}
         {plan.warnings.map((warning, i) => <p className="muted" key={i}>{warning}</p>)}

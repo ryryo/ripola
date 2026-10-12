@@ -1605,42 +1605,62 @@
   },
   {
     "project": "desktop-chromium",
-    "file": "reading-options.spec.ts",
-    "title": "黙読ペース評価は同じ速度で比較でき、停止・seek・下限・保存復元が一致する",
+    "file": "audio-sentences.spec.ts",
+    "title": "三文が一音声でも前後ボタン・Shift矢印・文一覧は原文の文単位で移動する",
     "lane": "related",
     "domains": [
       "audio",
-      "layout"
+      "generation"
     ]
   },
   {
     "project": "desktop-chromium",
-    "file": "reading-options.spec.ts",
-    "title": "黙読評価の保存設定は音声のmedia時計・倍速・seekへ影響しない",
+    "file": "audio-sentences.spec.ts",
+    "title": "一文が二音声でも文一覧は一項目で、後半から次の原文文へ移動する",
     "lane": "related",
     "domains": [
       "audio",
-      "layout"
+      "generation"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "generation.spec.ts",
+    "title": "通常の生成は文単位で、自動調整を明示選択すると計画を再確認する",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "generation"
     ]
   },
   {
     "project": "mobile-chromium",
-    "file": "reading-options.spec.ts",
-    "title": "黙読ペース評価は同じ速度で比較でき、停止・seek・下限・保存復元が一致する",
+    "file": "audio-sentences.spec.ts",
+    "title": "三文が一音声でも前後ボタン・Shift矢印・文一覧は原文の文単位で移動する",
     "lane": "related",
     "domains": [
       "audio",
-      "layout"
+      "generation"
     ]
   },
   {
     "project": "mobile-chromium",
-    "file": "reading-options.spec.ts",
-    "title": "黙読評価の保存設定は音声のmedia時計・倍速・seekへ影響しない",
+    "file": "audio-sentences.spec.ts",
+    "title": "一文が二音声でも文一覧は一項目で、後半から次の原文文へ移動する",
     "lane": "related",
     "domains": [
       "audio",
-      "layout"
+      "generation"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "generation.spec.ts",
+    "title": "通常の生成は文単位で、自動調整を明示選択すると計画を再確認する",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "generation"
     ]
   },
   {
@@ -2007,6 +2027,46 @@
     "lane": "related",
     "domains": [
       "audio"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "reading-options.spec.ts",
+    "title": "黙読ペース評価は同じ速度で比較でき、停止・seek・下限・保存復元が一致する",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "reading-options.spec.ts",
+    "title": "黙読評価の保存設定は音声のmedia時計・倍速・seekへ影響しない",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "reading-options.spec.ts",
+    "title": "黙読ペース評価は同じ速度で比較でき、停止・seek・下限・保存復元が一致する",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "reading-options.spec.ts",
+    "title": "黙読評価の保存設定は音声のmedia時計・倍速・seekへ影響しない",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
     ]
   }
 ]
