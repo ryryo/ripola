@@ -4,6 +4,8 @@
 
 ## 直接依存
 
+音声QAの内部許容表記には、版固定したCC0の注釈データを使います。[出典・revision・抽出方法](audio-qa-data.md)を参照してください。
+
 | package | 固定version | package宣言 |
 | --- | --- | --- |
 | React／react-dom | 19.2.8 | MIT |
@@ -66,3 +68,5 @@ Python runtime・モデル・個人のWAV/原稿を公開Pages/Worker出力へ�
 ## 同梱の本文・音声サンプル
 
 夏目漱石『吾輩は猫である』の青空文庫本文、VOICEVOX:ずんだもん、Google Gemini Puck／Kore、Irodori-TTS男声／女声の保存音声を使います。[サンプルNOTICE](../../apps/web/public/samples/audio/NOTICE.md)をlocal／Worker／Pagesに同梱し、catalog・manifest・音声Readerの帰属も保持します。VOICEVOXの再利用・再配布ではクレジットと音源利用条件を引き継いでください。Engineやキャラクター画像は配布していません。
+
+Irodoriの任意追加に使うモデル・codec・speech.cpp・voiceの条件と固定資材は[Irodoriの第三者条件](irodori.md)に記録します。製品コードのMITと個別voiceの許諾を区別し、モデルを公開buildへ同梱しません。

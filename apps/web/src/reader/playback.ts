@@ -1,4 +1,6 @@
 import { DEFAULT_SETTINGS, type ReaderSettings, type ReadingDocument, type ReadingUnit, type SourceAnchor } from './model.ts';
+import { buildPaceTimeline, type PaceTimeline } from './pace.ts';
+export { durationMs } from './pace.ts';
 
 export interface PlaybackSnapshot {
   index: number;
@@ -17,20 +19,6 @@ const browserScheduler: PlaybackScheduler = {
   setTimeout: (callback, delayMs) => globalThis.setTimeout(callback, delayMs),
   clearTimeout: (handle) => globalThis.clearTimeout(handle as ReturnType<typeof globalThis.setTimeout>),
 };
-
-const pauses: Record<ReadingUnit['pause'], number> = {
-  none: 0, comma: 100, sentence: 250, paragraph: 400, heading: 600,
-};
-
-/** Static code/table units never advance on a timer and contribute no RSVP duration. */
-export function durationMs(unit: ReadingUnit, settings: ReaderSettings): number {
-  if (unit.kind === 'static') return 0;
-  const cpm = Number.isFinite(settings.cpm)
-    ? Math.min(3000, Math.max(100, settings.cpm))
-    : DEFAULT_SETTINGS.cpm;
-  return Math.max(100, 60_000 * unit.characters / cpm)
-    + (settings.punctuationPause ? pauses[unit.pause] : 0);
-}
 
 function boundedIndex(index: number, length: number): number {
   return length === 0 ? 0 : Math.min(length - 1, Math.max(0, Number.isFinite(index) ? Math.trunc(index) : 0));
@@ -53,6 +41,7 @@ export class PlaybackController {
   private generation = 0;
   private disposed = false;
   private prefix: number[] = [0];
+  private timeline: PaceTimeline = buildPaceTimeline([], DEFAULT_SETTINGS);
   private unitDuration = 0;
   private unitElapsed = 0;
   private startedAt: number | undefined;
@@ -67,6 +56,7 @@ export class PlaybackController {
   }
 
   getSnapshot = (): PlaybackSnapshot => this.snapshot;
+  getTimingSummary = (): Omit<PaceTimeline, 'durations'> => this.timeline;
 
   subscribe = (callback: () => void): (() => void) => {
     if (this.disposed) return () => undefined;
@@ -136,13 +126,14 @@ export class PlaybackController {
   }
 
   updateSettings(settings: ReaderSettings): void {
-    const timingChanged = settings.cpm !== this.settings.cpm || settings.punctuationPause !== this.settings.punctuationPause;
+    const timingChanged = settings.cpm !== this.settings.cpm || settings.punctuationPause !== this.settings.punctuationPause
+      || (settings.readingPace ?? 'legacy') !== (this.settings.readingPace ?? 'legacy');
     if (!timingChanged) { this.settings = { ...settings }; return; }
     const progress = this.getProgress();
     this.settings = { ...settings };
     this.rebuildTimeline();
     // Already exposed text retains its scheduled duration, including while paused.
-    if (this.snapshot.status !== 'playing' && progress.unitElapsedMs === 0) this.unitDuration = this.units[this.snapshot.index] ? durationMs(this.units[this.snapshot.index], settings) : 0;
+    if (this.snapshot.status !== 'playing' && progress.unitElapsedMs === 0) this.unitDuration = this.timeline.durations[this.snapshot.index] ?? 0;
     this.epochFraction = progress.fraction;
     this.epochCompleted = -progress.unitElapsedMs;
     this.epochDuration = this.remaining(progress.unitElapsedMs);
@@ -166,12 +157,13 @@ export class PlaybackController {
   }
 
   private rebuildTimeline(): void {
+    this.timeline = buildPaceTimeline(this.units, this.settings);
     this.prefix = new Array<number>(this.units.length + 1).fill(0);
-    for (let i = 0; i < this.units.length; i++) this.prefix[i + 1] = this.prefix[i] + durationMs(this.units[i], this.settings);
+    for (let i = 0; i < this.units.length; i++) this.prefix[i + 1] = this.prefix[i] + this.timeline.durations[i];
   }
 
   private enter(index: number): void {
-    this.unitDuration = this.units[index] ? durationMs(this.units[index], this.settings) : 0;
+    this.unitDuration = this.timeline.durations[index] ?? 0;
     this.unitElapsed = 0;
     this.startedAt = undefined;
   }

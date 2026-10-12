@@ -1,5 +1,5 @@
 import { createServerFn } from '@tanstack/react-start';
-import type { StartAlignmentInput, PrepareGenerationInput, ResumeGenerationInput, StartGenerationInput } from './contracts';
+import type { StartAlignmentInput, PrepareGenerationInput, ResumeGenerationInput, StartGenerationInput, PrioritizeGenerationInput } from './contracts';
 import { getLocalGenerationService } from './service.server';
 
 export const getGenerationConfig = createServerFn({ method: 'GET' }).handler(async () => (await getLocalGenerationService()).getGenerationConfig());
@@ -9,6 +9,7 @@ export const listJobs = createServerFn({ method: 'GET' }).handler(async () => (a
 export const getJob = createServerFn({ method: 'GET' }).validator((data: { jobId: string }) => data).handler(async ({ data }) => (await getLocalGenerationService()).getJob(data.jobId));
 export const getJobPlan = createServerFn({ method: 'GET' }).validator((data: { jobId: string }) => data).handler(async ({ data }) => (await getLocalGenerationService()).getJobPlan(data.jobId));
 export const cancelJob = createServerFn({ method: 'POST' }).validator((data: { jobId: string }) => data).handler(async ({ data }) => (await getLocalGenerationService()).cancelJob(data.jobId));
+export const prioritizeJobChunks = createServerFn({ method: 'POST' }).validator((data: PrioritizeGenerationInput) => data).handler(async ({ data }) => (await getLocalGenerationService()).prioritizeJobChunks(data.jobId, data.chunkIds));
 export const resumeJob = createServerFn({ method: 'POST' }).validator((data: ResumeGenerationInput) => data).handler(async ({ data }) => (await getLocalGenerationService()).resumeJob(data.jobId, data.paidConfirmed));
 export const listLibrary = createServerFn({ method: 'GET' }).handler(async () => (await getLocalGenerationService()).listLibrary());
 export const getBook = createServerFn({ method: 'GET' }).validator((data: { bookId: string; revision?: string }) => data).handler(async ({ data }) => (await getLocalGenerationService()).getBook(data.bookId, data.revision));

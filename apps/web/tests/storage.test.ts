@@ -26,6 +26,20 @@ function freshDatabase() {
   Object.defineProperty(globalThis, 'indexedDB', { configurable: true, writable: true, value: new IDBFactory() });
 }
 
+test('pace choice round-trips with source position; old saves migrate and invalid choices are rejected', async () => {
+  freshDatabase();
+  const value = saved(); value.settings.readingPace = 'text-load'; value.settings.cpm = 850;
+  await saveReading(value);
+  assert.equal((await loadReading())?.settings.readingPace, 'text-load');
+  assert.equal((await loadReading())?.settings.cpm, 850);
+  assert.deepEqual((await loadReading())?.anchor, { blockId: 'b1', offset: 2 });
+  delete value.settings.readingPace;
+  await saveReading(value);
+  assert.equal((await loadReading())?.settings.readingPace, 'legacy');
+  const invalid = { ...value, settings: { ...value.settings, readingPace: 'unknown' } };
+  assert.throws(() => validateSavedReading(invalid), (error: unknown) => error instanceof ReadingStorageError && error.code === 'invalid');
+});
+
 async function putUnvalidated(value: unknown): Promise<void> {
   await new Promise<void>((resolve, reject) => {
     const request = indexedDB.open('rsvp-reader-local', 1);

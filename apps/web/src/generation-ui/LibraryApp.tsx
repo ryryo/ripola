@@ -5,9 +5,10 @@ import { AUDIO_DEMO_BOOK_ID } from '../reader/audio-demo';
 import { Alert, Badge, Button, Loader } from '@mantine/core';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { AudioBookManifest, AudioBookSummary } from '../generation/contracts';
-import { AudioReader } from '../reader/ui/AudioReader';
+import { ProgressiveAudioReader } from '../reader/ui/ProgressiveAudioReader';
 import { getBook, listLibrary, renameBook } from './api';
 import { AlignmentPanel } from './AlignmentPanel';
+import { AudioInspectionPanel } from './AudioInspectionPanel';
 import { TitleEditor } from '../reader/ui/TitleEditor';
 import { Bookshelf, bookDurationLabel } from '../reader/ui/Bookshelf';
 import { BookReadingProgress } from '../reader/ui/BookReadingProgress';
@@ -80,7 +81,7 @@ function LocalLibraryApp() {
     reloadLibrary.current();
   }
 
-  if (book) return <AudioReader book={book} onRename={book.id === AUDIO_DEMO_BOOK_ID ? undefined : title => rename(book, title)} demo={book.id === AUDIO_DEMO_BOOK_ID} localTools={<AlignmentPanel key={`${book.id}:${book.revision}`} book={book} onUpdated={refreshBook} />} attribution={book.options.provider === 'voicevox' ? '音声：VOICEVOX' : '音声：Gemini'} onClose={() => { if (book.id === AUDIO_DEMO_BOOK_ID) { window.location.assign(import.meta.env.BASE_URL); return; } setBook(undefined); window.history.replaceState(null, '', '/library'); reloadLibrary.current(); }} />;
+  if (book) return <ProgressiveAudioReader key={`${book.id}:${book.revision}`} book={book} requestedJobId={new URLSearchParams(window.location.search).get('job') ?? undefined} onRename={book.id === AUDIO_DEMO_BOOK_ID ? undefined : title => rename(book, title)} demo={book.id === AUDIO_DEMO_BOOK_ID} renderTools={current => <><AlignmentPanel key={`${current.id}:${current.revision}`} book={current} onUpdated={refreshBook} />{current.id !== AUDIO_DEMO_BOOK_ID && <AudioInspectionPanel key={`qa:${current.id}:${current.revision}`} book={current} />}</>} attribution={book.options.provider === 'voicevox' ? '音声：VOICEVOX' : book.options.provider === 'irodori' ? '音声：Irodori' : '音声：Gemini'} onClose={() => { if (book.id === AUDIO_DEMO_BOOK_ID) { window.location.assign(import.meta.env.BASE_URL); return; } setBook(undefined); window.history.replaceState(null, '', '/library'); reloadLibrary.current(); }} />;
 
   const listedBooks = books.filter(value => value.id !== AUDIO_DEMO_BOOK_ID);
   return <div className="generation-shell">

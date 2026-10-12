@@ -10,6 +10,7 @@
   },
   "scripts": {
     "setup:audio": "node scripts/setup-alignment.mjs",
+    "setup:irodori": "node --import tsx scripts/setup-irodori.ts",
     "dev": "node scripts/prepare-pdf-assets.mjs && pnpm --filter @ripola/web dev",
     "build": "node scripts/prepare-pdf-assets.mjs && pnpm --filter @ripola/web build",
     "preview": "RSVP_LOCAL_ORIGIN=http://127.0.0.1:4174 pnpm --filter @ripola/web preview",
@@ -24,6 +25,7 @@
     "test:e2e": "playwright test",
     "check": "pnpm typecheck && pnpm lint && pnpm test && pnpm build",
     "audit:audio": "node --import tsx scripts/audit-audio-presentation.ts",
+    "inspect:audio": "node --import tsx scripts/inspect-audio.ts",
     "test:ci-browser": "node scripts/ci-browser.mjs"
   },
   "devDependencies": {

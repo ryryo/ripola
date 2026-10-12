@@ -1,4 +1,5 @@
-import { GEMINI_MODELS, type GenerationOptions, type VoiceOption, type SpeechReceipt } from '../contracts';
+import { GEMINI_MODELS, type GenerationOptions, type VoiceOption, type SpeechReceipt, type SpeechProviderCapabilities } from '../contracts';
+import { IRODORI_LIMITS } from '../irodori-contracts';
 import type { GeminiGatewayConfig } from './config';
 import { wranglerAiRuntime, WRANGLER_GATEWAY_MISSING, type WranglerAiRuntime } from './wrangler-ai';
 
@@ -8,14 +9,21 @@ export const GEMINI_VOICES: VoiceOption[] = ['Kore', 'Puck', 'Aoede', 'Charon', 
 export class SpeechRequestError extends Error {
   constructor(message: string, readonly outcomeUnknown = false) { super(message); }
 }
-export interface SpeechRequest { text: string; options: GenerationOptions; captureVoicevoxQuery?: (query: unknown) => void; captureReceipt?: (receipt: SpeechReceipt) => void }
+export interface SpeechRequest { text: string; options: GenerationOptions; signal?: AbortSignal; providerVersion?: string; captureVoicevoxQuery?: (query: unknown) => void; captureReceipt?: (receipt: SpeechReceipt) => void }
 export interface SpeechAdapter {
+  /** Server-owned metadata. Never supplied by a browser request. */
+  endpoint?: string;
+  capabilities?: SpeechProviderCapabilities;
   synthesize(request: SpeechRequest, beforeSend: () => Promise<void>): Promise<Uint8Array>;
   voices(): Promise<VoiceOption[]>;
-  fingerprint?(): Promise<string>;
+  fingerprint?(options?: GenerationOptions): Promise<string>;
+  attribution?(options: GenerationOptions): string | undefined | Promise<string | undefined>;
   preflight?(options: GenerationOptions): Promise<void>;
   availability?(): { available: boolean; message?: string };
 }
+export const VOICEVOX_CAPABILITIES: SpeechProviderCapabilities = { local: true, supportsStyle: false, cancellation: 'before-send' };
+export const GEMINI_CAPABILITIES: SpeechProviderCapabilities = { local: false, supportsStyle: true, cancellation: 'before-send' };
+export const IRODORI_CAPABILITIES: SpeechProviderCapabilities = { local: true, supportsStyle: true, cancellation: 'abort', ...IRODORI_LIMITS };
 
 async function boundedBytes(response: Response, maximum = 64 * 1024 * 1024): Promise<Uint8Array> {
   if (Number(response.headers.get('content-length')) > maximum) throw new SpeechRequestError('音声応答が大きすぎます。', true);
@@ -50,6 +58,8 @@ async function checkedFetch(url: string, init: RequestInit, paid = false): Promi
 
 export function voicevoxAdapter(): SpeechAdapter {
   return {
+    endpoint: VOICEVOX_ENDPOINT,
+    capabilities: VOICEVOX_CAPABILITIES,
     async fingerprint() {
       const response = await fetch(`${VOICEVOX_ENDPOINT}/version`, { redirect: 'error', signal: AbortSignal.timeout(3000) });
       if (!response.ok) throw new Error('Engineのversionが取得できません。');
@@ -118,7 +128,7 @@ function receipt(payload: Record<string, unknown>, options: GenerationOptions, e
     if (typeof value === 'number' && Number.isSafeInteger(value) && value >= 0) usage[key] = value;
   }
   const id = typeof payload.id === 'string' && /^[a-zA-Z0-9_.-]{1,512}$/.test(payload.id) ? payload.id : undefined;
-  return { schemaVersion: 1, transport: options.transport, endpoint, model: options.model ?? GEMINI_MODELS[0],
+  return { schemaVersion: 1, transport: options.transport, endpoint, model: options.model === GEMINI_MODELS[1] ? GEMINI_MODELS[1] : GEMINI_MODELS[0],
     ...(id ? { interactionId: id } : {}), ...(Object.keys(usage).length ? { usage } : {}) };
 }
 
@@ -139,6 +149,8 @@ export function geminiAdapter(apiKey: string | undefined, gateway?: GeminiGatewa
     }
   }
   return {
+    endpoint: GEMINI_ENDPOINT,
+    capabilities: GEMINI_CAPABILITIES,
     async voices() { return GEMINI_VOICES; },
     availability() {
       return { available: Boolean(gateway?.gatewayId), ...(gateway?.mode === 'wrangler' ? { message: gateway.gatewayId
@@ -147,7 +159,7 @@ export function geminiAdapter(apiKey: string | undefined, gateway?: GeminiGatewa
     },
     preflight,
     async synthesize({ text, options, captureReceipt }, beforeSend) {
-      if (!GEMINI_MODELS.includes(options.model ?? GEMINI_MODELS[0]) || !GEMINI_VOICES.some((voice) => voice.id === options.voice)) throw new SpeechRequestError('Geminiのmodelまたはvoiceが正しくありません。');
+      if (!GEMINI_MODELS.some(model => model === (options.model ?? GEMINI_MODELS[0])) || !GEMINI_VOICES.some((voice) => voice.id === options.voice)) throw new SpeechRequestError('Geminiのmodelまたはvoiceが正しくありません。');
       if (options.transport === 'direct' && !apiKey) throw new SpeechRequestError('Google API keyが未設定です。');
       if (options.transport === 'gateway' && (!text || [...text].length > 10_000)) throw new SpeechRequestError('Cloudflareへ送る本文は1〜10000文字にしてください。');
       await preflight(options);

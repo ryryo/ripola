@@ -331,3 +331,72 @@ test('source anchors resolve containing UTF-16 range, exact boundary, clamped en
   assert.equal(sourceAnchorToIndex(document, { blockId: 'missing', offset: 0 }), 0);
   assert.equal(sourceAnchorToIndex({ ...document, units: [] }, { blockId: 'a', offset: 0 }), 0);
 });
+
+test('text-load timer, pause/resume, seek and progress use the same normalized timeline', () => {
+  const clock = new Clock();
+  const controller = new PlaybackController({ ...DEFAULT_SETTINGS, punctuationPause: false, readingPace: 'text-load' }, clock);
+  controller.load([unit('日本語文'), unit('1234')]);
+  const firstDuration = 800 / 2.3;
+  assert.ok(Math.abs(controller.getProgress().unitDurationMs - firstDuration) < 1e-8);
+  assert.equal(controller.getTimingSummary().totalMs, 800);
+  controller.play(); clock.advance(100); controller.pause();
+  const paused = controller.getProgress();
+  assert.equal(paused.fraction, .125);
+  assert.equal(paused.remainingMs, 700);
+  clock.advance(5000); assert.deepEqual(controller.getProgress(), paused);
+  controller.play(); clock.advance(firstDuration - 100);
+  assert.equal(controller.getSnapshot().index, 1);
+  assert.ok(Math.abs(controller.getProgress().fraction - firstDuration / 800) < 1e-8);
+  controller.seek(1);
+  assert.equal(controller.getSnapshot().status, 'paused');
+  assert.ok(Math.abs(controller.getProgress().remainingMs - (800 - firstDuration)) < 1e-8);
+  controller.play(); clock.advance(800 - firstDuration);
+  assert.equal(controller.getSnapshot().status, 'completed');
+  assert.equal(controller.getProgress().fraction, 1);
+  controller.step(-1); assert.equal(controller.getProgress().fraction, 0);
+});
+
+test('pace/speed changes retain elapsed phrase time and fraction; later seek uses the new plan', () => {
+  const clock = new Clock();
+  const initial = { ...DEFAULT_SETTINGS, punctuationPause: false };
+  const controller = new PlaybackController(initial, clock);
+  controller.load([unit('日本語文'), unit('1234')]);
+  controller.play(); clock.advance(100);
+  controller.updateSettings({ ...initial, readingPace: 'text-load' });
+  assert.equal(controller.getProgress().fraction, .125);
+  assert.equal(controller.getProgress().unitDurationMs, 400);
+  controller.pause();
+  controller.updateSettings({ ...initial, cpm: 1200, readingPace: 'text-load' });
+  assert.equal(controller.getProgress().fraction, .125);
+  assert.equal(controller.getProgress().unitElapsedMs, 100);
+  assert.equal(controller.getProgress().unitDurationMs, 400);
+  controller.play(); clock.advance(300);
+  assert.equal(controller.getSnapshot().index, 1);
+  assert.ok(Math.abs(controller.getProgress().unitDurationMs - 520 / 2.3) < 1e-8);
+  controller.seek(1);
+  assert.ok(Math.abs(controller.getProgress().fraction - 1 / 2.3) < 1e-8);
+  assert.equal(controller.getProgress().unitElapsedMs, 0);
+  controller.seek(0);
+  controller.updateSettings(initial);
+  assert.equal(controller.getProgress().remainingMs, 800);
+  assert.equal(controller.getProgress().unitDurationMs, 400);
+});
+
+test('text-load late/stale callbacks, static blocks and last-phrase duration keep existing safety behavior', () => {
+  const clock = new Clock();
+  const controller = new PlaybackController({ ...DEFAULT_SETTINGS, punctuationPause: false, readingPace: 'text-load' }, clock);
+  controller.load([unit('日本語文'), unit('code', { kind: 'static', characters: 0 }), unit('1234')]);
+  controller.play();
+  const stale = [...clock.tasks.values()][0].callback;
+  controller.seek(0); stale();
+  assert.equal(controller.getSnapshot().status, 'paused');
+  controller.play(); clock.fireLate(10_000);
+  assert.deepEqual(controller.getSnapshot(), { index: 1, status: 'paused' });
+  const frozen = controller.getProgress();
+  clock.advance(5000); assert.deepEqual(controller.getProgress(), frozen);
+  controller.play(); controller.play();
+  clock.advance(800 - 800 / 2.3 - 1);
+  assert.equal(controller.getSnapshot().status, 'playing');
+  clock.advance(1);
+  assert.equal(controller.getSnapshot().status, 'completed');
+});

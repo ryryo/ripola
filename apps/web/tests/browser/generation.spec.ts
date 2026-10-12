@@ -25,11 +25,14 @@ test('無料生成の確認・停止再開・保存再利用と音声時計に�
   await expect(page.locator('.generation-confirm')).toContainText('127.0.0.1:50021');
   await page.getByText(/正確な送信本文を確認/).click();
   const sending = await page.locator('.generation-confirm pre').innerText();
+  const target = await page.locator('.generation-confirm dd').filter({hasText: '保存音声の再利用'}).innerText();
+  const plannedCount = Number.parseInt(target, 10);
+  expect(plannedCount).toBeGreaterThan(0);
   if (sending) {
-    const spokenSentences = manuscript.replaceAll('窓', 'マド').split('。').filter(Boolean).map(text => `${text}。`);
-    for (const line of sending.split('\n').filter(line => line.trim())) expect(spokenSentences).toContain(line.trim());
+    const spokenText = manuscript.replaceAll('窓', 'マド');
+    for (const line of sending.split('\n').filter(line => line.trim())) expect(spokenText).toContain(line.trim());
   }
-  else await expect(page.locator('.generation-confirm')).toContainText('保存音声の再利用 3文');
+  else await expect(page.locator('.generation-confirm')).toContainText(`保存音声の再利用 ${plannedCount}区間`);
   await expect(page.locator('.generation-confirm')).toContainText('無料');
   await page.screenshot({ path: `docs/validation/screenshots/generation-${mobile ? 'mobile' : 'desktop'}.png`, fullPage: true });
   await page.getByRole('button', { name: '確認した対象を無料生成する', exact: true }).click();
@@ -42,10 +45,10 @@ test('無料生成の確認・停止再開・保存再利用と音声時計に�
     if (await resume.isVisible()) await resume.click();
   }
   await expect(page.locator('.generation-job-heading')).toContainText('完了', { timeout: 60_000 });
-  await expect(page.locator('.generation-job-heading')).toContainText('3 / 3文');
+  await expect(page.locator('.generation-job-heading')).toContainText(`${plannedCount} / ${plannedCount}文`);
   await page.getByRole('link', { name: '保存音声を読む', exact: true }).click();
   await expect(page.getByTestId('audio-stage')).toBeVisible();
-  await expect(page.getByTestId('audio-stage')).toContainText('1 / 3 文');
+  await expect(page.getByTestId('audio-stage')).toContainText(`1 / ${plannedCount} 文`);
   await expect(page.getByText('文内のフレーズ時刻は未検証です。', { exact: false })).toBeVisible();
   await expect(page.getByTestId('audio-phrase')).toBeVisible();
   await expect(page.getByTestId('audio-sentence')).not.toHaveText(manuscript.split('。')[0] + '。');
@@ -57,9 +60,9 @@ test('無料生成の確認・停止再開・保存再利用と音声時計に�
   const paused = await page.locator('audio').evaluate((element: HTMLAudioElement) => element.currentTime);
   await page.waitForTimeout(300);
   expect(await page.locator('audio').evaluate((element: HTMLAudioElement) => element.currentTime)).toBeCloseTo(paused, 1);
-  await page.getByRole('button', { name: '一文進む', exact: true }).click();
+  if (plannedCount > 1) await page.getByRole('button', { name: '一文進む', exact: true }).click();
   await expect(page.getByTestId('audio-phrase')).toBeVisible();
-  await expect(page.getByTestId('audio-stage')).toContainText('2 / 3 文');
+  await expect(page.getByTestId('audio-stage')).toContainText(`${plannedCount > 1 ? 2 : 1} / ${plannedCount} 文`);
   await page.getByRole('combobox', { name: '音声の速さ', exact: true }).click();
   await page.getByRole('option', { name: '1.5倍', exact: true }).click();
   await expect.poll(() => page.locator('audio').evaluate((element: HTMLAudioElement) => element.playbackRate)).toBe(1.5);
@@ -94,6 +97,43 @@ test('有料モデルはLite既定・Flashだけ、Gatewayはサーバー未設�
   await expect(page.getByRole('option', { name: 'Cloudflare · AI Gateway', exact: true })).toHaveAttribute('data-combobox-disabled', 'true');
   await page.keyboard.press('Escape');
   await expect(page.getByRole('button', { name: '確認した対象を有料生成する', exact: true })).toHaveCount(0);
+});
+
+test('通常の生成は文単位で、自動調整を明示選択すると計画を再確認する', async ({ page }) => {
+  await availableAudio(page);
+  const starts: string[] = [];
+  page.on('request', request => { const name = rpcName(request.url()); if (/^(startGeneration|resumeJob)/.test(name)) starts.push(name); });
+  await page.goto('/generate');
+  const automatic = page.getByRole('checkbox', { name: '音声の区切りを自動調整する（実験）', exact: true });
+  await expect(automatic).toBeHidden();
+  await page.getByText('音声の区切りを調整する（任意）', { exact: true }).click();
+  await expect(automatic).not.toBeChecked();
+  await expect(page.getByText('実際の音声合成での速度・聞きやすさの改善は未検証です。', { exact: false })).toBeVisible();
+  await page.getByRole('combobox', { name: '生成手段', exact: true }).click();
+  await page.getByRole('option', { name: '有料 · Gemini', exact: true }).click();
+  await expect(automatic).not.toBeChecked();
+  await page.getByLabel('原稿を貼り付け', { exact: true }).fill('朝です。窓を開く。最後です。');
+  await page.getByRole('button', { name: '本文を確認する', exact: true }).click();
+  const review = async (mode: 'sentence' | 'auto') => {
+    const response = page.waitForResponse(value => rpcName(value.url()).startsWith('prepareGeneration'));
+    await page.getByRole('button', { name: '生成計画を確認する', exact: true }).click();
+    const body: unknown = await (await response).json();
+    const options = encodedProperty(encodedProperty(body, 'result'), 'options');
+    expect(encodedProperty(encodedProperty(options, 'chunking'), 'mode')).toMatchObject({ s: mode });
+    await expect(page.getByRole('heading', { name: '4. 開始前に確認', exact: true })).toBeVisible();
+  };
+  await review('sentence');
+  await expect(page.locator('.chunk-selection').getByRole('checkbox')).toHaveCount(3);
+  await automatic.check();
+  await expect(page.locator('.generation-confirm')).toHaveCount(0);
+  await expect(page.locator('.chunk-selection')).toHaveCount(0);
+  await review('auto');
+  await expect(page.locator('.chunk-selection').getByRole('checkbox')).toHaveCount(1);
+  await automatic.uncheck();
+  await expect(page.locator('.generation-confirm')).toHaveCount(0);
+  await review('sentence');
+  await expect(page.locator('.chunk-selection').getByRole('checkbox')).toHaveCount(3);
+  expect(starts).toEqual([]);
 });
 
 function rpcName(url: string): string {
@@ -178,10 +218,11 @@ test('トップの展開を往復しても原稿・形式・読みを保持し�
 
 test('トップの有料生成は送信内容・費用の確認を要求し、原稿変更で古い計画を破棄', async ({page}) => {
   const starts: string[]=[];
+  const sentences=['朝の図書館は静かです。', '窓辺で本を開きました。'];
   page.on('request', request=>{if(rpcName(request.url()).startsWith('startGeneration'))starts.push(request.url());});
   await availableAudio(page);
   await page.goto('/');
-  await page.getByLabel('読む文章', {exact:true}).fill('朝の図書館は静かです。窓辺で本を開きました。');
+  await page.getByLabel('読む文章', {exact:true}).fill(sentences.join(''));
   await page.getByRole('switch', {name:'音声も生成する'}).press('Space');
   await page.getByRole('combobox', {name:'生成方法'}).click();
   await page.getByRole('option', {name:'有料 · Gemini',exact:true}).click();
@@ -190,17 +231,42 @@ test('トップの有料生成は送信内容・費用の確認を要求し、�
   await expect(page.getByRole('heading', {name:'開始前に確認',exact:true})).toBeVisible();
   const confirmation=page.locator('.generation-confirm');
   await expect(confirmation).toContainText('Google');
+  await expect(confirmation).toContainText('2文');
+  await expect(confirmation).not.toContainText('自然な区切り');
   await expect(confirmation).toContainText('概算費用');
+  await expect(confirmation).toContainText(/\$\d+\.\d{4} \+ 入力等/);
+  await expect(confirmation).toContainText('Googleアカウント');
   await confirmation.locator('summary').click();
-  await expect(confirmation.locator('pre')).toContainText('朝の図書館は静かです。');
+  await expect(confirmation.locator('pre')).toHaveText(sentences.join('\n'));
   const start=page.getByRole('button', {name:'確認した対象を有料生成する',exact:true});
+  const consent=page.getByRole('checkbox', {name:'対象、選択した接続先への送信本文と概算費用を確認し、有料生成を開始します。',exact:true});
   await expect(start).toBeDisabled();
-  await page.getByRole('checkbox', {name:'対象、選択した接続先への送信本文と概算費用を確認し、有料生成を開始します。'}).check();
+  await consent.check();
+  await expect(start).toBeEnabled();
+  await page.getByText('音声の区切りを調整する（任意）', {exact:true}).click();
+  const automatic=page.getByRole('checkbox', {name:'音声の区切りを自動調整する（実験）',exact:true});
+  await expect(automatic).not.toBeChecked();
+  await automatic.check();
+  await expect(confirmation).toHaveCount(0);
+  await expect(start).toHaveCount(0);
+  await page.getByRole('button', {name:'生成内容を確認する',exact:true}).click();
+  await expect(confirmation).toContainText('1区間');
+  await expect(confirmation).toContainText('自然な区切り');
+  await expect(confirmation).toContainText('Googleアカウント');
+  await expect(confirmation).toContainText(/\$\d+\.\d{4} \+ 入力等/);
+  await confirmation.locator('summary').click();
+  await expect(confirmation.locator('pre')).toHaveText(sentences.join(''));
+  await expect(consent).not.toBeChecked();
+  await expect(start).toBeDisabled();
+  await consent.check();
   await expect(start).toBeEnabled();
   await page.getByLabel('読む文章', {exact:true}).fill('変更後の文章だけを読む。');
   await expect(confirmation).toHaveCount(0);
   await page.getByRole('button', {name:'生成内容を確認する',exact:true}).click();
   await expect(confirmation).toBeVisible();
+  await confirmation.locator('summary').click();
+  await expect(confirmation.locator('pre')).toHaveText('変更後の文章だけを読む。');
+  await expect(consent).not.toBeChecked();
   await expect(start).toBeDisabled();
   expect(starts).toEqual([]);
 });
