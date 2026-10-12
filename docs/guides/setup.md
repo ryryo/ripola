@@ -1,6 +1,6 @@
 # ローカルセットアップ
 
-macOS Apple SiliconとLinux x64（WSL2 Ubuntuを含む）では、最初に `pnpm setup:audio` を実行すると新規音声の保存後に自動補正を使えます。通常読書と同梱の3音声サンプルは、補正環境や音声サービスがなくても使えます。
+macOS Apple SiliconとLinux x64（WSL2 Ubuntuを含む）では、最初に `pnpm setup:audio` を実行すると新規音声の保存後に自動補正を使えます。通常読書と同梱の5音声サンプルは、補正環境や音声サービスがなくても使えます。
 
 ## 最初の起動
 
