@@ -17,6 +17,7 @@ export function Bookshelf({ count, children }: { count: number; children: ReactN
         <Button className="bookshelf-view-button" variant={view === 'grid' ? 'light' : 'subtle'} aria-pressed={view === 'grid'} onClick={() => setView('grid')} leftSection={<ViewIcon grid />}>グリッド</Button>
       </div>
     </div>
+    <p className="bookshelf-progress-help">進捗は、このブラウザに保存された音声の再生位置です。</p>
     <ul className="library-grid bookshelf-items" data-view={view} aria-label="本の一覧">{children}</ul>
   </section>;
 }
