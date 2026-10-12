@@ -74,10 +74,17 @@ export function localReazonAsr(config: GenerationServerConfig): AsrAdapter | und
   Object.assign(env, { RSVP_ALIGNMENT_MODEL_DIR: config.alignmentModelDir, HF_HUB_OFFLINE: '1', TRANSFORMERS_OFFLINE: '1', TOKENIZERS_PARALLELISM: 'false', PYTHONDONTWRITEBYTECODE: '1' });
   return { version: REAZON_ASR_VERSION, qualification: 'unvalidated', transcribe(audioPath, mediaHash) {
     return new Promise<AsrCandidate>((resolve, reject) => {
-      const child = spawn(config.alignmentPython!, [script], { shell: false, env, stdio: ['pipe', 'pipe', 'pipe'] });
-      trackNativeProcess(child);
+      const grouped = process.platform !== 'win32';
+      const child = spawn(config.alignmentPython!, [script], { shell: false, detached: grouped, env, stdio: ['pipe', 'pipe', 'pipe'] });
+      trackNativeProcess(child, grouped);
       let output = '', failed = false;
-      const stop = () => { failed = true; child.kill('SIGKILL'); };
+      const stop = () => {
+        failed = true;
+        try {
+          if (grouped && child.pid) process.kill(-child.pid, 'SIGKILL');
+          else child.kill('SIGKILL');
+        } catch { child.kill('SIGKILL'); }
+      };
       const timer = setTimeout(stop, 120_000);
       child.stdout.setEncoding('utf8'); child.stdout.on('data', (part: string) => { output += part; if (Buffer.byteLength(output) > 64 * 1024) stop(); });
       child.stderr.on('data', () => { /* Drain diagnostics without exposing them. */ });
