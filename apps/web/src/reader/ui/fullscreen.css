@@ -116,6 +116,7 @@
 .fullscreen-reader[data-fullscreen='true'] > .reader-stage:not(.guide-mode),
 .fullscreen-reader[data-fullscreen='true'] > .audio-stage:not(.guide-mode) { padding-bottom: calc(var(--fullscreen-footer-height, 170px) + var(--fullscreen-context-height, 124px) + 24px); }
 @media (max-height: 520px) {
+  .fullscreen-reader[data-fullscreen='true'] .reader-play-overlay { width: 64px; height: 64px; }
   .fullscreen-reader[data-fullscreen='true'] > .stopped-context { height: 84px; }
   .fullscreen-reader[data-fullscreen='true'] .stopped-context-text { -webkit-line-clamp: 1; }
   .fullscreen-reader[data-fullscreen='true'] .phrase-container { padding: 12px 16px; gap: 8px; }
