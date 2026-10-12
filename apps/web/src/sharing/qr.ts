@@ -1,8 +1,8 @@
 import { qrcodegen } from './vendor/qrcodegen';
+import { audioDemo } from '../reader/audio-demo';
 
 const MAX_SHARE_URL_LENGTH = 512;
 const SHARE_QUERY_KEYS = new Set(['book', 'id', 'revision', 'sample']);
-const SHARE_SAMPLES = new Set(['voicevox', 'gemini-male', 'gemini-female']);
 const IDENTIFIER = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/;
 
 export interface ShareTarget {
@@ -22,7 +22,7 @@ export function getShareTarget(input: string): ShareTarget {
   const search = new URLSearchParams();
   for (const [key, value] of url.searchParams) {
     if (SHARE_QUERY_KEYS.has(key) && url.searchParams.getAll(key).length === 1 && IDENTIFIER.test(value)
-      && (key !== 'sample' || SHARE_SAMPLES.has(value))) search.append(key, value);
+      && (key !== 'sample' || audioDemo(value))) search.append(key, value);
   }
   url.search = search.toString();
   url.hash = '';

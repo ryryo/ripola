@@ -6,6 +6,7 @@ import { adjacentAudioPhrase, audioDisplayAt, audioPhraseTargets, audioSegments,
 import { type ReaderSettings, type RubySpan, type TextBlock } from '../model';
 import { inspectAudioPresentation, requireAudioPresentation } from '../audio-presentation';
 import { audioAlignmentWarning, audioFallbackMessage } from '../audio-labels';
+import { audioPositionKey, loadAudioPosition } from '../audio-position';
 import { ShareLink } from '../../sharing/ShareLink';
 import '../../generation-ui/generation.css';
 import { NavigationLayout } from './NavigationLayout';
@@ -63,7 +64,7 @@ export function AudioReader({ book, onClose, attribution, localTools, demo = fal
   const positionRef = useRef(0);
   const activeBook = useRef('');
   const segment = segments[index];
-  const storageKey = `rsvp-audio-position:${book.id}:${book.revision}`;
+  const storageKey = audioPositionKey(book);
   const display = audioDisplayAt(segment, position - (segment?.startSeconds ?? 0));
   const reading = playing || intent.current;
   const playableUnits = useMemo(() => phraseTargets.flatMap(target => target.cue.units), [phraseTargets]);
@@ -143,8 +144,8 @@ export function AudioReader({ book, onClose, attribution, localTools, demo = fal
   useLayoutEffect(() => {
     let saved = positionRef.current;
     if (activeBook.current !== storageKey) {
-      saved = 0;
-      try { saved = Number(localStorage.getItem(storageKey) ?? 0); } catch { /* Optional local position only. */ }
+      const position = loadAudioPosition(book);
+      saved = position.status === 'saved' ? position.seconds : 0;
     }
     activeBook.current = storageKey;
     intent.current = false;
