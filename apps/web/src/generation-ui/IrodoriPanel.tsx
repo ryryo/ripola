@@ -10,17 +10,30 @@ export function IrodoriPanel({ onChange, onSettingsChange, onBusyChange, disable
   const [error, setError] = useState(''); const [busy, setBusy] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const operation = useRef(0);
-  const refresh = useCallback(async () => {
-    try { setStatus(await getIrodoriStatus()); } catch (error) { setError(error instanceof Error ? error.message : '状態を取得できません。'); }
+  const statusRequest = useRef(0);
+  const pendingStatus = useRef<{ id: number; run: number } | undefined>(undefined);
+  const refresh = useCallback(async (run: number, polling = false) => {
+    if (run !== operation.current || polling && pendingStatus.current?.run === run) return;
+    const id = ++statusRequest.current;
+    pendingStatus.current = { id, run };
+    const current = () => operation.current === run && statusRequest.current === id;
+    try {
+      const value = await getIrodoriStatus();
+      if (current()) setStatus(value);
+    } catch (error) {
+      if (current()) setError(error instanceof Error ? error.message : '状態を取得できません。');
+    } finally {
+      if (pendingStatus.current?.id === id) pendingStatus.current = undefined;
+    }
   }, []);
-  useEffect(() => { let active = true; void getIrodoriSettings().then(value => { if (active) { setSettings(value); onSettingsChange(value); } }).catch(() => { if (active) setError('合成設定を読めません。設定を確認・保存してから計画してください。'); }); void refresh(); const timer = window.setInterval(() => { if (active) void refresh(); }, 1000); return () => { active = false; window.clearInterval(timer); }; }, [refresh, onSettingsChange]);
-  useEffect(() => () => { operation.current++; onBusyChange(false); }, [onBusyChange]);
+  useEffect(() => { let active = true; void getIrodoriSettings().then(value => { if (active) { setSettings(value); onSettingsChange(value); } }).catch(() => { if (active) setError('合成設定を読めません。設定を確認・保存してから計画してください。'); }); void refresh(operation.current, true); const timer = window.setInterval(() => { if (active) void refresh(operation.current, true); }, 1000); return () => { active = false; window.clearInterval(timer); }; }, [refresh, onSettingsChange]);
+  useEffect(() => () => { operation.current++; statusRequest.current++; onBusyChange(false); }, [onBusyChange]);
   const working = status?.phase === 'downloading' || status?.phase === 'verifying';
   async function act(action: () => Promise<unknown>, cancellation = false) {
     const run = ++operation.current;
     setCancelling(cancellation);
     setBusy(true); onBusyChange(true); setError('');
-    try { await action(); if (operation.current === run) { await refresh(); onChange(); } }
+    try { await action(); if (operation.current === run) { await refresh(run); if (operation.current === run) onChange(); } }
     catch (error) { if (operation.current === run) setError(error instanceof Error ? error.message : '操作を完了できません。'); }
     finally { if (operation.current === run) { setBusy(false); setCancelling(false); onBusyChange(false); } }
   }
