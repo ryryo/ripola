@@ -49,7 +49,7 @@ export function IrodoriPanel({ voice = 'reception-female', onChange, onSettingsC
     <h3>Irodori · このPCに任意追加</h3>
     <p>実験機能です。このPCでの速度・音質を確認してから利用してください。</p>
     <p>日本語をこのPCで合成します。v4.1 Small通常版モデル約1.91GB、新規導入には約2.2GBの空き容量が必要です。通常の起動・音声セットアップでは取得しません。スマホへは完成した音声だけを配ります。</p>
-    <p>speech.cppの実行環境を用意すると、指示文から「丁寧な受付」の男女声を生成できます。声・スタイルを選び、下の指示文を変更して使えます。</p>
+    <p>「丁寧な受付」の男女声は、選んだ声の同じ参照音声をすべての区間で使います。声・スタイルを選び、下の指示文を変更して読み方を調整できます。</p>
     <p role="status">{status ? `${label[status.phase]} · ${status.message}` : '導入状態を確認しています。'}</p>
     {status?.freeBytes !== undefined && <p>空き容量 {(status.freeBytes / 1e9).toFixed(2)}GB · 追加で必要な空き容量 {(status.requiredFreeBytes / 1e9).toFixed(2)}GB</p>}
     {status && (working || status.downloadedBytes > 0 && status.phase !== 'ready') && <><Progress value={status.downloadedBytes / status.totalBytes * 100} aria-label="モデル取得の進捗" /><p>{(status.downloadedBytes / 1e9).toFixed(2)} / {(status.totalBytes / 1e9).toFixed(2)}GB · 途中の資材はまだ利用できません。</p></>}
@@ -60,7 +60,7 @@ export function IrodoriPanel({ voice = 'reception-female', onChange, onSettingsC
       {(status?.runtime === 'running' || status?.runtime === 'starting') && <Button disabled={cancelling || disabled} onClick={() => void act(() => stopIrodoriRuntime(), true)}>{status.runtime === 'starting' ? 'Irodoriの起動を取り消す' : 'このPCのIrodoriを停止'}</Button>}
       {status?.phase === 'ready' && status.runtime !== 'running' && <Button disabled={busy || disabled || !status.executableAvailable || !status.voiceAvailable || status.runtime === 'starting'} onClick={() => void act(() => startIrodoriRuntime())}>{status.runtime === 'starting' ? '起動中' : 'このPCで起動'}</Button>}
     </div>
-    {status?.phase === 'ready' && status.referenceMode === 'fixed' && !status.voiceAvailable && <p>同じ声で読み続けるには、話者の同意と利用条件を確認した固定voice資材が必要です。現在は製品voiceを同梱していません。voiceがない状態では声が変わる可能性があるため生成を開始できません。</p>}
+    {status?.phase === 'ready' && !status.voiceAvailable && <p>固定参照を確認できません。ガイドに沿って資材を復元・登録してください。</p>}
     {status?.voiceLabel && <p>固定voice: {status.voiceLabel} · {status.voiceAttribution}</p>}
     <p><a href="https://github.com/ryryo/ripola/blob/main/docs/guides/irodori.md" target="_blank" rel="noreferrer">実行環境の準備ガイド</a> · <a href={`https://huggingface.co/${IRODORI_MODEL.repository}/tree/${IRODORI_MODEL.revision}`} target="_blank" rel="noreferrer">モデルの取得元と利用条件</a></p>
       <Textarea label="声・読み上げ方のプロンプト" maxLength={256} value={settings.instructions} disabled={busy || disabled} onChange={event => editSettings({ instructions: event.currentTarget.value })} />

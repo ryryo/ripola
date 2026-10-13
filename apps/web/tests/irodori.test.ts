@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { mkdtemp, readFile, writeFile, rm, stat, readdir, utimes } from 'node:fs/promises';
+import { mkdtemp, readFile, writeFile, rm, stat, readdir, utimes, mkdir, copyFile } from 'node:fs/promises';
 import { spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -11,6 +11,7 @@ import { defaultIrodoriSettings, IRODORI_MODEL, IRODORI_VOICES } from '../src/ge
 import type { GenerationOptions } from '../src/generation/contracts';
 import { prepareDocument } from '../src/reader/segmentation';
 import { importText } from '../src/reader/text-import';
+import { IRODORI_RECEPTION_REFERENCES } from '../src/generation/core/irodori-references';
 import { IrodoriController } from '../src/generation/core/irodori-controller';
 import { irodoriAdapter } from '../src/generation/core/irodori-adapter';
 import { automaticChunkPlanner } from '../src/generation/core/automatic-chunk-planner';
@@ -308,18 +309,29 @@ test('normal reception voices retain independent editable defaults and reject in
   assert.equal(controller.runtime.status, 'stopped');
 });
 
-test('normal reception sends the audition CFG, uses no reference, and separates prompt caches', async t => {
+test('normal reception fixes the reference across different texts and separates prompt caches', async t => {
   const directory = await temporary(t); const requests: Record<string, unknown>[] = [];
   const store = new IrodoriModelStore(directory, { ...spec, id: IRODORI_MODEL.id }, async () => new Response(modelBytes)); await store.install();
   const url = await endpoint(t, (req, res) => { let raw = ''; req.on('data', chunk => { raw += chunk; }); req.on('end', () => { requests.push(JSON.parse(raw)); sendWav(res); }); });
-  const native = { ...session(url), voice: 'none' };
+  const native = { ...session(url), voice: 'reception-female', voiceHashes: Object.fromEntries(IRODORI_RECEPTION_REFERENCES.map(v => [v.id, v.sha256])) };
+  native.model.speech.voices = [{ name: 'none' }, ...IRODORI_RECEPTION_REFERENCES.map(v => ({ name: v.id }))];
   const adapter = irodoriAdapter(new IrodoriController(store), () => native); adapter.availability = () => ({ available: true });
   const service = new GenerationService({ libraryDir: join(directory, 'library'), localOrigin: 'http://127.0.0.1:4173', paidEnabled: false, automaticCompression: false }, { providers: { irodori: adapter }, planChunks: automaticChunkPlanner }); await service.ready();
   const document = await prepareDocument(importText('窓を開けて朝の空気を吸います。', 'md', '自作文'));
   const female: GenerationOptions = { provider: 'irodori', voice: 'reception-female', transport: 'direct', readings: [], chunking: { mode: 'auto' } };
   const plan = await service.prepareGeneration({ document, options: female }); assert.equal(plan.options.model, 'irodori-tts'); assert.equal(plan.available, true);
   const job = await service.startGeneration({ planId: plan.id, planHash: plan.hash, operationId: 'reception', paidConfirmed: false }); assert.equal((await service.waitForJob(job.id)).status, 'completed');
-  assert.deepEqual(requests, [{ model: native.model.id, input: plan.chunks[0].spokenText, voice: 'none', response_format: 'wav', language: 'ja', ...defaultIrodoriSettings(), sway_coeff: -1, cfg_guidance_mode: 'independent', cfg_scale_text: 3, cfg_scale_instructions: 3, cfg_min_t: .5, cfg_max_t: 1 }]);
+  assert.deepEqual(requests, [{ model: native.model.id, input: plan.chunks[0].spokenText, voice: 'reception-female', response_format: 'wav', language: 'ja', ...defaultIrodoriSettings(), sway_coeff: -1, cfg_guidance_mode: 'independent', cfg_scale_text: 3, cfg_scale_speaker: 5, cfg_scale_instructions: 3, cfg_min_t: .5, cfg_max_t: 1 }]);
+  const other = await prepareDocument(importText('雨上がりの道を歩きます。', 'md', '別の自作文'));
+  const otherPlan = await service.prepareGeneration({ document: other, options: female });
+  const otherJob = await service.startGeneration({ planId: otherPlan.id, planHash: otherPlan.hash, operationId: 'reception-second', paidConfirmed: false });
+  assert.equal((await service.waitForJob(otherJob.id)).status, 'completed');
+  assert.equal(requests[1].voice, 'reception-female'); assert.notEqual(requests[1].input, requests[0].input);
+  assert.equal(otherPlan.providerVersion, plan.providerVersion);
+  const missing = irodoriAdapter(new IrodoriController(store), () => ({ ...native, voiceHashes: undefined }));
+  await assert.rejects(missing.preflight!(female), /固定参照/);
+  const stale = irodoriAdapter(new IrodoriController(store), () => ({ ...native, voiceHashes: { ...native.voiceHashes, 'reception-female': 'a'.repeat(64) } }));
+  await assert.rejects(stale.preflight!(female), /変わっています/);
   const cached = await service.prepareGeneration({ document, options: female }); assert.ok(cached.chunks.every(chunk => chunk.cacheHit));
   for (const changed of [{ ...female, voice: 'reception-male' }, { ...female, irodori: { instructions: '落ち着いて読む' } }]) {
     const next = await service.prepareGeneration({ document, options: changed }); assert.ok(next.chunks.every(chunk => !chunk.cacheHit)); assert.notEqual(next.providerVersion, plan.providerVersion);
@@ -328,14 +340,29 @@ test('normal reception sends the audition CFG, uses no reference, and separates 
   const book = await service.getBook(job.bookId, job.revision); assert.match(book.attribution!, /v4.1 Small/);
 });
 
-test('normal runtime starts from the pinned model without a fixed voice file', async t => {
+test('normal runtime loads both pinned reception references and ignores legacy MF files', async t => {
   const directory = await temporary(t); const store = new IrodoriModelStore(directory, { ...spec, id: IRODORI_MODEL.id }, async () => new Response(modelBytes)); await store.install();
   const oldVoice = join(directory, 'mf.voice.gguf'); await writeFile(oldVoice, 'GGUFlegacy-MF-only-voice');
   await store.registerVoice({ path: oldVoice, label: 'legacy', source: 'self fixture', license: 'test-only', attribution: 'fixture', rightsConfirmed: true });
   await writeFile(oldVoice, 'GGUFchanged-old-voice');
   const executable = join(directory, 'speech'); const metadata = session('http://127.0.0.1:1').model;
-  metadata.id = 'Irodori normal v4.1'; metadata.speech.voices = [{ name: 'none' }];
+  metadata.id = 'Irodori normal v4.1'; metadata.speech.voices = [{ name: 'none' }, ...IRODORI_RECEPTION_REFERENCES.map(v => ({ name: v.id }))];
   await writeFile(executable, `#!${process.execPath}\nimport{createServer}from'node:http';import{writeFileSync}from'node:fs';writeFileSync(${JSON.stringify(join(directory, 'args.json'))},JSON.stringify(process.argv.slice(2)));const server=createServer((req,res)=>{res.setHeader('Content-Type','application/json');res.end(JSON.stringify({data:[${JSON.stringify(metadata)}]}));});server.listen(0,'127.0.0.1',()=>console.error('speech serve: speech.cpp 0.8.3, listening on http://127.0.0.1:'+server.address().port));\n`, { mode: 0o700 });
-  const runtime = new IrodoriRuntime(store, executable); t.after(() => runtime.stop()); await runtime.start(); assert.equal(runtime.current().voice, 'none');
-  assert.deepEqual(JSON.parse(await readFile(join(directory, 'args.json'), 'utf8')), ['serve', store.modelPath, '--host', '127.0.0.1', '--port', '0']);
+  const runtime = new IrodoriRuntime(store, executable); t.after(() => runtime.stop()); await runtime.start(); assert.equal(runtime.current().voice, 'reception-female');
+  assert.deepEqual(runtime.current().voiceHashes, Object.fromEntries(IRODORI_RECEPTION_REFERENCES.map(v => [v.id, v.sha256])));
+  assert.deepEqual(JSON.parse(await readFile(join(directory, 'args.json'), 'utf8')), ['serve', store.modelPath, ...(await store.receptionVoices()).flatMap(v => ['--add-voice', `${v.id}=${v.path}`]), '--host', '127.0.0.1', '--port', '0']);
+});
+
+
+test('missing or changed reception references cannot become caption-only voices', async t => {
+  const directory = await temporary(t); const references = join(directory, 'references'); await mkdir(references);
+  const store = new IrodoriModelStore(directory, { ...spec, id: IRODORI_MODEL.id }, undefined, undefined, references);
+  assert.equal((await new IrodoriController(store).status()).voiceAvailable, false);
+  await assert.rejects(store.receptionVoices());
+  const bundled = await new IrodoriModelStore(directory).receptionVoices();
+  for (const reference of bundled) await copyFile(reference.path, join(references, `${reference.id}.voice.gguf`));
+  assert.equal((await store.receptionVoices()).length, 2);
+  await writeFile(join(references, 'reception-male.voice.gguf'), 'GGUFchanged');
+  await assert.rejects(store.receptionVoices(), /固定参照/);
+  assert.equal((await new IrodoriController(store).status()).voiceAvailable, false);
 });

@@ -2,7 +2,9 @@ import { createHash } from 'node:crypto';
 import { createReadStream } from 'node:fs';
 import { lstat, mkdir, open, readFile, rename, rm, statfs, writeFile } from 'node:fs/promises';
 import { dirname, isAbsolute, join } from 'node:path';
-import { IRODORI_HEADROOM, IRODORI_MODEL, type IrodoriSetupPhase } from '../irodori-contracts';
+import { IRODORI_HEADROOM, IRODORI_MODEL, IRODORI_VOICES, type IrodoriSetupPhase } from '../irodori-contracts';
+import { findRepositoryRoot } from './config';
+import { IRODORI_RECEPTION_REFERENCES } from './irodori-references';
 
 export interface ModelSpec { id: string; repository: string; revision: string; filename: string; bytes: number; sha256: string }
 interface SetupState { phase: IrodoriSetupPhase; downloadedBytes: number; message: string; pid?: number }
@@ -36,7 +38,7 @@ export async function fileHash(path: string, signal?: AbortSignal): Promise<stri
 export class IrodoriModelStore {
   readonly modelPath: string;
   private readonly partPath: string;
-  constructor(readonly directory: string, readonly spec: ModelSpec = IRODORI_MODEL, private readonly fetcher: typeof fetch = fetch, private readonly freeSpace: typeof availableSpace = availableSpace) {
+  constructor(readonly directory: string, readonly spec: ModelSpec = IRODORI_MODEL, private readonly fetcher: typeof fetch = fetch, private readonly freeSpace: typeof availableSpace = availableSpace, private readonly receptionDirectory?: string) {
     this.modelPath = join(directory, spec.filename);
     this.partPath = `${this.modelPath}.part`;
   }
@@ -144,6 +146,16 @@ export class IrodoriModelStore {
       await state(controller.signal.aborted ? 'cancelled' : 'failed', controller.signal.aborted ? '導入を取り消しました。途中から再開できます。' : error instanceof Error ? error.message : '導入に失敗しました。');
       throw error;
     } finally { clearInterval(timer); signal?.removeEventListener('abort', abort); await lock.close(); await rm(lockPath, { force: true }); }
+  }
+  async receptionVoices(): Promise<Array<IrodoriVoice & { id: string }>> {
+    const directory = this.receptionDirectory ?? join(await findRepositoryRoot(), 'assets', 'irodori');
+    return Promise.all(IRODORI_RECEPTION_REFERENCES.map(async reference => {
+      const path = join(directory, reference.filename);
+      const file = await regularFile(path);
+      if (file.size < 8 || file.size > 64 * 1024 * 1024 || await fileHash(path) !== reference.sha256) throw new Error('受付声の固定参照を確認できません。Ripolaの同梱資材を復元して起動し直してください。');
+      const preset = IRODORI_VOICES.find(value => value.id === reference.id)!;
+      return { schemaVersion: 1, id: reference.id, path, sha256: reference.sha256, label: preset.name, source: 'Ripola受付声オーディション（合成音声）', license: 'MIT; assets/irodori/provenance.json', attribution: '音声：Irodori-TTS v4.1 Small · 合成音声', rightsConfirmed: true };
+    })).catch(error => { throw new Error('受付声の固定参照を確認できません。Ripolaの同梱資材を復元して起動し直してください。', { cause: error }); });
   }
   async voice(): Promise<IrodoriVoice | undefined> {
     const voice = await json<IrodoriVoice>(this.path('voice.json'));
