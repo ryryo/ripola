@@ -154,7 +154,7 @@ export class IrodoriModelStore {
       const file = await regularFile(path);
       if (file.size < 8 || file.size > 64 * 1024 * 1024 || await fileHash(path) !== reference.sha256) throw new Error('受付声の固定参照を確認できません。Ripolaの同梱資材を復元して起動し直してください。');
       const preset = IRODORI_VOICES.find(value => value.id === reference.id)!;
-      return { schemaVersion: 1, id: reference.id, path, sha256: reference.sha256, label: preset.name, source: 'Ripola受付声オーディション（合成音声）', license: 'MIT; assets/irodori/provenance.json', attribution: '音声：Irodori-TTS v4.1 Small · 合成音声', rightsConfirmed: true };
+      return { schemaVersion: 1, id: reference.id, path, sha256: reference.sha256, label: preset.name, source: 'Ripola受付声オーディション（合成音声）', license: 'MIT; assets/irodori/provenance.json', attribution: '音声：Irodori-TTS v4.1 Small · 合成音声', rightsConfirmed: true } satisfies IrodoriVoice & { id: string };
     })).catch(error => { throw new Error('受付声の固定参照を確認できません。Ripolaの同梱資材を復元して起動し直してください。', { cause: error }); });
   }
   async voice(): Promise<IrodoriVoice | undefined> {
