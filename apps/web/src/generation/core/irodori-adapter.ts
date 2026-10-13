@@ -1,14 +1,18 @@
 import type { GenerationOptions } from '../contracts';
 import { IRODORI_LIMITS, IRODORI_MODEL, IRODORI_VOICES, irodoriVoice } from '../irodori-contracts';
 import type { IrodoriController } from './irodori-controller';
-import { IRODORI_CAPTION_VOICE_HASH, irodoriFingerprint, irodoriSettings, synthesizeIrodori, validateIrodoriText, type NativeSession } from './irodori-runtime';
+import { irodoriFingerprint, irodoriSettings, synthesizeIrodori, validateIrodoriText, type NativeSession } from './irodori-runtime';
 import { SpeechRequestError, type SpeechAdapter } from './providers';
 
 /** The optional injection seam also lets tests use a real loopback mock endpoint. */
 export function irodoriAdapter(controller: IrodoriController, session: () => NativeSession = () => controller.runtime.current()): SpeechAdapter {
   function selectedSession(voice: string): NativeSession {
     const native = session();
-    if (irodoriVoice(voice)) return { ...native, voice: 'none', voiceHash: IRODORI_CAPTION_VOICE_HASH };
+    if (irodoriVoice(voice)) {
+      const voiceHash = native.voiceHashes?.[voice];
+      if (!voiceHash || !native.model.speech.voices.some(value => value.name === voice)) throw new SpeechRequestError('受付声の固定参照が読み込まれていません。Irodoriを起動し直してください。');
+      return { ...native, voice, voiceHash };
+    }
     return native;
   }
   const fingerprint = async (options?: GenerationOptions) => {
@@ -17,10 +21,10 @@ export function irodoriAdapter(controller: IrodoriController, session: () => Nat
     const selectedVoice = options?.voice ?? (controller.store.spec.id === IRODORI_MODEL.id ? 'reception-female' : 'ripola');
     const preset = irodoriVoice(selectedVoice);
     if (controller.store.spec.id === IRODORI_MODEL.id && !preset) throw new SpeechRequestError('通常版では受付の男女声を選んでください。');
-    const voice = preset ? undefined : await controller.store.voice();
+    const voice = preset ? (await controller.store.receptionVoices()).find(value => value.id === selectedVoice) : await controller.store.voice();
     if (!preset && !voice) throw new SpeechRequestError('固定voiceが未登録です。権利確認済みの既存資材を登録してください。');
     const native = selectedSession(selectedVoice);
-    if (native.modelHash !== controller.store.spec.sha256 || !preset && native.voiceHash !== voice?.sha256) throw new SpeechRequestError('Irodoriのモデル・声が起動時から変わっています。runtimeを起動し直してください。');
+    if (native.modelHash !== controller.store.spec.sha256 || native.voiceHash !== voice?.sha256) throw new SpeechRequestError('Irodoriのモデル・声が起動時から変わっています。runtimeを起動し直してください。');
     return irodoriFingerprint(native, irodoriSettings(options?.irodori, selectedVoice));
   };
   return {

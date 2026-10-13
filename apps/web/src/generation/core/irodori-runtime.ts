@@ -5,7 +5,7 @@ import { homedir } from 'node:os';
 import { delimiter, isAbsolute, join } from 'node:path';
 import { setTimeout as pause } from 'node:timers/promises';
 import { createHash } from 'node:crypto';
-import { defaultIrodoriSettings, IRODORI_LIMITS, type IrodoriSettings } from '../irodori-contracts';
+import { defaultIrodoriSettings, IRODORI_LIMITS, IRODORI_VOICES, irodoriVoice, type IrodoriSettings } from '../irodori-contracts';
 import { fileHash, IrodoriModelStore, type IrodoriVoice } from './irodori-model';
 import { wavDuration } from './providers';
 import { trackNativeProcess } from './native-processes';
@@ -27,17 +27,17 @@ export function irodoriSettings(input: Partial<IrodoriSettings> = {}, voice = 'r
   return settings;
 }
 export interface NativeModel { id: string; version: string; speech: { name: string; architecture: string; task: string; sample_rate: number; file_bytes: number; weight_type: string; max_text_tokens: number; voices: Array<{ name: string }>; device?: string; threads?: number; layout?: number } }
-export interface NativeSession { endpoint: string; model: NativeModel; modelHash: string; voiceHash: string; binaryHash: string; voice: string }
+export interface NativeSession { endpoint: string; model: NativeModel; modelHash: string; voiceHash: string; binaryHash: string; voice: string; voiceHashes?: Readonly<Record<string, string>> }
 const identityHash = (value: unknown) => createHash('sha256').update(JSON.stringify(value)).digest('hex');
 export const IRODORI_CAPTION_VOICE_HASH = identityHash({ referenceMode: 'none' });
-const normalOptions = { sway_coeff: -1, cfg_guidance_mode: 'independent', cfg_scale_text: 3, cfg_scale_instructions: 3, cfg_min_t: .5, cfg_max_t: 1 };
-function synthesisOptions(session: NativeSession) { return session.voice === 'none' ? normalOptions : {}; }
+const normalOptions = { sway_coeff: -1, cfg_guidance_mode: 'independent', cfg_scale_text: 3, cfg_scale_speaker: 5, cfg_scale_instructions: 3, cfg_min_t: .5, cfg_max_t: 1 };
+function synthesisOptions(session: NativeSession) { return session.voice === 'ripola' ? {} : normalOptions; }
 export function irodoriFingerprint(session: NativeSession, settings: IrodoriSettings): string {
   const { id, version, speech } = session.model;
   // OpenAI's model wrapper also has a created timestamp; it is not synthesis identity.
   const model = { id, version, architecture: speech.architecture, layout: speech.layout, device: speech.device, threads: speech.threads, sampleRate: speech.sample_rate };
-  const identity = { model, modelHash: session.modelHash, voiceHash: session.voiceHash, binaryHash: session.binaryHash, voice: session.voice, settings: irodoriSettings(settings, session.voice === 'ripola' ? 'ripola' : 'reception-female') };
-  return session.voice === 'none' ? `speech.cpp-irodori-v2:${identityHash({ ...identity, synthesisOptions: synthesisOptions(session) })}` : `speech.cpp-irodori-v1:${identityHash(identity)}`;
+  const identity = { model, modelHash: session.modelHash, voiceHash: session.voiceHash, binaryHash: session.binaryHash, voice: session.voice, settings: irodoriSettings(settings, session.voice === 'none' ? 'reception-female' : session.voice) };
+  return session.voice === 'ripola' ? `speech.cpp-irodori-v1:${identityHash(identity)}` : `speech.cpp-irodori-v3:${identityHash({ ...identity, synthesisOptions: synthesisOptions(session) })}`;
 }
 function localEndpoint(endpoint: string): string {
   const url = new URL(endpoint);
@@ -60,7 +60,7 @@ export async function nativeModel(endpoint: string, store: IrodoriModelStore): P
   const model = value.data?.find(value => value.speech?.architecture === 'irodori-tts');
   if (!model || typeof model.id !== 'string' || !model.id.trim() || model.id.length > 200 || [...model.id].some(char => char.codePointAt(0)! < 32 || char.codePointAt(0) === 127) || typeof model.version !== 'string' || !/^0\.8\.\d+$/.test(model.version) || Number(model.version.split('.')[2]) < 3
     || model.speech.task !== 'synthesis' || model.speech.sample_rate !== 48000 || model.speech.file_bytes !== store.spec.bytes || model.speech.weight_type !== 'F16'
-    || model.speech.max_text_tokens !== IRODORI_LIMITS.maxTextTokens || !model.speech.voices?.some(voice => voice.name === (store.spec.id === 'irodori-tts' ? 'none' : 'ripola'))) throw new Error('Irodoriモデル・声・対応speech.cpp（0.8.3以降の0.8系）の組合せを確認できません。');
+    || model.speech.max_text_tokens !== IRODORI_LIMITS.maxTextTokens || !(store.spec.id === 'irodori-tts' ? IRODORI_VOICES.every(preset => model.speech.voices?.some(voice => voice.name === preset.id)) : model.speech.voices?.some(voice => voice.name === 'ripola'))) throw new Error('Irodoriモデル・声・対応speech.cpp（0.8.3以降の0.8系）の組合せを確認できません。');
   return model;
 }
 
@@ -75,8 +75,8 @@ export function validateIrodoriText(text: string, settings: IrodoriSettings): vo
 /** Sends the actual documented HTTP request. Abort disconnects the native request. */
 export async function synthesizeIrodori(session: NativeSession, text: string, settings: IrodoriSettings, signal?: AbortSignal): Promise<Uint8Array> {
   const endpoint = localEndpoint(session.endpoint);
-  const normalized = irodoriSettings(settings, session.voice === 'ripola' ? 'ripola' : 'reception-female');
-  if (!['ripola', 'none'].includes(session.voice) || !/^[a-f0-9]{64}$/.test(session.voiceHash)) throw new Error('Irodoriの声の条件を確認できません。');
+  if (!['ripola', 'none'].includes(session.voice) && !irodoriVoice(session.voice) || !/^[a-f0-9]{64}$/.test(session.voiceHash)) throw new Error('Irodoriの声の条件を確認できません。');
+  const normalized = irodoriSettings(settings, session.voice === 'none' ? 'reception-female' : session.voice);
   validateIrodoriText(text, normalized);
   const response = await fetch(`${endpoint}/v1/audio/speech`, { method: 'POST', redirect: 'error', signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(120_000)]) : AbortSignal.timeout(120_000),
     headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ model: session.model.id, input: text, voice: session.voice, response_format: 'wav', language: 'ja', ...synthesisOptions(session), ...normalized }) });
@@ -126,13 +126,14 @@ export class IrodoriRuntime {
       const executable = await detectSpeechExecutable(this.executable);
       if (!executable) throw new Error('speech実行ファイルが見つかりません。Irodoriガイドに沿ってspeech.cppを用意してください。');
       await this.store.verify(controller.signal);
-      const caption = this.store.spec.id === 'irodori-tts';
-      const voice: IrodoriVoice | undefined = caption ? undefined : await this.store.voice();
-      if (!voice && !caption) throw new Error('権利確認済みの固定voiceが未登録です。ガイドに沿って既存voice資材を登録してください。');
+      const reception = this.store.spec.id === 'irodori-tts';
+      const voice: IrodoriVoice | undefined = reception ? undefined : await this.store.voice();
+      if (!voice && !reception) throw new Error('権利確認済みの固定voiceが未登録です。ガイドに沿って既存voice資材を登録してください。');
+      const references = reception ? await this.store.receptionVoices() : [{ ...voice!, id: 'ripola' }];
       const binaryHash = await fileHash(executable, controller.signal);
       controller.signal.throwIfAborted();
       // Absolute filenames never trigger speech.cpp's catalog auto-download.
-      const child = spawn(executable, ['serve', this.store.modelPath, ...(voice ? ['--add-voice', `ripola=${voice.path}`] : []), '--host', '127.0.0.1', '--port', '0'], {
+      const child = spawn(executable, ['serve', this.store.modelPath, ...references.flatMap(reference => ['--add-voice', `${reference.id}=${reference.path}`]), '--host', '127.0.0.1', '--port', '0'], {
         shell: false, stdio: ['ignore', 'ignore', 'pipe'], env: { PATH: process.env.PATH ?? '', HOME: homedir(), LANG: 'en_US.UTF-8' },
       });
       this.child = child; this.unregisterChild = trackNativeProcess(child);
@@ -150,7 +151,8 @@ export class IrodoriRuntime {
       const model = await nativeModel(endpoint, this.store);
       controller.signal.throwIfAborted();
       if (this.child !== child || child.exitCode !== null || child.signalCode !== null) throw new Error('Irodori runtimeが起動確認中に終了しました。');
-      this.session = { endpoint, model, modelHash: this.store.spec.sha256, voiceHash: voice?.sha256 ?? IRODORI_CAPTION_VOICE_HASH, binaryHash, voice: voice ? 'ripola' : 'none' };
+      const primary = references[0];
+      this.session = { endpoint, model, modelHash: this.store.spec.sha256, voiceHash: primary.sha256, binaryHash, voice: primary.id, ...(reception ? { voiceHashes: Object.fromEntries(references.map(reference => [reference.id, reference.sha256])) } : {}) };
       this.state = 'running';
     } catch (error) { await this.stop(); this.state = 'failed'; throw error; }
   }

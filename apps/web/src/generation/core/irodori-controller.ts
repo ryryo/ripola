@@ -11,13 +11,16 @@ export class IrodoriController {
   readonly runtime: IrodoriRuntime;
   constructor(readonly store: IrodoriModelStore, executable?: string) { this.runtime = new IrodoriRuntime(store, executable); }
   async status(): Promise<IrodoriStatus> {
-    const caption = this.store.spec.id === 'irodori-tts';
+    const reception = this.store.spec.id === 'irodori-tts';
     let voice; let voiceMessage;
-    try { if (!caption) voice = await this.store.voice(); } catch { voiceMessage = '固定voiceの資材を確認できません。登録した資材と権利条件を再確認してください。'; }
+    try {
+      if (reception) { const references = await this.store.receptionVoices(); voice = { label: '丁寧な受付（女／男）', attribution: references[0].attribution }; }
+      else voice = await this.store.voice();
+    } catch { voiceMessage = '固定voiceの資材を確認できません。同梱資材または登録した資材を確認してください。'; }
     const state = await this.store.status();
     const executableAvailable = Boolean(await detectSpeechExecutable(this.runtime.executable));
-    return { ...state, totalBytes: this.store.spec.bytes, executableAvailable, voiceAvailable: caption || Boolean(voice), referenceMode: caption ? 'caption' : 'fixed', runtime: this.runtime.status,
-      message: voiceMessage ?? (state.phase === 'ready' ? !executableAvailable ? 'speech.cppが未導入です。ガイドから実行環境を用意してください。' : !voice && !caption ? 'モデルは導入済みです。権利確認済みの固定voiceを登録すると利用できます。' : this.runtime.status === 'running' ? 'IrodoriはこのPCで利用できます。' : this.runtime.status === 'starting' ? 'このPCでモデルを読み込んでいます。' : this.runtime.status === 'failed' ? 'Irodoriの起動・動作に失敗しました。実行環境を確認して起動を再試行してください。' : 'このPCで起動すると利用できます。' : state.message),
+    return { ...state, totalBytes: this.store.spec.bytes, executableAvailable, voiceAvailable: Boolean(voice), referenceMode: 'fixed', runtime: this.runtime.status,
+      message: voiceMessage ?? (state.phase === 'ready' ? !executableAvailable ? 'speech.cppが未導入です。ガイドから実行環境を用意してください。' : !voice ? 'モデルは導入済みです。固定voiceを確認すると利用できます。' : this.runtime.status === 'running' ? 'IrodoriはこのPCで利用できます。' : this.runtime.status === 'starting' ? 'このPCでモデルを読み込んでいます。' : this.runtime.status === 'failed' ? 'Irodoriの起動・動作に失敗しました。実行環境を確認して起動を再試行してください。' : 'このPCで起動すると利用できます。' : state.message),
       ...(voice ? { voiceLabel: voice.label, voiceAttribution: voice.attribution } : {}) };
   }
   async install(): Promise<void> {
@@ -42,7 +45,7 @@ export class IrodoriController {
     await atomicJson(join(this.store.directory, voice === 'ripola' ? 'settings.json' : `settings-${voice}.json`), settings);
   }
 }
-const controllerKey = Symbol.for('ripola.irodori-controller.v2-reception');
+const controllerKey = Symbol.for('ripola.irodori-controller.v3-fixed-reception');
 const controllers = globalThis as typeof globalThis & { [controllerKey]?: Promise<IrodoriController> };
 export function getIrodoriController(): Promise<IrodoriController> {
   return controllers[controllerKey] ??= (async () => {

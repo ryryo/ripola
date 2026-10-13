@@ -41,7 +41,7 @@ test('Irodori未導入は容量と追加入口を示し通常利用では取得�
   await page.getByRole('option', { name: '任意追加 · Irodori（このPC）', exact: true }).click();
   const panel = page.getByRole('region', { name: 'Irodoriの任意追加', exact: true });
   await expect(panel).toContainText('未導入'); await expect(panel).toContainText('約1.91GB'); await expect(panel).toContainText('約2.2GB');
-  await expect(panel).toContainText('丁寧な受付'); await expect(panel).toContainText('指示文を変更');
+  await expect(panel).toContainText('丁寧な受付'); await expect(panel).toContainText('指示文を変更'); await expect(panel).toContainText('同じ参照音声をすべての区間で使います');
   await expect(panel.getByRole('button', { name: 'Irodoriを追加する（約1.91GB）', exact: true })).toBeVisible();
   const voice = page.getByRole('combobox', { name: '声・スタイル', exact: true }); await expect(voice).toHaveValue('丁寧な受付（女）');
   await voice.click(); await page.getByRole('option', { name: '丁寧な受付（男）', exact: true }).click();
