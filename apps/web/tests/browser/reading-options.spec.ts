@@ -679,3 +679,101 @@ for (const kind of ['silent', 'audio'] as const) {
     await expect(page.locator('.audio-alignment-status, .keyboard-hint, .reader-note')).toHaveCount(0);
   });
 }
+
+test('vertical fullscreen touch scrolling keeps visible text stable across virtual row measurements and retains search and following', async ({ page }, info) => {
+  test.skip(!info.project.name.startsWith('mobile'), 'Native touch regression uses the mobile viewport.');
+  test.setTimeout(90000);
+  const text = Array.from({ length: 150 }, (_, index) => `第${index + 1}段落です。` + '静かな図書館で記録を読み進めます。窓の向こうに青い空が広がっています。'.repeat(2 + index % 7)).join('\n\n');
+  await read(page, text);
+  await settings(page); await page.getByLabel('本文の向き', { exact: true }).selectOption('vertical-rl'); await close(page);
+  await page.getByRole('button', { name: '全文表示', exact: true }).click();
+  await page.evaluate(() => { Element.prototype.requestFullscreen = () => Promise.reject(new Error('mobile fallback')); });
+  await page.getByRole('button', { name: '全画面で読む', exact: true }).click();
+  const full = page.locator('.fullscreen-reader[data-fullscreen="true"]');
+  const viewport = full.getByTestId('guide-viewport');
+  const visibleCurrent = () => viewport.evaluate(element => {
+    const frame = element.getBoundingClientRect();
+    return [...element.querySelectorAll('[aria-current="location"]')].some(unit => [...unit.getClientRects()].some(rect => rect.left >= frame.left && rect.right <= frame.right && rect.top >= frame.top && rect.bottom <= frame.bottom));
+  });
+  await full.getByLabel('本文を検索', { exact: true }).fill('第80段落');
+  await full.getByRole('button', { name: '検索して移動', exact: true }).click();
+  await expect.poll(visibleCurrent).toBe(true);
+  const position = await full.locator('.playback-position-label').innerText();
+  await viewport.evaluate(element => {
+    const state = { running: true, direction: -1, samples: 0, reversals: [] as number[], anchor: undefined as { node: Element; fragment: number; right: number } | undefined };
+    const target = window as typeof window & { guideSwipe: typeof state }; target.guideSwipe = state;
+    const sample = () => {
+      if (!state.running) return;
+      const frame = element.getBoundingClientRect();
+      const previous = state.anchor;
+      const rect = previous?.node.isConnected ? previous.node.getClientRects()[previous.fragment] : undefined;
+      if (previous && rect) {
+        const movement = rect.right - previous.right;
+        if (movement * state.direction < -2) state.reversals.push(movement);
+        state.samples++;
+      }
+      state.anchor = undefined;
+      for (const node of element.querySelectorAll('.guide-unit')) {
+        const fragments = [...node.getClientRects()];
+        const fragment = fragments.findIndex(rect => rect.left < frame.right - 15 && rect.right > frame.left + 15 && rect.bottom > frame.top && rect.top < frame.bottom);
+        if (fragment >= 0) { state.anchor = { node, fragment, right: fragments[fragment].right }; break; }
+      }
+      requestAnimationFrame(sample);
+    };
+    requestAnimationFrame(sample);
+  });
+  const visibleText = () => viewport.evaluate(element => {
+    const frame = element.getBoundingClientRect();
+    return [...element.querySelectorAll<HTMLElement>('.guide-unit')].find(unit => [...unit.getClientRects()].some(rect => rect.left < frame.right - 15 && rect.right > frame.left + 15 && rect.bottom > frame.top && rect.top < frame.bottom))?.dataset.unitId;
+  });
+  const initialText = await visibleText();
+  let backwardText: string | undefined;
+  const client = await page.context().newCDPSession(page);
+  const box = (await viewport.boundingBox())!;
+  for (let swipe = 0; swipe < 12; swipe++) {
+    const direction = swipe < 9 ? -1 : 1;
+    await page.evaluate(direction => {
+      const state = (window as typeof window & { guideSwipe: { direction: number; anchor: unknown } }).guideSwipe;
+      state.direction = direction; state.anchor = undefined;
+    }, direction);
+    const start = direction < 0 ? box.x + box.width - 35 : box.x + 35;
+    const end = direction < 0 ? box.x + 35 : box.x + box.width - 35;
+    const y = box.y + Math.min(130, box.height / 2);
+    await client.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: start, y }] });
+    for (let step = 1; step <= 10; step++) {
+      await client.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: start + (end - start) * step / 10, y }] });
+      await page.waitForTimeout(16);
+    }
+    await client.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    await page.waitForTimeout(350);
+    if (swipe === 8) backwardText = await visibleText();
+  }
+  expect(backwardText).toBeTruthy();
+  expect(backwardText).not.toBe(initialText);
+  expect(await visibleText()).not.toBe(backwardText);
+  const result = await page.evaluate(() => {
+    const state = (window as typeof window & { guideSwipe: { running: boolean; samples: number; reversals: number[] } }).guideSwipe;
+    state.running = false; return { samples: state.samples, reversals: state.reversals };
+  });
+  await info.attach('touch-scroll-motion', { body: JSON.stringify(result), contentType: 'application/json' });
+  expect(result.samples).toBeGreaterThan(50);
+  expect(result.reversals).toEqual([]);
+  await expect(full).toHaveAttribute('data-playing', 'false');
+  await expect(full.locator('.playback-position-label')).toHaveText(position);
+  await expect(full.getByRole('button', { name: '現在位置を追従', exact: true })).toBeVisible();
+  expect(await full.locator('.guide-unit').count()).toBeLessThan(250);
+  await full.getByRole('button', { name: '現在位置を追従', exact: true }).click();
+  await expect.poll(visibleCurrent).toBe(true);
+  await full.getByLabel('本文を検索', { exact: true }).fill('第140段落');
+  await full.getByRole('button', { name: '検索して移動', exact: true }).click();
+  await expect(full.locator('.guide-unit[aria-current="location"]').first()).toContainText('第140');
+  await expect.poll(visibleCurrent).toBe(true);
+  const current = await full.locator('.guide-unit[aria-current="location"]').first().getAttribute('data-unit-id');
+  await full.getByRole('button', { name: '再生', exact: true }).click();
+  await expect(full).toHaveAttribute('data-playing', 'true');
+  await expect.poll(() => full.locator('.guide-unit[aria-current="location"]').first().getAttribute('data-unit-id')).not.toBe(current);
+  await expect.poll(visibleCurrent).toBe(true);
+  await page.keyboard.press('Space');
+  await expect(full).toHaveAttribute('data-playing', 'false');
+  await page.keyboard.press('Escape');
+});

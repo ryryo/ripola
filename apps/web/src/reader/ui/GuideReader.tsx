@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { Component, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from 'react';
 import type { ReadingUnit, TextBlock, WritingMode } from '../model';
 import { RubyText } from './PhraseDisplay';
 
@@ -8,7 +8,8 @@ export function GuideReader({ blocks, units, currentIndices, playing, ruby, fami
 }) {
   const vertical = writingMode === 'vertical-rl';
   const viewport = useRef<HTMLDivElement>(null);
-  const [scroll, setScroll] = useState(0);
+  const [view, setView] = useState<{ scroll: number; prefix: number[] | null }>({ scroll: 0, prefix: null });
+  const committedWindow = useRef<{ first: number; end: number } | null>(null);
   const [inlineSize, setInlineSize] = useState(600);
   const [extent, setExtent] = useState(330);
   const [follow, setFollow] = useState(true);
@@ -36,7 +37,10 @@ export function GuideReader({ blocks, units, currentIndices, playing, ruby, fami
     for (const row of rows) values.push(values.at(-1)! + (measurements.get(row.id) ?? Math.max(72, Math.ceil(row.length / characters) * (ruby ? 48 : 40) + 28)));
     return values;
   }, [rows, measurements, inlineSize, ruby]);
+  const setScroll = (scroll: number) => setView(previous => previous.scroll === scroll && previous.prefix === prefix ? previous : { scroll, prefix });
+  const scroll = view.scroll;
   const current = currentIndices[0] ?? 0;
+  const preserveView = !follow && (playing || lastCurrent.current === current);
   const currentRow = useMemo(() => {
     let low = 0; let high = rows.length;
     while (low < high) { const middle = (low + high) >>> 1; if (rows[middle].units.at(-1)!.index < current) low = middle + 1; else high = middle; }
@@ -53,6 +57,12 @@ export function GuideReader({ blocks, units, currentIndices, playing, ruby, fami
     first = Math.max(0, currentRow - 2); end = currentRow;
     while (end < rows.length && (prefix[end] < prefix[currentRow] + extent + 350 || end < currentRow + 3)) end++;
   }
+  // Keep the mounted anchor through a measurement commit; after restoring its
+  // position, the viewport reports the corrected offset with the new prefix.
+  if (preserveView && view.prefix !== prefix && committedWindow.current) {
+    ({ first, end } = committedWindow.current);
+  }
+  useLayoutEffect(() => { committedWindow.current = { first, end }; });
   const active = new Set(currentIndices);
   useLayoutEffect(() => {
     const element = viewport.current; if (!element) return;
@@ -124,9 +134,14 @@ export function GuideReader({ blocks, units, currentIndices, playing, ruby, fami
       onScroll={event => setScroll(vertical ? -event.currentTarget.scrollLeft : event.currentTarget.scrollTop)} onWheel={() => setFollow(false)} onTouchMove={() => setFollow(false)}
       onPointerDown={event => { if (event.target === viewport.current) setFollow(false); }}
       onKeyDown={event => { if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'PageUp', 'PageDown', 'Home', 'End', 'Space'].includes(event.code)) setFollow(false); }}>
+      <GuideScrollAnchor viewport={viewport} vertical={vertical} enabled={preserveView} onLayout={() => {
+        const element = viewport.current;
+        if (element) setScroll(vertical ? -element.scrollLeft : element.scrollTop);
+      }}>
       <div style={{ blockSize: prefix[first] }} aria-hidden="true" />
       {rows.slice(first, end).map(row => <MeasuredRow key={row.id} row={row} onMeasure={measure} vertical={vertical}>{row.units.map(({ unit, index }) => <button key={unit.id} type="button" className={`guide-unit ${active.has(index) ? 'active' : ''}`} aria-current={active.has(index) ? 'location' : undefined} data-unit-id={unit.id} onClick={() => { setFollow(true); onJump(index); }} title="ここへ移動して停止"><RubyText unit={unit} show={ruby} /></button>)}</MeasuredRow>)}
       <div style={{ blockSize: (prefix.at(-1) ?? 0) - (prefix[end] ?? 0) }} aria-hidden="true" />
+      </GuideScrollAnchor>
     </div>
     <p className="guide-status" role="status">{message || (follow ? '読んでいる位置を追います。' : '自由にスクロールできます。')}</p>
     <details className="guide-static-text" onToggle={onPause}><summary>全文を静止表示・コピー</summary><textarea aria-label="コピーする全文" value={blocks.map(block => block.text).join('\n\n')} readOnly rows={8} /></details>
@@ -146,4 +161,44 @@ function MeasuredRow({ row, onMeasure, children, vertical }: { row: GuideRow; on
     return () => observer.disconnect();
   }, [row.id, vertical]);
   return <div ref={element} className={`guide-row guide-row-${row.block.kind}`} role={row.block.kind === 'heading' ? 'heading' : undefined} aria-level={row.block.kind === 'heading' ? row.block.level ?? 2 : undefined}>{children}</div>;
+}
+
+interface ScrollAnchorProps {
+  viewport: RefObject<HTMLDivElement | null>; vertical: boolean; enabled: boolean; onLayout: () => void; children: ReactNode;
+}
+interface ScrollAnchor { node: Element; fragment: number; position: number; distance: number }
+
+// React's snapshot lifecycle reads the old layout before row/spacer mutations.
+// A layout effect alone would already see the new positions of mounted rows.
+class GuideScrollAnchor extends Component<ScrollAnchorProps, Record<string, never>, ScrollAnchor[] | null> {
+  getSnapshotBeforeUpdate(previous: ScrollAnchorProps): ScrollAnchor[] | null {
+    const element = this.props.viewport.current;
+    if (!this.props.enabled || previous.vertical !== this.props.vertical || !element) return null;
+    const frame = element.getBoundingClientRect();
+    return [...element.querySelectorAll('.guide-unit')].map(node => {
+      const fragments = [...node.getClientRects()];
+      const visible = fragments.findIndex(rect => rect.left < frame.right && rect.right > frame.left && rect.top < frame.bottom && rect.bottom > frame.top);
+      const fragment = Math.max(0, visible);
+      const rect = fragments[fragment];
+      const position = this.props.vertical ? rect.right - frame.right : rect.top - frame.top;
+      const distance = visible >= 0 ? 0 : Math.abs(position);
+      return { node, fragment, position, distance };
+    }).sort((a, b) => a.distance - b.distance);
+  }
+  componentDidMount() { this.props.onLayout(); }
+  componentDidUpdate(_previous: ScrollAnchorProps, _state: Record<string, never>, snapshot?: ScrollAnchor[] | null) {
+    const element = this.props.viewport.current;
+    const anchor = snapshot?.find(item => item.node.isConnected && element?.contains(item.node));
+    const rect = anchor?.node.getClientRects()[anchor.fragment];
+    if (element && anchor && rect) {
+      const frame = element.getBoundingClientRect();
+      const difference = (this.props.vertical ? rect.right - frame.right : rect.top - frame.top) - anchor.position;
+      if (Math.abs(difference) >= .5) {
+        if (this.props.vertical) element.scrollLeft += difference;
+        else element.scrollTop += difference;
+      }
+    }
+    this.props.onLayout();
+  }
+  render() { return this.props.children; }
 }

@@ -2500,5 +2500,25 @@
       "audio",
       "layout"
     ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "reading-options.spec.ts",
+    "title": "vertical fullscreen touch scrolling keeps visible text stable across virtual row measurements and retains search and following",
+    "lane": "related",
+    "domains": [
+      "layout",
+      "audio"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "reading-options.spec.ts",
+    "title": "vertical fullscreen touch scrolling keeps visible text stable across virtual row measurements and retains search and following",
+    "lane": "related",
+    "domains": [
+      "layout",
+      "audio"
+    ]
   }
 ]
