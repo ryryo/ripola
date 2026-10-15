@@ -9,7 +9,7 @@ export interface DisplaySetSession {
   position: () => SourceAnchor | undefined;
   source: (position: SourceAnchor) => SetSource | undefined;
   seek: (position: SourceAnchor) => void;
-  marker?: ReadingMarker;
+  marker?: () => ReadingMarker | undefined;
   sourceVersion?: unknown;
 }
 interface Layout { set: DisplaySet; flow: DisplayFlow; start: number; end: number; revision: string; fontSize: number; sourceVersion?: unknown }
@@ -128,7 +128,7 @@ export function DisplaySetReader({ session, lines, fontSize, family, ruby, writi
   return <div className="display-set-reader" data-testid="display-set-reader" data-writing-mode={writingMode} style={{ '--reading-font': family } as CSSProperties}>
     <div ref={viewport} className="display-set-viewport" aria-label="本文">
       <div className="display-set-text" data-testid="display-set-text" data-block-id={set?.ranges[0]?.blockId} data-source-start={set?.ranges[0]?.start} data-source-end={set?.ranges.at(-1)?.end} data-source-ranges={JSON.stringify(set?.ranges)} data-lines={set?.lines} data-set-id={set?.id} style={{ fontSize: layout?.fontSize ?? fontSize, fontFamily: family, writingMode }}>
-        {slices.map((slice, index) => <Fragment key={`${slice.blockId}:${slice.start}`}>{index > 0 && '\n'}<RubyText unit={slice} show={ruby} marker={session.marker} /></Fragment>)}
+        {slices.map((slice, index) => <Fragment key={`${slice.blockId}:${slice.start}`}>{index > 0 && '\n'}<RubyText unit={slice} show={ruby} marker={clock.current.marker?.()} layoutKey={`${layout?.revision}:${layout?.fontSize}`} /></Fragment>)}
       </div>
     </div>
     <button type="button" className="display-set-next" aria-label="次へ" title="次の本文へ" disabled={!set?.next}

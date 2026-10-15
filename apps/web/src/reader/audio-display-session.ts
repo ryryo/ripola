@@ -21,9 +21,12 @@ export function audioReadingMarker(segment: AudioSegment | undefined, seconds: n
   const local = seconds - segment.startSeconds + AUDIO_CLOCK_TOLERANCE;
   const cue = segment.cues?.find(cue => cue.startSeconds <= local && local < cue.endSeconds);
   if (cue) return { blockId: cue.blockId, start: cue.start, end: cue.end, precision: 'spoken' };
-  const estimate = segment.displayCues.find(cue => cue.startSeconds <= local && local < cue.endSeconds);
-  if (!estimate || estimate.estimatedReason === 'silence-hold') return undefined;
-  return { blockId: estimate.blockId, start: estimate.start, end: estimate.end, precision: 'estimated' };
+  const display = audioDisplayAt(segment, seconds - segment.startSeconds);
+  const estimate = display.cue;
+  if (!estimate) return undefined;
+  // During a pause between speech intervals, keep the reading position without claiming speech timing.
+  const held = display.reason === 'silence-hold' || estimate.estimatedReason === 'silence-hold';
+  return { blockId: estimate.blockId, start: estimate.start, end: estimate.end, precision: held ? 'position' : 'estimated' };
 }
 
 export function audioSetSource(blocks: readonly TextBlock[], targets: readonly AudioSourceTarget[], availableIds: ReadonlySet<string>, position: SourceAnchor) {

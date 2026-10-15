@@ -2680,5 +2680,85 @@
       "audio",
       "layout"
     ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "reading-options.spec.ts",
+    "title": "audio highlight changes keep glyph positions fixed and remain visible between speech cues",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "audio-prefetch.spec.ts",
+    "title": "音声が長く止まったときだけ読み込み表示し短い待機を隠す（通常）",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "audio-prefetch.spec.ts",
+    "title": "音声が長く止まったときだけ読み込み表示し短い待機を隠す（全画面）",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "reading-options.spec.ts",
+    "title": "audio highlight changes keep glyph positions fixed and remain visible between speech cues",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "audio-prefetch.spec.ts",
+    "title": "音声が長く止まったときだけ読み込み表示し短い待機を隠す（通常）",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "audio-prefetch.spec.ts",
+    "title": "音声が長く止まったときだけ読み込み表示し短い待機を隠す（全画面）",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "reading-options.spec.ts",
+    "title": "five-times audio retains a painted highlight through cue gaps and display page changes",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "reading-options.spec.ts",
+    "title": "five-times audio retains a painted highlight through cue gaps and display page changes",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
   }
 ]

@@ -59,7 +59,7 @@ test('audio set boundaries keep accepted shared cues whole, mark estimates disti
   assert.deepEqual(targets.map(target => target.start), [0, 4, 12]);
   assert.equal(audioSetSeek(targets, { blockId: 'p', offset: 2 })?.seconds, 1);
   assert.equal(audioReadingMarker(first, 1.5)?.precision, 'spoken'); assert.equal(audioReadingMarker(first, 2.5)?.precision, 'estimated');
-  first.displayCues[2].estimatedReason = 'silence-hold'; assert.equal(audioReadingMarker(first, 2.5), undefined);
+  first.displayCues[2].estimatedReason = 'silence-hold'; assert.equal(audioReadingMarker(first, 2.5)?.precision, 'position');
   const block: TextBlock = { id: 'p', kind: 'paragraph', text: 'abcdefghijklmnop', ruby: [], runs: [] };
   assert.equal(audioSetSource([block], targets, new Set(['a']), { blockId: 'p', offset: 0 })?.next, undefined);
 });
@@ -124,4 +124,14 @@ test('a restored cursor deep inside a long cue is contained in the bounded displ
   const flow = displayFlow(() => ({ block, start: 0, end: block.text.length, boundaries: [] }), { blockId: block.id, offset: 80000.5 })!;
   assert.equal(flowOffset(flow, { blockId: block.id, offset: 80000.5 }), .5);
   assert.ok(flow.text.length <= 2048);
+});
+
+
+test('audio marker holds the reading position across cue gaps and at boundaries without retiming cues', () => {
+  const cue = (start: number, end: number, startSeconds: number, endSeconds: number) => ({ blockId: 'p', start, end, startSeconds, endSeconds, unitId: 'u', unitIds: ['u'], units: [], unitIndices: [] });
+  const a = cue(0, 4, .1, .4); const b = cue(4, 8, .5, .9);
+  const segment: AudioSegment = { chunk: { id: 'a', audioUrl: '/a', durationSeconds: 1, timeline: [] }, startSeconds: 0, endSeconds: 1, text: 'abcdefgh', cues: [a, b], displayCues: [a, b] };
+  for (let milliseconds = 0; milliseconds <= 1000; milliseconds++) assert.ok(audioReadingMarker(segment, milliseconds / 1000));
+  assert.deepEqual(audioReadingMarker(segment, .45), { blockId: 'p', start: 0, end: 4, precision: 'position' });
+  assert.equal(audioReadingMarker(segment, .5)?.start, 4); assert.equal(a.endSeconds, .4); assert.equal(b.startSeconds, .5);
 });
