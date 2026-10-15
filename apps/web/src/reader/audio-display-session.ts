@@ -34,7 +34,9 @@ export function audioSetSource(blocks: readonly TextBlock[], targets: readonly A
   let last = index;
   while (last + 1 < targets.length && availableIds.has(targets[last + 1].segmentId) && targets[last + 1].blockId === first.blockId && targets[last + 1].start === targets[last].end) last++;
   const after = targets[last + 1];
-  return { block, start: first.start, end: targets[last].end, boundaries: targets.slice(index, last + 1).map(target => target.end),
+  const joinsNext = Boolean(after && availableIds.has(after.segmentId) && targets[last].end === block.text.length && after.start === 0
+    && blocks.findIndex(value => value.id === after.blockId) === blocks.indexOf(block) + 1);
+  return { block, start: first.start, end: targets[last].end, joinsNext, boundaries: targets.slice(index, last + 1).map(target => target.end),
     next: after && availableIds.has(after.segmentId) ? { blockId: after.blockId, offset: after.start } : undefined };
 }
 

@@ -831,31 +831,66 @@ test('vertical fullscreen touch scrolling keeps visible text stable across virtu
   await page.keyboard.press('Escape');
 });
 
-test('multiline sets cover paragraph remainders, retain font size and offer every amount from two to ten', async ({ page }) => {
-  const text = '朝の静かな図書館で、新しい本を開いて読み始めます。窓の向こうには青い空が広がり、ゆっくり流れる雲を眺めながらページをめくります。知らなかった世界に出会い、言葉の意味を確かめていきます。\n\n次の段落です。';
-  await page.setViewportSize({ width: 390, height: 844 }); await read(page, text);
-  await settings(page); await page.getByLabel('文字サイズ', { exact: true }).fill('32'); await close(page);
+test('multiline sets cover paragraph remainders and fill every requested amount from two to ten', async ({ page }) => {
+  const paragraph = '朝の静かな図書館で、新しい本を開いて読み始めます。窓の向こうには青い空が広がり、ゆっくり流れる雲を眺めながらページをめくります。知らなかった世界に出会い、言葉の意味を確かめていきます。';
+  const paragraphs = [paragraph, '次の短い段落です。', paragraph];
+  await page.setViewportSize({ width: 390, height: 844 }); await read(page, paragraphs.join('\n\n'));
+  await settings(page); await page.getByLabel('文字サイズ', { exact: true }).fill('56'); await close(page);
   const amount = page.locator('.reader-display-toolbar').getByLabel('一度に表示する量');
   const visible = page.getByTestId('display-set-text');
   await amount.selectOption('2');
-  let output = ''; let previousEnd = 0; let previousBlock = '';
+  const collected = new Map<string, string>(); const ends = new Map<string, number>();
   for (let i = 0; i < 50; i++) {
-    const range = await visible.evaluate(element => ({ text: element.textContent, block: element.dataset.blockId!, start: Number(element.dataset.sourceStart), end: Number(element.dataset.sourceEnd), lines: Number(element.dataset.lines) }));
-    if (range.block === previousBlock) expect(range.start).toBe(previousEnd); else { if (previousBlock) output += '\n\n'; expect(range.start).toBe(0); }
-    expect(range.end).toBeGreaterThan(range.start); expect(range.lines).toBeLessThanOrEqual(2);
-    expect(await visible.evaluate(element => parseFloat(getComputedStyle(element).fontSize))).toBe(32);
-    output += range.text; previousEnd = range.end; previousBlock = range.block;
+    const ranges = JSON.parse((await visible.getAttribute('data-source-ranges'))!) as { blockId: string; start: number; end: number }[];
+    const rendered = (await visible.textContent())!.split('\n');
+    for (const [index, range] of ranges.entries()) {
+      expect(range.start).toBe(ends.get(range.blockId) ?? 0);
+      collected.set(range.blockId, (collected.get(range.blockId) ?? '') + rendered[index]); ends.set(range.blockId, range.end);
+    }
     const next = page.getByRole('button', { name: '次の表示セットへ', exact: true });
     if (await next.isDisabled()) break;
-    await next.click(); await expect(visible).not.toHaveAttribute('data-source-start', String(range.start));
+    const id = await visible.getAttribute('data-set-id'); await next.click(); await expect(visible).not.toHaveAttribute('data-set-id', id!);
   }
-  expect(output).toBe(text);
-  for (let lines = 2; lines <= 10; lines++) {
-    await amount.selectOption(String(lines)); await expect(visible).toBeVisible();
-    expect(Number(await visible.getAttribute('data-lines'))).toBeLessThanOrEqual(lines);
-  }
+  expect([...collected.values()]).toEqual(paragraphs);
   await amount.selectOption('phrase'); await expect(page.getByTestId('current-phrase')).toBeVisible();
-  await expect(page.getByRole('button', { name: '次の表示セットへ' })).toHaveCount(0);
+});
+
+test('multiline requested rows determine normal and fullscreen layout instead of being a loose upper bound', async ({ page }) => {
+  test.setTimeout(120000);
+  await read(page, Array.from({ length: 100 }, (_, i) => i % 2 ? '短い段落も続けて表示します。' : '朝の静かな<ruby>図書館<rt>としょかん</rt></ruby>で新しい本を開き、窓辺で文章の意味をゆっくり確かめながら読み進めます。'.repeat(5)).join('\n\n'));
+  await settings(page); await page.getByLabel('文字サイズ', { exact: true }).fill('96'); await close(page);
+  const amount = page.locator('.reader-display-toolbar').getByLabel('一度に表示する量');
+  for (const size of [{ width: 390, height: 844 }, { width: 844, height: 390 }]) {
+    await page.setViewportSize(size);
+    for (const mode of ['horizontal-tb', 'vertical-rl']) {
+      await settings(page); await page.getByLabel('本文の向き').selectOption(mode); await close(page);
+      for (let rows = 2; rows <= 10; rows++) {
+        await amount.selectOption(String(rows));
+        for (const fullscreen of [false, true]) {
+          if (fullscreen) await page.getByRole('button', { name: '全画面で読む', exact: true }).click();
+          const visible = page.getByTestId('display-set-text');
+          await expect(visible).toHaveAttribute('data-lines', String(rows));
+          const actual = await visible.evaluate((element, vertical) => {
+            const font = parseFloat(getComputedStyle(element).fontSize); const bands: number[] = [];
+            const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT); let node: Node | null;
+            while ((node = walker.nextNode())) {
+              if (node.parentElement?.closest('rt')) continue;
+              const range = document.createRange(); range.selectNodeContents(node);
+              for (const rect of range.getClientRects()) if (rect.width > .1 && rect.height > .1) {
+                const value = vertical ? rect.right : rect.top;
+                if (!bands.some(other => Math.abs(other - value) < font * .6)) bands.push(value);
+              }
+            }
+            const rect = element.getBoundingClientRect(); const slot = element.parentElement!.getBoundingClientRect();
+            const status = element.closest('section')!.querySelector('.stage-topline')!.getBoundingClientRect();
+            return { belowStatus: rect.top >= status.bottom - 1, bounds: [rect.x, rect.y, rect.width, rect.height], slot: [slot.x, slot.y, slot.width, slot.height], rows: bands.length, inside: rect.left >= slot.left - 1 && rect.right <= slot.right + 1 && rect.top >= slot.top - 1 && rect.bottom <= slot.bottom + 1, font };
+          }, mode === 'vertical-rl');
+          expect(actual.rows, JSON.stringify({ size, mode, rows, fullscreen, actual })).toBe(rows); expect(actual.inside, JSON.stringify({ size, mode, rows, fullscreen, actual })).toBe(true); expect(actual.font).toBeLessThanOrEqual(96); expect(actual.belowStatus).toBe(true);
+          if (fullscreen) await page.getByRole('button', { name: '全画面を終了', exact: true }).click();
+        }
+      }
+    }
+  }
 });
 
 test('multiline mobile portrait and landscape keep ruby, text selection and fullscreen pause controls separate from advance', async ({ page }) => {
@@ -893,23 +928,28 @@ test('multiline mobile portrait and landscape keep ruby, text selection and full
 });
 
 test('multiline audio markers follow original cues and advance seeks media while preserving play intent and rate', async ({ page }) => {
-  await page.setViewportSize({ width: 320, height: 740 }); await audioFixture(page);
+  await page.setViewportSize({ width: 320, height: 740 }); await audioFixture(page, 12, true);
   await settings(page); await page.getByLabel('文字サイズ', { exact: true }).fill('72'); await close(page);
   await page.locator('.reader-display-toolbar').getByLabel('一度に表示する量').selectOption('2');
   const text = page.getByTestId('display-set-text'); const audio = page.locator('audio');
   await expect(text.getByTestId('reading-marker')).toHaveAttribute('data-precision', 'spoken');
-  const before = await audio.getAttribute('src');
+  const initialSource = await audio.getAttribute('src');
+  const firstLength = '国際情報通信技術研究開発機構の'.length;
+  const end = Number(await text.getAttribute('data-source-end'));
+  const expectedSeconds = end < firstLength ? 6 * end / firstLength : 6 + 6 * (end - firstLength) / 5;
   await page.getByRole('button', { name: '次の表示セットへ', exact: true }).click();
-  await expect.poll(() => audio.evaluate((element: HTMLAudioElement) => element.currentTime)).toBeCloseTo(6, 1);
+  await expect.poll(() => audio.evaluate((element: HTMLAudioElement) => element.currentTime)).toBeCloseTo(expectedSeconds, 4);
+  await expect(text).toHaveAttribute('data-source-start', String(end));
   await expect(page.getByRole('button', { name: '再生', exact: true })).toBeVisible();
-  await expect(text.getByTestId('reading-marker').first()).toContainText('図書館');
+  await expect(text.getByTestId('reading-marker').first()).toHaveAttribute('data-precision', 'spoken');
   await page.getByRole('button', { name: '全画面で読む', exact: true }).click();
   const full = page.locator('.fullscreen-reader[data-fullscreen=true]');
   await full.getByRole('button', { name: '再生', exact: true }).click();
-  await full.getByRole('button', { name: '次の表示セットへ', exact: true }).click();
-  await expect(full).toHaveAttribute('data-playing', 'true');
-  await expect.poll(() => audio.evaluate((element: HTMLAudioElement) => element.currentTime)).toBeLessThan(5);
-  await expect(audio).not.toHaveAttribute('src', before!);
+  for (let i = 0; i < 12 && await audio.getAttribute('src') === initialSource; i++) {
+    await full.getByRole('button', { name: '次の表示セットへ', exact: true }).click();
+    await expect(full).toHaveAttribute('data-playing', 'true');
+  }
+  await expect(audio).not.toHaveAttribute('src', initialSource!);
   expect(await audio.evaluate((element: HTMLAudioElement) => element.playbackRate)).toBe(2.5);
   await full.getByRole('button', { name: '一時停止', exact: true }).click();
   await expect(full).toHaveAttribute('data-playing', 'false');

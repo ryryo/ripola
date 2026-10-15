@@ -2524,7 +2524,7 @@
   {
     "project": "desktop-chromium",
     "file": "reading-options.spec.ts",
-    "title": "multiline sets cover paragraph remainders, retain font size and offer every amount from two to ten",
+    "title": "multiline sets cover paragraph remainders and fill every requested amount from two to ten",
     "lane": "related",
     "domains": [
       "audio",
@@ -2534,7 +2534,7 @@
   {
     "project": "mobile-chromium",
     "file": "reading-options.spec.ts",
-    "title": "multiline sets cover paragraph remainders, retain font size and offer every amount from two to ten",
+    "title": "multiline sets cover paragraph remainders and fill every requested amount from two to ten",
     "lane": "related",
     "domains": [
       "audio",
@@ -2655,6 +2655,26 @@
     "project": "mobile-chromium",
     "file": "audio-progressive.spec.ts",
     "title": "複数行は追加chunkで本文を組み替えず次セットだけを有効にする",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "reading-options.spec.ts",
+    "title": "multiline requested rows determine normal and fullscreen layout instead of being a loose upper bound",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "reading-options.spec.ts",
+    "title": "multiline requested rows determine normal and fullscreen layout instead of being a loose upper bound",
     "lane": "related",
     "domains": [
       "audio",

@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { DEFAULT_SETTINGS, migrateReaderSettings, validReaderSettings, type TextBlock } from '../src/reader/model.ts';
-import { naturalBoundaries, planDisplaySet, silentSetSource } from '../src/reader/display-sets.ts';
+import { displayFlow, displaySet, flowOffset, sourceSlices } from '../src/reader/display-flow.ts';
+import { naturalBoundaries, planTextPage, silentSetSource } from '../src/reader/display-sets.ts';
 import { audioDisplayPosition, audioReadingMarker, audioSetSeek, audioSetSource, audioSourceTargets } from '../src/reader/audio-display-session.ts';
 import { importText } from '../src/reader/text-import.ts';
 import { prepareDocument } from '../src/reader/segmentation.ts';
@@ -22,7 +23,7 @@ test('measured sets cover a long paragraph exactly once and keep ruby, words and
   const block = document.blocks[0]; let start = 0; let output = ''; let count = 0;
   while (start < block.text.length) {
     const source = silentSetSource(document.blocks, document.units, { blockId: block.id, offset: start })!;
-    const set = planDisplaySet(block, start, source.end, source.boundaries, source.next, range => ({ fits: range.end - range.start <= 12, lines: Math.ceil((range.end - range.start) / 6) }));
+    const set = planTextPage(block, start, source.end, source.boundaries, range => ({ fits: range.end - range.start <= 12, lines: Math.ceil((range.end - range.start) / 6) }));
     assert.ok(set.end > start);
     for (const span of block.ruby) assert.ok(!(span.start < set.end && set.end < span.end));
     output += block.text.slice(start, set.end); start = set.end; count++;
@@ -30,8 +31,8 @@ test('measured sets cover a long paragraph exactly once and keep ruby, words and
   assert.equal(output, block.text); assert.ok(count > 2);
   const url: TextBlock = { id: 'url', kind: 'paragraph', text: 'https://example.com/long/indivisible', ruby: [], runs: [] };
   assert.deepEqual(naturalBoundaries(url, 0, url.text.length), []);
-  const wordPage = planDisplaySet(url, 0, url.text.length, [], undefined, range => ({ fits: range.end - range.start <= 8, lines: 2 }));
-  assert.equal(wordPage.fits, true); assert.equal(wordPage.end, 8); assert.equal(wordPage.next?.offset, 8);
+  const wordPage = planTextPage(url, 0, url.text.length, [], range => ({ fits: range.end - range.start <= 8, lines: 2 }));
+  assert.equal(wordPage.fits, true); assert.equal(wordPage.end, 8);
 });
 
 test('silent display amount preserves the timeline and source seek preserves playing intent and body/pause budget', async () => {
@@ -77,8 +78,8 @@ test('multiline audio cursor tolerates native microsecond truncation at cue and 
 test('unbroken long-word planning measures a bounded source neighbourhood', () => {
   const block: TextBlock = { id: 'long', kind: 'paragraph', text: 'https://example.com/' + 'a'.repeat(100000), ruby: [], runs: [] };
   let maximum = 0;
-  const set = planDisplaySet(block, 0, block.text.length, [], undefined, range => { maximum = Math.max(maximum, range.end - range.start); return { fits: range.end - range.start <= 32, lines: 2 }; });
-  assert.ok(maximum <= 2048); assert.equal(set.end, 32); assert.equal(set.next?.offset, 32);
+  const set = planTextPage(block, 0, block.text.length, [], range => { maximum = Math.max(maximum, range.end - range.start); return { fits: range.end - range.start <= 32, lines: 2 }; });
+  assert.ok(maximum <= 2048); assert.equal(set.end, 32);
 });
 
 test('display source cursor retains the active unit body budget when punctuation settings change', async () => {
@@ -88,4 +89,39 @@ test('display source cursor retains the active unit body budget when punctuation
   const before = controller.getSourcePosition();
   controller.updateSettings({ ...DEFAULT_SETTINGS, punctuationPause: false });
   assert.deepEqual(controller.getSourcePosition(), before); controller.dispose();
+});
+
+
+test('multiline flow joins adjacent paragraphs without losing canonical ranges or crossing static boundaries', async () => {
+  const doc = await prepareDocument(importText('短い段落。\n\n次に<ruby>図書館<rt>としょかん</rt></ruby>へ。\n\n```js\nconst x = 1;\n```\n\n後の段落。', 'md', 'flow'));
+  const source = (position: { blockId: string; offset: number }) => silentSetSource(doc.blocks, doc.units, position);
+  const flow = displayFlow(source, { blockId: doc.blocks[0].id, offset: 0 })!;
+  assert.equal(flow.spans.length, 2);
+  assert.equal(flow.text, doc.blocks.slice(0, 2).map(block => block.text).join('\n'));
+  const page = { start: 0, end: flow.text.length, fits: true, lines: 2 };
+  const set = displaySet(flow, page);
+  assert.deepEqual(set.ranges, doc.blocks.slice(0, 2).map(block => ({ blockId: block.id, start: 0, end: block.text.length })));
+  assert.deepEqual(set.next, { blockId: doc.blocks[2].id, offset: 0 });
+  const offset = flowOffset(flow, { blockId: doc.blocks[1].id, offset: 2 })!;
+  const sliced = sourceSlices(flow, { start: offset, end: flow.text.length });
+  assert.equal(sliced[0].text, doc.blocks[1].text.slice(2)); assert.equal(sliced[0].start, 2);
+  assert.deepEqual(displaySet(flow, { ...page, end: flow.spans[0].to }).next, { blockId: doc.blocks[1].id, offset: 0 });
+});
+
+test('multiline source flow stays within a PDF page and stops before unavailable audio', async () => {
+  const doc = await prepareDocument(importText('最初の段落。\n\n次の段落。', 'txt', 'pages'));
+  for (const unit of doc.units) unit.sources = [{ kind: 'pdf', page: unit.blockId === doc.blocks[0].id ? 1 : 2, item: 0, start: 0, end: 1, rect: [0, 0, 1, 1] }];
+  const flow = displayFlow(position => silentSetSource(doc.blocks, doc.units, position), { blockId: doc.blocks[0].id, offset: 0 })!;
+  assert.equal(flow.spans.length, 1);
+  const targets = doc.blocks.map((block, i) => ({ blockId: block.id, start: 0, end: block.text.length, seconds: i, endSeconds: i + 1, segmentId: String(i) }));
+  const audio = displayFlow(position => audioSetSource(doc.blocks, targets, new Set(['0']), position), { blockId: doc.blocks[0].id, offset: 0 })!;
+  assert.equal(audio.spans.length, 1); assert.equal(audio.next, undefined);
+});
+
+
+test('a restored cursor deep inside a long cue is contained in the bounded display flow', () => {
+  const block: TextBlock = { id: 'deep', kind: 'paragraph', text: 'あいうえお'.repeat(20000), ruby: [], runs: [] };
+  const flow = displayFlow(() => ({ block, start: 0, end: block.text.length, boundaries: [] }), { blockId: block.id, offset: 80000.5 })!;
+  assert.equal(flowOffset(flow, { blockId: block.id, offset: 80000.5 }), .5);
+  assert.ok(flow.text.length <= 2048);
 });

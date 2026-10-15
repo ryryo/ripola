@@ -42,6 +42,7 @@ export function ReaderDisplaySettings({ settings, onChange, font }: {
       <WritingModeSelect value={settings.writingMode} onChange={writingMode => onChange({ writingMode })} />
       <Switch label="ルビを表示" checked={settings.ruby} onChange={event => onChange({ ruby: event.currentTarget.checked })} />
       <label className="font-size-setting">文字サイズ <strong>{settings.mode === 'guide' ? settings.documentFontSize ?? 20 : settings.fontSize} px</strong><input aria-label="文字サイズ" type="range" min={settings.mode === 'guide' ? 14 : 24} max={settings.mode === 'guide' ? 48 : 96} step="2" value={settings.mode === 'guide' ? settings.documentFontSize ?? 20 : settings.fontSize} onChange={event => onChange(settings.mode === 'guide' ? { documentFontSize: Number(event.target.value) } : { fontSize: Number(event.target.value) })} /></label>
+      {settings.mode !== 'guide' && settings.focusedDisplay?.kind === 'multiline' && <p className="input-note">複数行では、この大きさを上限に、指定行数が収まる文字サイズへ自動調整します。</p>}
     </section>
     <section className="settings-section"><h2>表示する量</h2>
       <DisplayAmount settings={settings} onChange={onChange} />

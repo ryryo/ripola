@@ -105,8 +105,8 @@
 .fullscreen-actions[hidden] { display: flex; visibility: hidden; pointer-events: none; }
 .fullscreen-actions label { font-size: 12px; display: flex; align-items: center; gap: 8px; }
 .fullscreen-actions input, .fullscreen-actions select { width: 100px; min-height: 44px; border: 1px solid var(--line); border-radius: var(--radius-control); background: var(--panel); color: var(--ink); padding: 8px; }
-.fullscreen-reader[data-fullscreen='true'] > .reader-stage:not(.guide-mode),
-.fullscreen-reader[data-fullscreen='true'] > .audio-stage:not(.guide-mode) {
+.fullscreen-reader[data-fullscreen='true'] > .reader-stage:not(.guide-mode):not(.multiline-mode),
+.fullscreen-reader[data-fullscreen='true'] > .audio-stage:not(.guide-mode):not(.multiline-mode) {
   --fullscreen-reading-inset: max(calc(var(--fullscreen-footer-height, 170px) + 12px), calc(max(12px, env(safe-area-inset-top)) + 48px + var(--fullscreen-context-height, 0px) + 12px));
   padding-block: var(--fullscreen-reading-inset);
 }
@@ -139,4 +139,9 @@
   .fullscreen-reader[data-fullscreen='true'] .guide-toolbar input { flex: 1; min-width: 0; }
   .fullscreen-reader[data-fullscreen='true'] .guide-status { min-height: 0; margin-block: 4px; line-height: 1.5; }
   .fullscreen-reader[data-fullscreen='true'] .guide-static-text { display: none; }
+}
+
+.fullscreen-reader[data-fullscreen='true'] > .multiline-mode {
+  padding-top: calc(max(12px, env(safe-area-inset-top)) + 48px);
+  padding-bottom: calc(var(--fullscreen-footer-height, 120px) + 8px);
 }
