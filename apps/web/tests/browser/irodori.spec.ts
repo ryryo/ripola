@@ -17,6 +17,25 @@ function setProperty(node: unknown, key: string, value: string | number | boolea
 }
 test.afterEach(async ({ page }) => { await page.unrouteAll({ behavior: 'wait' }); });
 
+test('通常GUIはIrodoriを表示せずVOICEVOXとGeminiを選べる', async ({ page }) => {
+  test.skip(process.env.RSVP_ENABLE_EXPERIMENTAL_IRODORI === 'true', 'Opt-in run exercises the development UI');
+  await page.goto('/generate');
+  await expect(page.getByRole('region', { name: '音声生成の利用状態' })).toContainText('最終確認');
+  await page.getByRole('combobox', { name: '生成手段', exact: true }).click();
+  await expect(page.getByRole('option', { name: '無料 · VOICEVOX', exact: true })).toBeVisible();
+  await expect(page.getByRole('option', { name: '有料 · Gemini', exact: true })).toBeVisible();
+  await expect(page.getByRole('option', { name: /Irodori/ })).toHaveCount(0);
+  await expect(page.getByRole('region', { name: 'Irodoriの任意追加', exact: true })).toHaveCount(0);
+  await page.keyboard.press('Escape');
+  await page.goto('/');
+  await page.getByRole('switch', { name: '音声も生成する', exact: true }).press('Space');
+  await expect(page.getByRole('region', { name: '音声生成の利用状態' })).toContainText('最終確認');
+  await page.getByRole('combobox', { name: '生成方法', exact: true }).click();
+  await expect(page.getByRole('option', { name: /Irodori/ })).toHaveCount(0);
+});
+
+test.describe('明示的に有効化したIrodori', () => {
+  test.skip(process.env.RSVP_ENABLE_EXPERIMENTAL_IRODORI !== 'true', 'Irodori is disabled by default');
 test('Irodori未導入は容量と追加入口を示し通常利用では取得しない', async ({ page, context }, testInfo) => {
   const mutations: string[] = []; const downloads: string[] = []; const errors: string[] = [];
   await page.route('**/_serverFn/**', async route => {
@@ -425,4 +444,6 @@ test('受付の男女声はプロンプトを別々に保存し声の切替後�
     await panel.getByRole('button', { name: 'プロンプトを既定に戻す', exact: true }).click(); await expect(prompt).toHaveValue('明朗快活な男性の受付スタッフ。明るく丁寧にてきぱきと');
     await page.screenshot({ path: testInfo.outputPath('reception-settings.png'), fullPage: true });
   } finally { firstFemale.release(); }
+});
+
 });

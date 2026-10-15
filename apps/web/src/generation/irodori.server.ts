@@ -4,6 +4,7 @@ import { getLocalGenerationService } from './service.server';
 
 export async function localIrodoriController() {
   // Use the existing localhost/Origin/Fetch Metadata/CSRF boundary.
-  await getLocalGenerationService();
+  const service = await getLocalGenerationService();
+  if (!service.config.experimentalIrodori) throw new Error('Irodoriは開発用です。RSVP_ENABLE_EXPERIMENTAL_IRODORI=trueで明示的に有効化してください。');
   return getIrodoriController();
 }

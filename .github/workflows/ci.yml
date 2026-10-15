@@ -82,6 +82,12 @@ jobs:
           RIPOLA_CI_MODE: ${{ steps.scope.outputs.mode }}
           RIPOLA_CI_DOMAINS: ${{ steps.scope.outputs.domains }}
         run: pnpm test:ci-browser
+      - name: Irodori development opt-in regressions
+        if: steps.scope.outputs.code == 'true' && github.event_name == 'workflow_dispatch'
+        env:
+          RSVP_ENABLE_EXPERIMENTAL_IRODORI: 'true'
+          RIPOLA_CI_MODE: full
+        run: pnpm exec playwright test irodori.spec.ts
       - name: Configure Pages
         if: steps.scope.outputs.code == 'true' && github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5

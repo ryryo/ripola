@@ -2400,5 +2400,25 @@
     "domains": [
       "audio"
     ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "irodori.spec.ts",
+    "title": "通常GUIはIrodoriを表示せずVOICEVOXとGeminiを選べる",
+    "lane": "related",
+    "domains": [
+      "generation",
+      "audio"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "irodori.spec.ts",
+    "title": "通常GUIはIrodoriを表示せずVOICEVOXとGeminiを選べる",
+    "lane": "related",
+    "domains": [
+      "generation",
+      "audio"
+    ]
   }
 ]

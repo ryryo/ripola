@@ -37,12 +37,10 @@ test('legacy defaults keep speech keys and sentence spans; absent optional provi
   const c = plan.chunks[0];
   assert.equal(c.speechKey, digest(JSON.stringify({ schema: 'speech-v1', text: c.spokenText, provider: 'voicevox', model: 'voicevox-engine', voice: '3', style: '', providerVersion: 'voicevox-engine:unspecified' })));
   const config = await service.getGenerationConfig();
-  assert.equal(config.providers?.find(p => p.id === 'irodori')?.available, false);
+  assert.equal(config.providers?.find(p => p.id === 'irodori'), undefined);
   // Existing alignment capability probing may check loopback VOICEVOX; optional plans add no calls.
   const baselineCalls = networkCalls;
-  const optional = await service.prepareGeneration({ document, options: { ...options, provider: 'irodori', voice: 'none' } });
-  assert.equal(optional.available, false);
-  await assert.rejects(service.startGeneration({ planId: optional.id, planHash: optional.hash, operationId: 'no-install', paidConfirmed: false }), /ローカル設定/);
+  await assert.rejects(service.prepareGeneration({ document, options: { ...options, provider: 'irodori', voice: 'none' } }), /開発用.*有効化/);
   assert.equal(networkCalls, baselineCalls);
 });
 
@@ -114,6 +112,28 @@ test('abort-capable local provider cancels the active request and resumes only u
   assert.equal(receivedVersion, plan.providerVersion);
   await service.resumeJob(job.id); assert.equal((await service.waitForJob(job.id)).status, 'completed'); assert.equal(calls, 4);
   assert.equal((await service.getBook(job.bookId, job.revision)).attribution, plan.attribution);
+});
+
+test('disabling Irodori rejects new, cached and resumed generation while saved audio remains readable', async t => {
+  let calls = 0;
+  const adapter: SpeechAdapter = { async voices() { return [{ id: 'fixture', name: '自作検証声' }]; }, async synthesize(_r, beforeSend) { await beforeSend(); calls++; return wav(); } };
+  const { service, document, config, disk } = await fixture(t, { providers: { irodori: adapter } });
+  assert.equal((await service.getGenerationConfig()).providers?.find(p => p.id === 'irodori')?.available, true);
+  const plan = await service.prepareGeneration({ document, options: { ...options, provider: 'irodori', voice: 'fixture' } });
+  const job = await service.startGeneration({ planId: plan.id, planHash: plan.hash, operationId: 'before-disable', paidConfirmed: false });
+  assert.equal((await service.waitForJob(job.id)).status, 'completed');
+  const disabled = new GenerationService(config, { voicevox: adapter });
+  assert.equal((await disabled.getGenerationConfig()).providers?.some(p => p.id === 'irodori'), false);
+  const book = await disabled.getBook(job.bookId, job.revision);
+  assert.equal(book.options.provider, 'irodori'); assert.equal(book.chunks.length, 3);
+  assert.equal((await disabled.getAudio(book.chunks[0].speechKey)).bytes.length, wav().length);
+  await assert.rejects(disabled.prepareGeneration({ document, options: plan.options }), /開発用.*有効化/);
+  await assert.rejects(disabled.startGeneration({ planId: plan.id, planHash: plan.hash, operationId: 'after-disable', paidConfirmed: false }), /開発用.*有効化/);
+  const interrupted = await service.getJob(job.id); interrupted.status = 'cancelled'; interrupted.chunks[2].status = 'pending';
+  await disk.write(['jobs', `${job.id}.json`], interrupted);
+  await assert.rejects(disabled.resumeJob(job.id), /開発用.*有効化/);
+  assert.deepEqual(await disabled.getJob(job.id), interrupted); assert.equal(calls, 3);
+  assert.equal((await disabled.getBook(job.bookId, job.revision)).chunks.length, 3);
 });
 
 test('old saved books lacking new optional fields remain readable without changing their files', async t => {
