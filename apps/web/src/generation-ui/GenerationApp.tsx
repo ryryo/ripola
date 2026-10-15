@@ -64,6 +64,7 @@ export function GenerationApp({ home }: { home?: HomeGenerationProps }) {
   const [provider, setProvider] = useState<GenerationOptions['provider']>('voicevox');
   const [irodori, setIrodori] = useState<IrodoriSettings>();
   const [irodoriBusy, setIrodoriBusy] = useState(false);
+  const irodoriEnabled = Boolean(config?.providers?.some(value => value.id === 'irodori'));
   const [automaticChunking, setAutomaticChunking] = useState(false);
   const [voice, setVoice] = useState('');
   const [model, setModel] = useState<typeof GEMINI_MODELS[number]>(GEMINI_MODELS[0]);
@@ -100,7 +101,11 @@ export function GenerationApp({ home }: { home?: HomeGenerationProps }) {
       const value = await getGenerationConfig();
       if (!mounted.current || id !== configRequest.current) return;
       setConfig(value); setConfigState('ready'); setConfigCheckedAt(new Date());
-      setVoice(previous => { const voices = voicesFor(value, providerRef.current) ?? []; return voices.some(voice => voice.id === previous) ? previous : providerRef.current === 'voicevox' ? defaultVoicevoxVoice(voices) : voices[0]?.id ?? ''; });
+      const activeProvider = providerRef.current === 'irodori' && !value.providers?.some(provider => provider.id === 'irodori') ? 'voicevox' : providerRef.current;
+      if (activeProvider !== providerRef.current) {
+        setProvider(activeProvider); setIrodori(undefined); setPlan(undefined); setPreview(undefined); setSelected(undefined); setPaidConfirmed(false); operationId.current = '';
+      }
+      setVoice(previous => { const voices = voicesFor(value, activeProvider) ?? []; return voices.some(voice => voice.id === previous) ? previous : activeProvider === 'voicevox' ? defaultVoicevoxVoice(voices) : voices[0]?.id ?? ''; });
     } catch (error) {
       if (!mounted.current || id !== configRequest.current) return;
       setConfigState('error'); setConfigError(message(error)); setConfigCheckedAt(new Date());
@@ -133,6 +138,7 @@ export function GenerationApp({ home }: { home?: HomeGenerationProps }) {
   }
   function changeProvider(value: string | null) {
     if (value !== 'voicevox' && value !== 'gemini' && value !== 'irodori') return;
+    if (value === 'irodori' && !irodoriEnabled) return;
     setProvider(value);
     if (value === 'irodori') setIrodori(undefined);
     if (value !== 'gemini') setTransport('direct');
@@ -268,7 +274,7 @@ export function GenerationApp({ home }: { home?: HomeGenerationProps }) {
         <div className="audio-disclosure-heading"><div><strong>音声も生成する</strong><span className="advanced-label">アドバンスド設定</span><p>声や読みを選んで、同じ文章に音声を付けます。</p></div><Switch role="switch" aria-label="音声も生成する" aria-controls="home-audio-settings" checked={audioEnabled} disabled={Boolean(busy) || home.textBusy} onChange={event => home.onToggle(event.currentTarget.checked)} size="md" /></div>
       </div>}
       {audioEnabled && <section id={home ? 'home-audio-settings' : undefined} className={home ? 'home-audio-settings' : 'generation-card'}>{!home && <h2>2. 読みと声</h2>}
-        <Select label={home ? "生成方法" : "生成手段"} value={provider} onChange={changeProvider} data={[{ value: 'voicevox', label: '無料 · VOICEVOX' }, { value: 'gemini', label: '有料 · Gemini' }, { value: 'irodori', label: '任意追加 · Irodori（このPC）' }]} allowDeselect={false} disabled={Boolean(busy) || irodoriBusy} />
+        <Select label={home ? "生成方法" : "生成手段"} value={provider} onChange={changeProvider} data={[{ value: 'voicevox', label: '無料 · VOICEVOX' }, { value: 'gemini', label: '有料 · Gemini' }, ...(irodoriEnabled ? [{ value: 'irodori', label: '任意追加 · Irodori（このPC）' }] : [])]} allowDeselect={false} disabled={Boolean(busy) || irodoriBusy} />
         {provider === 'irodori' && <IrodoriPanel onSettingsChange={irodoriSettingsChanged} onBusyChange={setIrodoriBusy} onChange={() => { invalidate(true); void refreshConfig(); }} disabled={Boolean(busy) || Boolean(job && ['queued', 'running', 'cancel-requested'].includes(job.status))} />}
         <div className="generation-connection" role="region" aria-label="音声生成の利用状態"><div className="environment-heading"><Badge color="gray" variant="light">ローカルPC版</Badge><span role="status">{configState === 'checking' ? '確認中…' : configState === 'error' ? '状態を確認できませんでした' : provider === 'voicevox' ? config?.voicevox.available ? '最終確認：VOICEVOXに接続あり' : '最終確認：VOICEVOX未接続' : selectedProviderAvailable ? '選択経路のサーバー設定あり' : 'サーバー設定が必要'}</span></div>
           {configCheckedAt && <p className="connection-time">最終確認：<time dateTime={configCheckedAt.toISOString()}>{configCheckedAt.toLocaleTimeString()}</time> · {provider === 'voicevox' ? '確認時点の結果です。' : '設定の確認です。合成接続の成功を意味しません。'}</p>}
@@ -326,7 +332,8 @@ export function GenerationApp({ home }: { home?: HomeGenerationProps }) {
                   : '一部の音声の圧縮を完了できませんでした。該当する元音声を保持しているため、再生できます。'}</p>}
           {job.error && <Alert color="yellow" mt="md">{job.error}</Alert>}
           {job.status === 'outcome-unknown' && <Alert color="yellow" mt="md">送信後の結果が不明な文は自動再送しません。追加課金を避けるため、別途確認が必要です。</Alert>}
-          <div className="generation-actions">{['queued', 'running'].includes(job.status) && <Button color="gray" variant="light" disabled={Boolean(busy)} onClick={() => void controlJob('cancel')}>ここで停止する</Button>}{resumeMode && <Button disabled={Boolean(busy)} onClick={() => { if (resumeMode === 'generate' && job.provider === 'gemini') void prepareResume(); else void controlJob('resume'); }}>{resumeMode === 'publication' ? '保存済み音声の公開を再試行' : job.provider === 'gemini' ? '再開する対象と費用を確認' : '保存済み音声を使って未完了分を再開'}</Button>}{job.completedChunks > 0 && <Button component="a" href={`/library?book=${encodeURIComponent(job.bookId)}&revision=${encodeURIComponent(job.revision)}&job=${encodeURIComponent(job.id)}`} variant="light">保存音声を読む</Button>}</div>
+          <div className="generation-actions">{['queued', 'running'].includes(job.status) && <Button color="gray" variant="light" disabled={Boolean(busy)} onClick={() => void controlJob('cancel')}>ここで停止する</Button>}{resumeMode && (resumeMode === 'publication' || job.provider !== 'irodori' || irodoriEnabled) && <Button disabled={Boolean(busy)} onClick={() => { if (resumeMode === 'generate' && job.provider === 'gemini') void prepareResume(); else void controlJob('resume'); }}>{resumeMode === 'publication' ? '保存済み音声の公開を再試行' : job.provider === 'gemini' ? '再開する対象と費用を確認' : '保存済み音声を使って未完了分を再開'}</Button>}{job.completedChunks > 0 && <Button component="a" href={`/library?book=${encodeURIComponent(job.bookId)}&revision=${encodeURIComponent(job.revision)}&job=${encodeURIComponent(job.id)}`} variant="light">保存音声を読む</Button>}</div>
+          {resumeMode === 'generate' && job.provider === 'irodori' && !irodoriEnabled && <p className="muted">この生成方法の再開には開発用の有効化が必要です。保存済み音声は引き続き読めます。</p>}
           {resumePlan && <div className="generation-resume"><h3>有料生成の再開前に確認</h3><p>{resumePlan.options.transport === 'gateway' ? 'Cloudflare AI Gateway' : 'Google課金'} · {resumePlan.options.model} · {resumePlan.endpoint}</p><p>{resumePlan.chunks.length}文 · 概算 ${resumePlan.estimatedOutputUsd.toFixed(4)} + 入力等</p><p className="muted">{resumePlan.estimateNote}</p><details><summary>再開時の正確な送信本文</summary><pre>{resumePlan.sendingText}</pre>{resumePlan.options.style && <p>読み上げ指示：{resumePlan.options.style}</p>}</details>{!resumePlan.available && <Alert color="yellow" mt="md">{resumePlan.unavailableReason}</Alert>}<Checkbox mt="md" checked={resumeConfirmed} disabled={Boolean(busy)} onChange={event => setResumeConfirmed(event.currentTarget.checked)} label="未完了分の送信先・本文・費用を確認し、有料生成を再開します。" /><Button mt="md" disabled={Boolean(busy) || !resumeConfirmed || !resumePlan.available} onClick={() => void controlJob('resume')}>確認した未完了分だけを有料生成する</Button></div>}
           <p className="muted">停止は以降の送信を止めます。送信中の処理や課金を取り消せるとは限りません。保存した音声は残り、再開時に再利用します。</p><details><summary>文ごとの状態</summary><ol>{job.chunks.map(chunk => <li key={chunk.id}>{CHUNK_STATUS[chunk.status]} {chunk.reused ? '· 再利用' : ''}{chunk.error ? ` · ${chunk.error}` : ''}</li>)}</ol></details>
         </>}

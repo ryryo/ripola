@@ -156,6 +156,22 @@ test('configuration and public DTOs never reveal credentials; .env.local loading
   assert.equal(loaded.libraryDir, process.env.RSVP_LIBRARY_DIR ?? '/tmp/rsvp-test-library');
 });
 
+test('experimental Irodori requires exact true and process env overrides the local file', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'rsvp-irodori-opt-in-')); t.after(() => rm(root, { recursive: true, force: true }));
+  assert.equal((await loadGenerationConfig(root)).experimentalIrodori, false);
+  for (const value of ['false', '1', 'TRUE', 'yes', '']) {
+    await writeFile(join(root, '.env.local'), `RSVP_ENABLE_EXPERIMENTAL_IRODORI=${value}\n`);
+    assert.equal((await loadGenerationConfig(root)).experimentalIrodori, false);
+  }
+  await writeFile(join(root, '.env.local'), 'RSVP_ENABLE_EXPERIMENTAL_IRODORI=true\n');
+  assert.equal((await loadGenerationConfig(root)).experimentalIrodori, true);
+  assert.equal(process.env.RSVP_ENABLE_EXPERIMENTAL_IRODORI, undefined);
+  process.env.RSVP_ENABLE_EXPERIMENTAL_IRODORI = 'false';
+  assert.equal((await loadGenerationConfig(root)).experimentalIrodori, false);
+  process.env.RSVP_ENABLE_EXPERIMENTAL_IRODORI = 'true';
+  assert.equal((await loadGenerationConfig(root)).experimentalIrodori, true);
+});
+
 test('long manuscript planning selects deterministic sentences without fake phrase timing', async (t) => {
   const { service } = await fixture(t);
   const document = await prepareDocument(importText('日差しの中で本を開いた。次の頁をゆっくり読んだ。\n'.repeat(4000), 'txt', '長文の自作検証'));

@@ -8,11 +8,12 @@ import { irodoriAdapter } from './core/irodori-adapter';
 import { automaticChunkPlanner } from './core/automatic-chunk-planner';
 
 // Route reloads share one process-lifetime runner. The filesystem locks also protect CLI processes.
-const runnerKey = Symbol.for('rsvp-reader.local-generation-service.v13-irodori-auto');
+const runnerKey = Symbol.for('rsvp-reader.local-generation-service.v14-irodori-opt-in');
 const runners = globalThis as typeof globalThis & { [runnerKey]?: Promise<GenerationService> };
 export function getGenerationService(): Promise<GenerationService> {
   return runners[runnerKey] ??= loadGenerationConfig().then(async (config) => {
-    const service = new GenerationService(config, { planChunks: automaticChunkPlanner, providers: { irodori: irodoriAdapter(await getIrodoriController()) } }); await service.ready(); return service;
+    const providers = config.experimentalIrodori ? { irodori: irodoriAdapter(await getIrodoriController()) } : {};
+    const service = new GenerationService(config, { planChunks: automaticChunkPlanner, providers }); await service.ready(); return service;
   });
 }
 export async function getLocalGenerationService(): Promise<GenerationService> {

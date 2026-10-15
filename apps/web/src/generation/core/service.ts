@@ -197,7 +197,7 @@ export class GenerationService {
       providers: [
         { id: 'voicevox', available: voices.length > 0, endpoint: VOICEVOX_ENDPOINT, voices, capabilities: this.capabilities('voicevox'), ...(message ? { message } : {}) },
         { id: 'gemini', available: Boolean(this.config.paidEnabled && (this.config.geminiApiKey || gatewayStatus.available)), endpoint: GEMINI_ENDPOINT, voices: GEMINI_VOICES, capabilities: this.capabilities('gemini') },
-        { id: 'irodori', available: optionalStatus.available, endpoint: optional?.endpoint ?? 'ローカル未設定', voices: optionalVoices, capabilities: this.capabilities('irodori'), message: optionalStatus.message ?? (optional ? undefined : 'Irodoriは任意追加です。未導入のため利用できません。') },
+        ...(optional ? [{ id: 'irodori' as const, available: optionalStatus.available, endpoint: optional.endpoint ?? 'ローカル未設定', voices: optionalVoices, capabilities: this.capabilities('irodori'), message: optionalStatus.message }] : []),
       ],
       voicevox: { available: voices.length > 0, endpoint: VOICEVOX_ENDPOINT, voices, ...(message ? { message } : {}) },
       gemini: { available: Boolean(this.config.paidEnabled && (this.config.geminiApiKey || gatewayStatus.available)), credentialConfigured: Boolean(this.config.geminiApiKey || gatewayStatus.available), models: GEMINI_MODELS, voices: GEMINI_VOICES, endpoint: GEMINI_ENDPOINT,
@@ -210,6 +210,9 @@ export class GenerationService {
       alignment: await this.alignment.capabilities(),
     };
   }
+  private requireProvider(provider: SpeechProvider): void {
+    if (provider === 'irodori' && !this.adapters.irodori) throw new Error('Irodoriは開発用の明示的な有効化が必要です。');
+  }
   private capabilities(provider: SpeechProvider): SpeechProviderCapabilities {
     return this.adapters[provider]?.capabilities ?? (provider === 'voicevox' ? VOICEVOX_CAPABILITIES : provider === 'gemini' ? GEMINI_CAPABILITIES : IRODORI_CAPABILITIES);
   }
@@ -220,6 +223,7 @@ export class GenerationService {
     await this.ready();
     const document = validateDocument(input.document);
     const opts = options(input.options);
+    this.requireProvider(opts.provider);
     const adapter = this.adapters[opts.provider];
     let providerVersion: string = opts.model ?? 'voicevox-engine:unspecified';
     const providerRecord = opts.provider === 'voicevox' ? 'voicevox-version.json' : `${opts.provider}-${digest(JSON.stringify({ model: opts.model, voice: opts.voice }))}.json`;
@@ -302,6 +306,7 @@ export class GenerationService {
     const stored = await this.disk.read<StoredPlan>(['plans', `${input.planId}.json`]);
     if (!stored || stored.plan.hash !== input.planHash) throw new Error('計画が変更されています。再確認してください。');
     const { plan } = stored;
+    this.requireProvider(plan.options.provider);
     if (!plan.available) throw new Error(plan.unavailableReason ?? '実行できない計画です。');
     if (plan.options.provider === 'gemini' && (input.paidConfirmed !== true || !this.config.paidEnabled || (plan.options.transport === 'direct' ? !this.config.geminiApiKey : !this.config.gateway))) throw new Error('有料開始の確認とサーバー設定が必要です。');
     if (plan.options.transport === 'gateway' && (plan.options.provider !== 'gemini' || !this.config.gateway || plan.endpoint !== gatewayEndpoint(this.config.gateway) || plan.routeIdentity !== gatewayRouteIdentity(this.config.gateway))) throw new Error('Gateway設定が計画から変更されています。計画を再確認してください。');
@@ -630,6 +635,7 @@ export class GenerationService {
     const current = await this.getJob(jobId);
     const stored = await this.disk.read<StoredPlan>(['plans', `${current.planId}.json`]);
     const publicationRetry = jobResumeMode(current) === 'publication';
+    if (!publicationRetry) this.requireProvider(current.provider);
     if (!publicationRetry && current.provider === 'gemini' && (paidConfirmed !== true || !this.config.paidEnabled || (stored?.plan.options.transport === 'direct' ? !this.config.geminiApiKey : !this.config.gateway))) throw new Error('有料再開には送信本文・概算の再確認とサーバー設定が必要です。');
     if (!publicationRetry && stored?.plan.options.transport === 'gateway' && (!this.config.gateway || stored.plan.endpoint !== gatewayEndpoint(this.config.gateway) || stored.plan.routeIdentity !== gatewayRouteIdentity(this.config.gateway))) throw new Error('Gateway設定が変更されています。計画を再確認してください。');
     await this.disk.write(['owners', `${jobId}.json`], { pid: process.pid });

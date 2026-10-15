@@ -13,6 +13,7 @@ export interface GenerationServerConfig {
   geminiApiKey?: string;
   gateway?: GeminiGatewayConfig;
   paidEnabled: boolean;
+  experimentalIrodori?: boolean;
   alignmentPython?: string;
   alignmentModelDir?: string;
   alignmentScript?: string;
@@ -115,6 +116,7 @@ export async function loadGenerationConfig(repositoryRoot?: string): Promise<Gen
     libraryDir: resolve(env.RSVP_LIBRARY_DIR ?? join(homedir(), 'Documents', 'rsvp-reader-library')),
     localOrigin: url.origin,
     geminiApiKey: env.GEMINI_API_KEY || undefined,
+    experimentalIrodori: env.RSVP_ENABLE_EXPERIMENTAL_IRODORI === 'true',
     // 本文・接続先・概算の確認は各開始/再開時に必須。旧false指定は停止設定として尊重する。
     paidEnabled: env.RSVP_ENABLE_PAID_GENERATION === undefined || env.RSVP_ENABLE_PAID_GENERATION === 'true',
   };

@@ -1,5 +1,7 @@
 # Irodoriの任意導入とnative境界
 
+ローカルWebサービスは`RSVP_ENABLE_EXPERIMENTAL_IRODORI=true`のときだけadapterを登録します。通常はcontrollerも生成せず、provider一覧にIrodoriを含めません。GUIはその一覧を表示条件に使い、未起動でも明示的に有効化された環境では導入画面を利用できます。導入・設定RPCは同じサーバー設定で拒否します。共通serviceは未登録providerでの計画・開始・生成再開を拒否し、既存book/audioの読み出しと保存済み音声の公開再試行は維持します。CLIやunit fixtureでのadapter明示注入は維持します。
+
 Irodoriは共通生成サービスへ追加adapterとして接続します。初期setupやGenerationServiceのconstructor、configuration取得、通常閲覧でdownloadやnative起動を行いません。専用storeとcontrollerは`.reader-data/irodori/`だけを管理し、既存alignment runtimeやlibraryの責務を引き取りません。
 
 | 案 | 境界と検証 | 判断 |
@@ -20,3 +22,7 @@ MFの上流上限256 tokens/30秒に対し、この接続では90文字・保守
 分担の先行条件は一次資料・共通契約の固定、独立範囲は専用module・UI・script・tests・guideです。共有可変状態は導入disk lock/cancel markerと所有childで、既存library排他は共通serviceが管理します。担当枠が1つなので主担当が実装し、同じ固定base/headへcorrectnessとcode-qualityを分けて確認します。独立レビューとは記録しません。
 
 受入試験は実adapterからloopback mock native endpointへ送信し、共通serviceのWAV保存・cache再利用・条件変更・途中取消しを確認します。専用storeの取得は小さいfixtureだけで行い、大容量モデルを取得しません。実モデルの性能・聴感・声の連続性は別の未確認項目です。
+
+## GUIの無効・有効の検証
+
+通常のbrowser検証はフラグ未指定で実行します。Irodoriの通常非表示テストはfullに登録し、開発用UIの既存テストはこの通常実行ではskipします。有効化時の回帰は`RSVP_ENABLE_EXPERIMENTAL_IRODORI=true pnpm exec playwright test irodori.spec.ts`で別に実行します。CIの手動full検証でも、通常モードの後にこの有効化検証を実行します。フラグの読み込み・通常providerの生成・保存音声の互換性は常時unit testの対象です。
