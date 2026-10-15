@@ -838,6 +838,7 @@ test('multiline sets cover paragraph remainders and fill every requested amount 
   await settings(page); await page.getByLabel('文字サイズ', { exact: true }).fill('56'); await close(page);
   const amount = page.locator('.reader-display-toolbar').getByLabel('一度に表示する量');
   const visible = page.getByTestId('display-set-text');
+  await expect(amount.getByRole('option', { name: '1文', exact: true })).toHaveCount(1);
   await amount.selectOption('2');
   const collected = new Map<string, string>(); const ends = new Map<string, number>();
   for (let i = 0; i < 50; i++) {
@@ -847,9 +848,10 @@ test('multiline sets cover paragraph remainders and fill every requested amount 
       expect(range.start).toBe(ends.get(range.blockId) ?? 0);
       collected.set(range.blockId, (collected.get(range.blockId) ?? '') + rendered[index]); ends.set(range.blockId, range.end);
     }
-    const next = page.getByRole('button', { name: '次の表示セットへ', exact: true });
+    const next = page.getByRole('button', { name: '次へ', exact: true });
     if (await next.isDisabled()) break;
-    const id = await visible.getAttribute('data-set-id'); await next.click(); await expect(visible).not.toHaveAttribute('data-set-id', id!);
+    const id = await visible.getAttribute('data-set-id');
+    if (test.info().project.use.hasTouch) await next.tap(); else await next.click(); await expect(visible).not.toHaveAttribute('data-set-id', id!);
   }
   expect([...collected.values()]).toEqual(paragraphs);
   await amount.selectOption('phrase'); await expect(page.getByTestId('current-phrase')).toBeVisible();
@@ -882,10 +884,17 @@ test('multiline requested rows determine normal and fullscreen layout instead of
               }
             }
             const rect = element.getBoundingClientRect(); const slot = element.parentElement!.getBoundingClientRect();
-            const status = element.closest('section')!.querySelector('.stage-topline')!.getBoundingClientRect();
-            return { belowStatus: rect.top >= status.bottom - 1, bounds: [rect.x, rect.y, rect.width, rect.height], slot: [slot.x, slot.y, slot.width, slot.height], rows: bands.length, inside: rect.left >= slot.left - 1 && rect.right <= slot.right + 1 && rect.top >= slot.top - 1 && rect.bottom <= slot.bottom + 1, font };
+            const stage = element.closest('section')!;
+            const status = stage.querySelector('.stage-topline')!.getBoundingClientRect();
+            const next = stage.querySelector('.display-set-next')!.getBoundingClientRect();
+            const enter = stage.querySelector('.fullscreen-enter')?.getBoundingClientRect();
+            const intersects = (a: DOMRect, b: DOMRect) => a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
+            return { next: { width: next.width, height: next.height, after: vertical ? next.right <= slot.left : next.top >= slot.bottom, centered: vertical ? Math.abs((next.top + next.bottom - slot.top - slot.bottom) / 2) < 1 : Math.abs((next.left + next.right - slot.left - slot.right) / 2) < 1, overlapsText: intersects(next, rect), overlapsEnter: Boolean(enter && intersects(next, enter)) }, belowStatus: rect.top >= status.bottom - 1, bounds: [rect.x, rect.y, rect.width, rect.height], slot: [slot.x, slot.y, slot.width, slot.height], rows: bands.length, inside: rect.left >= slot.left - 1 && rect.right <= slot.right + 1 && rect.top >= slot.top - 1 && rect.bottom <= slot.bottom + 1, font };
           }, mode === 'vertical-rl');
           expect(actual.rows, JSON.stringify({ size, mode, rows, fullscreen, actual })).toBe(rows); expect(actual.inside, JSON.stringify({ size, mode, rows, fullscreen, actual })).toBe(true); expect(actual.font).toBeLessThanOrEqual(96); expect(actual.belowStatus).toBe(true);
+          expect(actual.next.after).toBe(true); expect(actual.next.centered).toBe(true);
+          expect(actual.next.width).toBeGreaterThanOrEqual(44); expect(actual.next.height).toBeGreaterThanOrEqual(44);
+          expect(actual.next.width).toBeLessThan(150); expect(actual.next.overlapsText).toBe(false); expect(actual.next.overlapsEnter).toBe(false);
           if (fullscreen) await page.getByRole('button', { name: '全画面を終了', exact: true }).click();
         }
       }
@@ -937,7 +946,7 @@ test('multiline audio markers follow original cues and advance seeks media while
   const firstLength = '国際情報通信技術研究開発機構の'.length;
   const end = Number(await text.getAttribute('data-source-end'));
   const expectedSeconds = end < firstLength ? 6 * end / firstLength : 6 + 6 * (end - firstLength) / 5;
-  await page.getByRole('button', { name: '次の表示セットへ', exact: true }).click();
+  await page.getByRole('button', { name: '次へ', exact: true }).click();
   await expect.poll(() => audio.evaluate((element: HTMLAudioElement) => element.currentTime)).toBeCloseTo(expectedSeconds, 4);
   await expect(text).toHaveAttribute('data-source-start', String(end));
   await expect(page.getByRole('button', { name: '再生', exact: true })).toBeVisible();
@@ -946,7 +955,7 @@ test('multiline audio markers follow original cues and advance seeks media while
   const full = page.locator('.fullscreen-reader[data-fullscreen=true]');
   await full.getByRole('button', { name: '再生', exact: true }).click();
   for (let i = 0; i < 12 && await audio.getAttribute('src') === initialSource; i++) {
-    await full.getByRole('button', { name: '次の表示セットへ', exact: true }).click();
+    await full.getByRole('button', { name: '次へ', exact: true }).click();
     await expect(full).toHaveAttribute('data-playing', 'true');
   }
   await expect(audio).not.toHaveAttribute('src', initialSource!);
@@ -965,7 +974,7 @@ test('multiline long words advance automatically with no scrolling and tapping r
   const end = Number(await visible.getAttribute('data-source-end'));
   expect(end).toBeLessThan(text.length);
   expect(await page.locator('.display-set-viewport').evaluate(element => ({ x: element.scrollWidth > element.clientWidth + 1, y: element.scrollHeight > element.clientHeight + 1 }))).toEqual({ x: false, y: false });
-  await page.getByRole('button', { name: '次の表示セットへ' }).click();
+  await page.getByRole('button', { name: '次へ' }).click();
   await expect(visible).toHaveAttribute('data-source-start', String(end));
   await page.getByLabel('読む速さ（字/分）', { exact: true }).fill('3000');
   await page.getByRole('button', { name: '再生', exact: true }).click();
@@ -1005,7 +1014,7 @@ test('multiline paused audio advances across fractional cue and internal subdivi
   const text = page.getByTestId('display-set-text');
   for (let i = 0; i < 8; i++) {
     const end = Number(await text.getAttribute('data-source-end'));
-    await page.getByRole('button', { name: '次の表示セットへ' }).click();
+    await page.getByRole('button', { name: '次へ' }).click();
     await expect(text).toHaveAttribute('data-source-start', String(end));
     await expect(page.getByRole('button', { name: '再生', exact: true })).toBeVisible();
     if (end >= '国際情報通信技術研究開発機構の'.length) break;

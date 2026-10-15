@@ -43,7 +43,7 @@ export function FontSelect({ value, onChange, phase, error }: { value: ReadingFo
 export function DisplayAmount({ settings, onChange }: { settings: ReaderSettings; onChange: (patch: Partial<ReaderSettings>) => void }) {
   const display = settings.focusedDisplay;
   return <label className="display-amount">一度に表示する量<select aria-label="一度に表示する量" value={display?.kind === 'multiline' ? display.maxLines : 'phrase'} onChange={event => onChange({ focusedDisplay: event.target.value === 'phrase' ? { kind: 'phrase' } : { kind: 'multiline', maxLines: Number(event.target.value) } })}>
-    <option value="phrase">1文（従来の区切り）</option>{Array.from({ length: 9 }, (_, i) => i + 2).map(lines => <option key={lines} value={lines}>{lines}行</option>)}
+    <option value="phrase">1文</option>{Array.from({ length: 9 }, (_, i) => i + 2).map(lines => <option key={lines} value={lines}>{lines}行</option>)}
   </select><span className="input-note">縦書きでは列数です。指定行数を優先し、文字サイズを画面に合わせて自動調整します。段落をまたいで表示します。</span></label>;
 }
 

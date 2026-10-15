@@ -131,7 +131,7 @@ export function DisplaySetReader({ session, lines, fontSize, family, ruby, writi
         {slices.map((slice, index) => <Fragment key={`${slice.blockId}:${slice.start}`}>{index > 0 && '\n'}<RubyText unit={slice} show={ruby} marker={session.marker} /></Fragment>)}
       </div>
     </div>
-    <button type="button" className="display-set-next" aria-label="次の表示セットへ" disabled={!set?.next}
+    <button type="button" className="display-set-next" aria-label="次へ" title="次の本文へ" disabled={!set?.next}
       onPointerDown={event => { gesture.current = { id: set?.id ?? '', x: event.clientX, y: event.clientY, time: performance.now(), valid: event.isPrimary && event.button === 0 }; }}
       onPointerMove={event => { const value = gesture.current; if (value && Math.hypot(event.clientX - value.x, event.clientY - value.y) > 8) value.valid = false; }}
       onPointerCancel={() => { if (gesture.current) gesture.current.valid = false; }}
@@ -140,6 +140,6 @@ export function DisplaySetReader({ session, lines, fontSize, family, ruby, writi
         if (event.detail > 0 && (!value?.valid || value.id !== current.current?.set.id || performance.now() - value.time > 500 || window.getSelection()?.toString())) return;
         const target = current.current?.set.next;
         if (target) clock.current.seek(target);
-      }}>次へ <span aria-hidden="true">→</span></button>
+      }}><span>次へ</span><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={vertical ? 'M15 6l-6 6 6 6' : 'M6 9l6 6 6-6'} /></svg></button>
   </div>;
 }

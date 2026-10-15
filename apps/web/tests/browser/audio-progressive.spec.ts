@@ -245,7 +245,7 @@ test('複数行は追加chunkで本文を組み替えず次セットだけを有
   await page.getByLabel('文字サイズ', { exact: true }).fill('24');
   await page.getByRole('button', { name: '閉じる', exact: true }).click();
   await page.locator('.reader-display-toolbar').getByLabel('一度に表示する量').selectOption('2');
-  const text = page.getByTestId('display-set-text'); const next = page.getByRole('button', { name: '次の表示セットへ', exact: true });
+  const text = page.getByTestId('display-set-text'); const next = page.getByRole('button', { name: '次へ', exact: true });
   await expect(next).toBeDisabled();
   const id = await text.getAttribute('data-set-id'); const content = await text.textContent();
   const end = await text.getAttribute('data-source-end');
