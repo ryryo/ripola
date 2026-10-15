@@ -40,8 +40,11 @@ export function FontSelect({ value, onChange, phase, error }: { value: ReadingFo
   return <div className="reading-font-setting"><label>本文の書体<select aria-label="本文の書体" value={value} onChange={event => { if (isReadingFont(event.target.value)) onChange(event.target.value); }}>{Object.entries(READING_FONTS).map(([id, font]) => <option key={id} value={id}>{font.label}</option>)}</select></label><p role="status" className="font-status" data-state={phase}>{phase === 'loading' ? '書体を読み込んでいます…' : phase === 'measuring' ? '文字の配置を確認しています…' : error || ''}</p><a href={`${import.meta.env.BASE_URL}fonts/NOTICE.md`} target="_blank" rel="noreferrer">書体とライセンス</a></div>;
 }
 
-export function GroupSettings({ settings, onChange }: { settings: ReaderSettings; onChange: (patch: Partial<ReaderSettings>) => void }) {
-  return <div className="group-settings"><label>まとめる<select aria-label="まとめる" value={settings.groupTarget ?? 0} onChange={event => onChange({ groupTarget: Number(event.target.value) })}><option value="0">1区切りずつ</option>{[6, 8, 12, 16, 24].map(value => <option key={value} value={value}>約{value}字ずつ</option>)}</select></label><label>最小字数<select aria-label="最小字数" value={settings.groupMinimum ?? 0} onChange={event => onChange({ groupMinimum: Number(event.target.value) })}><option value="0">指定なし</option>{[2, 3, 4, 6, 8, 12].map(value => <option key={value} value={value}>{value}字以上</option>)}</select></label><p className="input-note">一度に表示する文字量を調整します。</p></div>;
+export function DisplayAmount({ settings, onChange }: { settings: ReaderSettings; onChange: (patch: Partial<ReaderSettings>) => void }) {
+  const display = settings.focusedDisplay;
+  return <label className="display-amount">一度に表示する量<select aria-label="一度に表示する量" value={display?.kind === 'multiline' ? display.maxLines : 'phrase'} onChange={event => onChange({ focusedDisplay: event.target.value === 'phrase' ? { kind: 'phrase' } : { kind: 'multiline', maxLines: Number(event.target.value) } })}>
+    <option value="phrase">1文（従来の区切り）</option>{Array.from({ length: 9 }, (_, i) => i + 2).map(lines => <option key={lines} value={lines}>{lines}行</option>)}
+  </select><span className="input-note">縦書きでは列数です。文字サイズを優先し、画面に収まる範囲で表示します。</span></label>;
 }
 
 export function ShortcutHelp({ audio = false }: { audio?: boolean }) {

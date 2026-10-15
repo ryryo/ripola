@@ -3,7 +3,7 @@ import { DEFAULT_SETTINGS, type ReaderSettings, type ReadingUnit } from './model
 export type ReadingPace = NonNullable<ReaderSettings['readingPace']>;
 type PaceSettings = Pick<ReaderSettings, 'cpm' | 'punctuationPause' | 'readingPace'>;
 export const MIN_DISPLAY_MS = 100;
-const pauses: Record<ReadingUnit['pause'], number> = {
+export const punctuationPauses: Record<ReadingUnit['pause'], number> = {
   none: 0, comma: 100, sentence: 250, paragraph: 400, heading: 600,
 };
 let graphemes: Intl.Segmenter | undefined;
@@ -22,7 +22,7 @@ function boundedCpm(cpm: number): number {
 export function durationMs(unit: ReadingUnit, settings: PaceSettings): number {
   if (unit.kind === 'static') return 0;
   return Math.max(MIN_DISPLAY_MS, 60_000 * unit.characters / boundedCpm(settings.cpm))
-    + (settings.punctuationPause ? pauses[unit.pause] : 0);
+    + (settings.punctuationPause ? punctuationPauses[unit.pause] : 0);
 }
 
 /** Provisional, explainable text features, not a measured comprehension model. */
@@ -70,7 +70,7 @@ export function buildPaceTimeline(units: readonly ReadingUnit[], settings: PaceS
     const unit = units[index];
     if (unit.kind === 'static') continue;
     textUnits++;
-    const pause = settings.punctuationPause ? pauses[unit.pause] : 0;
+    const pause = settings.punctuationPause ? punctuationPauses[unit.pause] : 0;
     pauseBudget += pause;
     displayBudget += durations[index] - pause;
     characters += unit.characters;
@@ -94,12 +94,12 @@ export function buildPaceTimeline(units: readonly ReadingUnit[], settings: PaceS
     const allocated = weighted.reduce((sum, item) => sum + durations[item.index], 0);
     const largest = weighted.at(-1)!;
     durations[largest.index] = Math.max(MIN_DISPLAY_MS, durations[largest.index] + displayBudget - allocated);
-    for (const { index } of weighted) if (settings.punctuationPause) durations[index] += pauses[units[index].pause];
+    for (const { index } of weighted) if (settings.punctuationPause) durations[index] += punctuationPauses[units[index].pause];
   }
   const requestedDisplay = 60_000 * characters / cpm;
   let minimumUnits = 0;
   for (let i = 0; i < units.length; i++) if (units[i].kind !== 'static'
-    && durations[i] - (settings.punctuationPause ? pauses[units[i].pause] : 0) <= MIN_DISPLAY_MS + 1e-7) minimumUnits++;
+    && durations[i] - (settings.punctuationPause ? punctuationPauses[units[i].pause] : 0) <= MIN_DISPLAY_MS + 1e-7) minimumUnits++;
   return {
     durations, totalMs, requestedMs: requestedDisplay + pauseBudget,
     minimumOverheadMs: Math.max(0, displayBudget - requestedDisplay), minimumUnits,

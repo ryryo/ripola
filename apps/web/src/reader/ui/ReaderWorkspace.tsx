@@ -2,7 +2,7 @@ import { Button, Switch } from '@mantine/core';
 import type { ReactNode } from 'react';
 import type { ReaderSettings } from '../model';
 import { resetDisplaySettings } from '../preferences';
-import { FontSelect, GroupSettings } from './ReadingOptions';
+import { FontSelect, DisplayAmount } from './ReadingOptions';
 import { ReadingModeControls } from './ReadingModeControls';
 import { WritingModeSelect } from './WritingModeSelect';
 import './reader-workspace.css';
@@ -12,7 +12,7 @@ export function ReaderDisplayToolbar({ settings, onChange, onSettings }: {
 }) {
   return <div className="reader-display-toolbar" aria-label="読書の表示">
     <ReadingModeControls mode={settings.mode} onChange={mode => onChange({ mode })} />
-    <Button variant="subtle" onClick={onSettings}>表示設定</Button>
+    <DisplayAmount settings={settings} onChange={onChange} /><Button variant="subtle" onClick={onSettings}>表示設定</Button>
   </div>;
 }
 
@@ -41,10 +41,10 @@ export function ReaderDisplaySettings({ settings, onChange, font }: {
       <FontSelect value={settings.fontFamily ?? 'system'} onChange={fontFamily => onChange({ fontFamily })} phase={font.phase} error={font.error} />
       <WritingModeSelect value={settings.writingMode} onChange={writingMode => onChange({ writingMode })} />
       <Switch label="ルビを表示" checked={settings.ruby} onChange={event => onChange({ ruby: event.currentTarget.checked })} />
-      <label className="font-size-setting">文字サイズ <strong>{settings.fontSize} px</strong><input aria-label="文字サイズ" type="range" min="24" max="96" step="2" value={settings.fontSize} onChange={event => onChange({ fontSize: Number(event.target.value) })} /></label>
+      <label className="font-size-setting">文字サイズ <strong>{settings.mode === 'guide' ? settings.documentFontSize ?? 20 : settings.fontSize} px</strong><input aria-label="文字サイズ" type="range" min={settings.mode === 'guide' ? 14 : 24} max={settings.mode === 'guide' ? 48 : 96} step="2" value={settings.mode === 'guide' ? settings.documentFontSize ?? 20 : settings.fontSize} onChange={event => onChange(settings.mode === 'guide' ? { documentFontSize: Number(event.target.value) } : { fontSize: Number(event.target.value) })} /></label>
     </section>
-    <section className="settings-section"><h2>フレーズの表示</h2>
-      <GroupSettings settings={settings} onChange={onChange} />
+    <section className="settings-section"><h2>表示する量</h2>
+      <DisplayAmount settings={settings} onChange={onChange} />
       <Switch label="注視点ガイド" checked={settings.guide} onChange={event => onChange({ guide: event.currentTarget.checked })} />
       <Switch label="停止時に前後の文脈を表示" checked={settings.context ?? true} onChange={event => onChange({ context: event.currentTarget.checked })} />
     </section>

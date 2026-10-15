@@ -94,9 +94,9 @@ export function ReaderPlayButton({ playing, disabled = false, label = '再生', 
   </button>;
 }
 
-export function FullscreenReader({ fullscreen, playing, children, context, seek, speed, modes, toggle, pause, disabled = false, playLabel = '再生', showProgress = true }: {
+export function FullscreenReader({ fullscreen, playing, children, context, seek, speed, modes, toggle, pause, disabled = false, playLabel = '再生', showProgress = true, multiline = false }: {
   fullscreen: ReturnType<typeof useFullscreenReader>; playing: boolean; children: ReactNode; context?: ReactNode; seek: ReactNode; speed: ReactNode; modes: ReactNode;
-  toggle: () => void; pause: () => void; disabled?: boolean; playLabel?: string; showProgress?: boolean;
+  toggle: () => void; pause: () => void; disabled?: boolean; playLabel?: string; showProgress?: boolean; multiline?: boolean;
 }) {
   const footerRef = useRef<HTMLDivElement>(null);
   const hasContext = Boolean(context);
@@ -131,7 +131,7 @@ export function FullscreenReader({ fullscreen, playing, children, context, seek,
   }, [fullscreen.active, fullscreen.containerRef, hasContext]);
   return <div ref={fullscreen.containerRef} className="fullscreen-reader" data-fullscreen={fullscreen.active} data-playing={playing} tabIndex={-1} role={fullscreen.active ? 'region' : undefined} aria-label={fullscreen.active ? '全画面の読書' : undefined}
     onClick={event => {
-      if (!fullscreen.active || !playing || !(event.target instanceof HTMLElement) || !event.target.closest('.reader-stage, .audio-stage') || event.target.closest('button, input, select, a')) return;
+      if (multiline || !fullscreen.active || !playing || !(event.target instanceof HTMLElement) || !event.target.closest('.reader-stage, .audio-stage') || event.target.closest('button, input, select, a')) return;
       pause(); fullscreen.containerRef.current?.focus({ preventScroll: true });
     }}>
     {fullscreen.active && <div className="fullscreen-mode-controls" hidden={playing}>{modes}</div>}
@@ -139,11 +139,11 @@ export function FullscreenReader({ fullscreen, playing, children, context, seek,
     {fullscreen.active && context}
     {fullscreen.active && <div ref={footerRef} className="fullscreen-footer">
       <div className="fullscreen-seek" hidden={!showProgress} inert={!showProgress}>{seek}</div>
-      <div className="fullscreen-actions" hidden={playing}>
-        <Button disabled={disabled} onClick={() => { toggle(); fullscreen.containerRef.current?.focus({ preventScroll: true }); }} aria-keyshortcuts="Space">{playLabel}</Button>
+      <div className="fullscreen-actions" hidden={playing && !multiline}>
+        <Button disabled={disabled} onClick={() => { toggle(); fullscreen.containerRef.current?.focus({ preventScroll: true }); }} aria-keyshortcuts="Space">{playing && multiline ? '一時停止' : playLabel}</Button>
         {speed}
       </div>
-      <button type="button" className="fullscreen-enter" hidden={playing} aria-label="全画面を終了" title="全画面を終了" onClick={fullscreen.exit}><FullscreenIcon exiting /></button>
+      <button type="button" className="fullscreen-enter" hidden={playing && !multiline} aria-label="全画面を終了" title="全画面を終了" onClick={fullscreen.exit}><FullscreenIcon exiting /></button>
     </div>}
   </div>;
 }

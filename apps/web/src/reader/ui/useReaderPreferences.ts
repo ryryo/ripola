@@ -1,15 +1,17 @@
 import { useCallback, useEffect, useRef, useState, type SetStateAction } from 'react';
 import { DEFAULT_SETTINGS, type ReaderSettings } from '../model';
-import { DEFAULT_AUDIO_RATE, readPreferences, writePreferences } from '../preferences';
+import { consumeDisplayMigrationNotice, DEFAULT_AUDIO_RATE, readPreferences, writePreferences } from '../preferences';
 
 export function useReaderPreferences() {
   // Restore after hydration so the server and first browser render agree.
   const [settings, applySettings] = useState<ReaderSettings>({ ...DEFAULT_SETTINGS });
+  const [migrationNotice, setMigrationNotice] = useState<string>();
   const [rate, applyRate] = useState(DEFAULT_AUDIO_RATE);
   const currentSettings = useRef(settings);
   const currentRate = useRef(rate);
   useEffect(() => {
     const stored = readPreferences();
+    setMigrationNotice(consumeDisplayMigrationNotice());
     currentSettings.current = stored.settings; currentRate.current = stored.audioRate;
     applySettings(stored.settings); applyRate(stored.audioRate);
   }, []);
@@ -21,5 +23,5 @@ export function useReaderPreferences() {
     const next = typeof action === 'function' ? action(currentRate.current) : action;
     currentRate.current = next; applyRate(next); writePreferences({ audioRate: next });
   }, []);
-  return { settings, setSettings, rate, setRate };
+  return { settings, setSettings, rate, setRate, migrationNotice };
 }

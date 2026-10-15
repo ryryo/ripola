@@ -1,5 +1,4 @@
-import { DEFAULT_SETTINGS, type ReaderSettings } from './model';
-import { isReadingFont } from './reading-fonts';
+import { DEFAULT_SETTINGS, migrateReaderSettings, type ReaderSettings } from './model';
 
 export const PREFERENCES_KEY = 'ripola-reader-preferences-v1';
 export const DEFAULT_AUDIO_RATE = '2.5';
@@ -7,22 +6,7 @@ export interface ReaderPreferences { settings: ReaderSettings; audioRate: string
 type PreferenceStorage = Pick<Storage, 'getItem' | 'setItem'>;
 
 /** Browser data is optional and untrusted. Recover valid fields independently. */
-export function normalizeSettings(value: unknown): ReaderSettings {
-  const settings = { ...DEFAULT_SETTINGS };
-  if (!value || typeof value !== 'object' || Array.isArray(value)) return settings;
-  const stored = value as Record<string, unknown>;
-  const integer = (key: string, min: number, max: number) => typeof stored[key] === 'number' && Number.isInteger(stored[key]) && Number(stored[key]) >= min && Number(stored[key]) <= max;
-  if (integer('cpm', 100, 3000)) settings.cpm = Number(stored.cpm);
-  if (integer('fontSize', 24, 96)) settings.fontSize = Number(stored.fontSize);
-  if (integer('groupTarget', 0, 24)) settings.groupTarget = Number(stored.groupTarget);
-  if (integer('groupMinimum', 0, 12)) settings.groupMinimum = Number(stored.groupMinimum);
-  for (const key of ['punctuationPause', 'ruby', 'guide', 'context', 'fullscreenProgress'] as const) if (typeof stored[key] === 'boolean') settings[key] = stored[key];
-  if (isReadingFont(stored.fontFamily)) settings.fontFamily = stored.fontFamily;
-  if (stored.writingMode === 'horizontal-tb' || stored.writingMode === 'vertical-rl') settings.writingMode = stored.writingMode;
-  if (stored.mode === 'flash' || stored.mode === 'guide') settings.mode = stored.mode;
-  if (stored.readingPace === 'legacy' || stored.readingPace === 'text-load') settings.readingPace = stored.readingPace;
-  return settings;
-}
+export const normalizeSettings = migrateReaderSettings;
 
 export function resetDisplaySettings(settings: ReaderSettings): ReaderSettings {
   return { ...DEFAULT_SETTINGS, cpm: settings.cpm, punctuationPause: settings.punctuationPause, readingPace: settings.readingPace ?? 'legacy' };
@@ -57,4 +41,17 @@ export function writePreferences(patch: Partial<ReaderPreferences>, storage?: Pr
     const source = storage ?? globalThis.localStorage;
     source.setItem(PREFERENCES_KEY, JSON.stringify({ schemaVersion: 1, ...readPreferences(source), ...patch }));
   } catch { /* Settings still apply for this session when persistence is blocked. */ }
+}
+
+export function consumeDisplayMigrationNotice(storage?: PreferenceStorage): string | undefined {
+  try {
+    const source = storage ?? globalThis.localStorage;
+    const current = JSON.parse(source.getItem(PREFERENCES_KEY) ?? 'null');
+    const settings = current?.schemaVersion === 1 ? current.settings : JSON.parse(source.getItem('rsvp-audio-reading-options-v2') ?? 'null');
+    if (settings?.settingsVersion !== 3 && (settings?.groupTarget > 0 || settings?.groupMinimum > 0) && source.getItem('ripola-display-migration-v3') !== 'seen') {
+      source.setItem('ripola-display-migration-v3', 'seen');
+      return '表示量の設定が「1文・2〜10行」になりました。以前の文字数指定は「1文」に戻しています。表示量はいつでも変更できます。';
+    }
+  } catch { /* Optional explanation must not prevent reading. */ }
+  return undefined;
 }

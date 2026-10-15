@@ -1,3 +1,5 @@
+import { isReadingFont } from './reading-fonts';
+
 export type SourceRange =
   | { kind: 'text'; start: number; end: number }
   | { kind: 'pdf'; page: number; item: number; start: number; end: number; rect: [number, number, number, number] };
@@ -59,7 +61,9 @@ export type WritingMode = 'horizontal-tb' | 'vertical-rl';
 export interface ReaderSettings {
   readingPace?: 'legacy' | 'text-load';
   writingMode?: WritingMode;
-  settingsVersion?: 2;
+  settingsVersion?: 2 | 3;
+  focusedDisplay?: { kind: 'phrase' } | { kind: 'multiline'; maxLines: number };
+  documentFontSize?: number;
   fontFamily?: 'system' | 'noto-sans-jp' | 'noto-serif-jp' | 'biz-udpgothic';
   groupTarget?: number;
   groupMinimum?: number;
@@ -74,13 +78,43 @@ export interface ReaderSettings {
 }
 export const DEFAULT_SETTINGS: ReaderSettings = {
   readingPace: 'legacy',
-  settingsVersion: 2, fontFamily: 'system', groupTarget: 0, groupMinimum: 0, context: true, mode: 'flash', writingMode: 'horizontal-tb',
+  settingsVersion: 3, focusedDisplay: { kind: 'phrase' }, documentFontSize: 20, fontFamily: 'system', context: true, mode: 'flash', writingMode: 'horizontal-tb',
   cpm: 400, fontSize: 56, punctuationPause: true, ruby: true, guide: true, fullscreenProgress: true,
 };
-export function migrateReaderSettings(settings: ReaderSettings): ReaderSettings {
-  const migrated: ReaderSettings & { contrast?: unknown } = { ...DEFAULT_SETTINGS, ...settings, readingPace: settings.readingPace === 'text-load' ? 'text-load' : 'legacy', writingMode: settings.writingMode === 'vertical-rl' ? 'vertical-rl' : 'horizontal-tb', settingsVersion: 2 };
-  delete migrated.contrast;
-  return migrated;
+/** Shared migration for browser preferences and saved documents. */
+export function migrateReaderSettings(value: unknown): ReaderSettings {
+  const settings = { ...DEFAULT_SETTINGS };
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return settings;
+  const stored = value as Record<string, unknown>;
+  const integer = (key: string, min: number, max: number) => typeof stored[key] === 'number' && Number.isInteger(stored[key]) && Number(stored[key]) >= min && Number(stored[key]) <= max;
+  if (integer('cpm', 100, 3000)) settings.cpm = Number(stored.cpm);
+  if (integer('fontSize', 24, 96)) settings.fontSize = Number(stored.fontSize);
+  if (integer('documentFontSize', 14, 48)) settings.documentFontSize = Number(stored.documentFontSize);
+  for (const key of ['punctuationPause', 'ruby', 'guide', 'context', 'fullscreenProgress'] as const) if (typeof stored[key] === 'boolean') settings[key] = stored[key];
+  if (isReadingFont(stored.fontFamily)) settings.fontFamily = stored.fontFamily;
+  if (stored.writingMode === 'horizontal-tb' || stored.writingMode === 'vertical-rl') settings.writingMode = stored.writingMode;
+  if (stored.mode === 'flash' || stored.mode === 'guide') settings.mode = stored.mode;
+  if (stored.readingPace === 'legacy' || stored.readingPace === 'text-load') settings.readingPace = stored.readingPace;
+  const display = stored.focusedDisplay as Record<string, unknown> | undefined;
+  if (display?.kind === 'multiline' && typeof display.maxLines === 'number' && Number.isInteger(display.maxLines) && display.maxLines >= 2 && display.maxLines <= 10) settings.focusedDisplay = { kind: 'multiline', maxLines: display.maxLines };
+  return settings;
+}
+
+/** Strict saved-document gate, using the same canonical schema as preferences. */
+export function validReaderSettings(value: unknown): value is ReaderSettings {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const stored = value as Record<string, unknown>;
+  const canonical = migrateReaderSettings(value) as unknown as Record<string, unknown>;
+  for (const key of ['cpm', 'fontSize', 'punctuationPause', 'ruby', 'guide']) if (stored[key] !== canonical[key]) return false;
+  for (const key of ['fontFamily', 'writingMode', 'mode', 'readingPace', 'context', 'fullscreenProgress', 'documentFontSize']) if (stored[key] !== undefined && stored[key] !== canonical[key]) return false;
+  if (stored.settingsVersion !== undefined && stored.settingsVersion !== 2 && stored.settingsVersion !== 3) return false;
+  if (stored.focusedDisplay !== undefined) {
+    const display = stored.focusedDisplay as { kind?: unknown; maxLines?: unknown } | null;
+    if (!display || typeof display !== 'object' || Array.isArray(display) || !['phrase', 'multiline'].includes(String(display.kind))) return false;
+    if (display.kind === 'multiline' && !(Number.isInteger(display.maxLines) && Number(display.maxLines) >= 2 && Number(display.maxLines) <= 10)) return false;
+  }
+  for (const [key, max] of [['groupTarget', 24], ['groupMinimum', 12]] as const) if (stored[key] !== undefined && !(Number.isInteger(stored[key]) && Number(stored[key]) >= 0 && Number(stored[key]) <= max)) return false;
+  return true;
 }
 export const MAX_INPUT_BYTES = 20 * 1024 * 1024;
 export const MAX_TEXT_LENGTH = 1_000_000;

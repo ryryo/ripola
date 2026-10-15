@@ -1,0 +1,16 @@
+.display-set-reader{display:flex;flex:1 1 0;flex-direction:column;min-height:0;min-width:0;gap:12px;padding:12px 24px 16px;overflow:hidden}
+.display-set-viewport{display:flex;align-items:center;justify-content:center;flex:1 1 0;min-height:0;min-width:0;overflow:hidden;overflow-anchor:none;scrollbar-gutter:stable}
+.display-set-text{white-space:pre-wrap;overflow-wrap:anywhere;word-break:normal;line-height:1.85;letter-spacing:.04em;font-weight:400;text-align:start;flex:none;max-width:100%}
+.display-set-text rt{font-size:.38em}
+.display-set-reader[data-writing-mode=vertical-rl] .display-set-text{max-width:none;max-height:100%;height:100%}
+.display-set-next{flex:none;align-self:stretch;min-height:44px;border:1px solid var(--line);border-radius:9px;padding:8px 20px;background:var(--panel);color:inherit;text-align:right;cursor:pointer;font:inherit;font-size:14px;touch-action:manipulation}
+.display-set-next span{margin-inline-start:12px}.display-set-next:disabled{opacity:.4;cursor:default}.display-set-next:focus-visible{outline:2px solid currentColor;outline-offset:2px}
+.reading-marker{color:inherit;background:color-mix(in srgb,var(--mantine-primary-color-filled,#d09b46) 28%,transparent);border-radius:3px;padding:0}
+.marker-estimated{background:color-mix(in srgb,var(--mantine-primary-color-filled,#d09b46) 12%,transparent);text-decoration:underline dotted;text-underline-offset:.18em}
+.display-amount{display:flex;align-items:center;gap:8px;font-size:13px;flex-wrap:wrap}.display-amount select{font:inherit;padding:6px 10px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:inherit}.display-amount .input-note{flex-basis:100%;font-size:12px}
+.reader-display-toolbar>.display-amount .input-note{display:none}
+.reader-stage.multiline-mode,.audio-stage.multiline-mode{height:clamp(380px,65dvh,780px);min-height:320px;overflow:hidden}
+.fullscreen-reader[data-fullscreen=true] .multiline-mode{height:100%;min-height:0}
+@media(max-width:600px){.display-set-reader{padding:8px 12px 12px;gap:8px}.reader-display-toolbar{flex-wrap:wrap}.reader-stage.multiline-mode,.audio-stage.multiline-mode{height:65dvh;min-height:300px}.fullscreen-reader[data-fullscreen=true] .multiline-mode{min-height:0}}
+.guide-row{font-size:var(--document-font-size,20px)!important}.guide-unit.active{background:transparent!important}
+.reader-display-toolbar>.reading-mode-controls{flex:1 1 230px;min-width:220px}.reader-display-toolbar>.display-amount{order:3;flex:1 0 100%;justify-content:flex-end}.display-set-next{padding-inline-end:60px}

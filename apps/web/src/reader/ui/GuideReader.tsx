@@ -1,10 +1,11 @@
 import { Component, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from 'react';
 import type { ReadingUnit, TextBlock, WritingMode } from '../model';
-import { RubyText } from './PhraseDisplay';
+import { RubyText } from './ReadingText';
+import type { ReadingMarker } from '../display-sets';
 
 interface GuideRow { id: string; block: TextBlock; units: Array<{ unit: ReadingUnit; index: number }>; length: number }
-export function GuideReader({ blocks, units, currentIndices, playing, ruby, family, onJump, onPause, writingMode = 'horizontal-tb' }: {
-  blocks: TextBlock[]; units: ReadingUnit[]; currentIndices: number[]; playing: boolean; ruby: boolean; family: string; onJump: (index: number) => void; onPause: () => void; writingMode?: WritingMode;
+export function GuideReader({ blocks, units, currentIndices, playing, ruby, family, onJump, onPause, writingMode = 'horizontal-tb', fontSize = 20, marker }: {
+  blocks: TextBlock[]; units: ReadingUnit[]; currentIndices: number[]; playing: boolean; ruby: boolean; family: string; onJump: (index: number) => void; onPause: () => void; writingMode?: WritingMode; fontSize?: number; marker?: ReadingMarker;
 }) {
   const vertical = writingMode === 'vertical-rl';
   const viewport = useRef<HTMLDivElement>(null);
@@ -33,10 +34,10 @@ export function GuideReader({ blocks, units, currentIndices, playing, ruby, fami
   }, [blocks, units]);
   const prefix = useMemo(() => {
     const values = [0];
-    const characters = Math.max(8, Math.floor((inlineSize - 40) / 20));
-    for (const row of rows) values.push(values.at(-1)! + (measurements.get(row.id) ?? Math.max(72, Math.ceil(row.length / characters) * (ruby ? 48 : 40) + 28)));
+    const characters = Math.max(8, Math.floor((inlineSize - 40) / fontSize));
+    for (const row of rows) values.push(values.at(-1)! + (measurements.get(row.id) ?? Math.max(72, Math.ceil(row.length / characters) * (ruby ? 2.4 : 2) * fontSize + 28)));
     return values;
-  }, [rows, measurements, inlineSize, ruby]);
+  }, [rows, measurements, inlineSize, ruby, fontSize]);
   const setScroll = (scroll: number) => setView(previous => previous.scroll === scroll && previous.prefix === prefix ? previous : { scroll, prefix });
   const scroll = view.scroll;
   const current = currentIndices[0] ?? 0;
@@ -71,7 +72,7 @@ export function GuideReader({ blocks, units, currentIndices, playing, ruby, fami
     const observer = new ResizeObserver(resize); observer.observe(element);
     return () => observer.disconnect();
   }, [vertical]);
-  useEffect(() => { setMeasurements(new Map()); }, [family, ruby, inlineSize, vertical]);
+  useEffect(() => { setMeasurements(new Map()); }, [family, ruby, inlineSize, vertical, fontSize]);
   useEffect(() => {
     const element = viewport.current; if (!element || !vertical) return;
     const wheel = (event: WheelEvent) => {
@@ -128,7 +129,7 @@ export function GuideReader({ blocks, units, currentIndices, playing, ruby, fami
     }
     setMessage('一致する文字列がありません。');
   };
-  return <div className="guide-reader" data-testid="guide-reader" style={{ '--reading-font': family } as CSSProperties}>
+  return <div className="guide-reader" data-testid="guide-reader" style={{ '--reading-font': family, '--document-font-size': `${fontSize}px` } as CSSProperties}>
     <div className="guide-toolbar"><label>本文を検索<input aria-label="本文を検索" value={query} onChange={event => setQuery(event.target.value)} onKeyDown={event => { if (event.key === 'Enter' && !event.nativeEvent.isComposing) search(); }} /></label><button type="button" onClick={search}>検索して移動</button><button type="button" aria-pressed={follow} onClick={() => setFollow(value => !value)}>{follow ? '追従を止める' : '現在位置を追従'}</button></div>
     <div ref={viewport} className="guide-viewport" data-testid="guide-viewport" data-writing-mode={writingMode} tabIndex={0} aria-label="全文表示" aria-live="off" data-reader-shortcuts="off"
       onScroll={event => setScroll(vertical ? -event.currentTarget.scrollLeft : event.currentTarget.scrollTop)} onWheel={() => setFollow(false)} onTouchMove={() => setFollow(false)}
@@ -139,7 +140,7 @@ export function GuideReader({ blocks, units, currentIndices, playing, ruby, fami
         if (element) setScroll(vertical ? -element.scrollLeft : element.scrollTop);
       }}>
       <div style={{ blockSize: prefix[first] }} aria-hidden="true" />
-      {rows.slice(first, end).map(row => <MeasuredRow key={row.id} row={row} onMeasure={measure} vertical={vertical}>{row.units.map(({ unit, index }) => <button key={unit.id} type="button" className={`guide-unit ${active.has(index) ? 'active' : ''}`} aria-current={active.has(index) ? 'location' : undefined} data-unit-id={unit.id} onClick={() => { setFollow(true); onJump(index); }} title="ここへ移動して停止"><RubyText unit={unit} show={ruby} /></button>)}</MeasuredRow>)}
+      {rows.slice(first, end).map(row => <MeasuredRow key={row.id} row={row} onMeasure={measure} vertical={vertical}>{row.units.map(({ unit, index }) => <button key={unit.id} type="button" className={`guide-unit ${active.has(index) ? 'active' : ''}`} aria-current={active.has(index) ? 'location' : undefined} data-unit-id={unit.id} onClick={() => { setFollow(true); onJump(index); }} title="ここへ移動して停止"><RubyText unit={unit} show={ruby} marker={marker ?? (active.has(index) ? { blockId: unit.blockId, start: unit.start, end: unit.end, precision: 'position' } : undefined)} /></button>)}</MeasuredRow>)}
       <div style={{ blockSize: (prefix.at(-1) ?? 0) - (prefix[end] ?? 0) }} aria-hidden="true" />
       </GuideScrollAnchor>
     </div>

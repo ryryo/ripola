@@ -151,8 +151,8 @@ test('font failures and stale A→B→system results leave the same anchor pause
 
 test('grouping is a view; Guide and Flash share position, ruby and static text', async ({ page }) => {
   await read(page); await settings(page);
-  await page.getByLabel('まとめる', { exact: true }).selectOption('8');
-  await page.getByLabel('最小字数', { exact: true }).selectOption('3'); await close(page);
+  await page.getByRole('dialog').getByLabel('一度に表示する量').selectOption('phrase');
+  await close(page);
   const position = await page.locator('.playback-position-label').innerText();
   await page.getByRole('button', { name: '全文表示', exact: true }).click();
   await expect(page.getByTestId('guide-reader')).toBeVisible();
@@ -227,7 +227,7 @@ function tone(seconds: number, frequency = 220) {
   for (let i = 0; i < samples; i++) output.writeInt16LE(Math.round(Math.sin(i * 2 * Math.PI * frequency / 8000) * 500), 44 + i * 2);
   return output;
 }
-async function audioFixture(page: Page, seconds: 12 | 60 = 12, long = false) {
+async function audioFixture(page: Page, seconds: 12 | 60 = 12, long = false, fractional = false) {
   const revision = 'c'.repeat(64); const id = 'reading-options-fixture';
   const pieces = [long ? '国際情報通信技術研究開発機構の' : '私は', '図書館へ。', '今日は', '静かに', '読む。'];
   let offset = 0;
@@ -237,7 +237,7 @@ async function audioFixture(page: Page, seconds: 12 | 60 = 12, long = false) {
   // The last cue absorbs extra time; existing seek targets stay at 6/12 seconds.
   const chunks = [[0, 2], [2, 5]].map(([from, to], index) => ({ id: `c${index}`, audioUrl: `library/books/${id}/${revision}/media/${media[index].sha256}.mp3`, mimeType: 'audio/mpeg', sha256: media[index].sha256, bytes: media[index].bytes.length, durationSeconds: seconds, timing: { verification: 'pcm-correlated' },
     timeline: [{ blockId: 'b', start: units[from].start, end: units[to - 1].end, unitIds: units.slice(from, to).map(unit => unit.id) }],
-    alignment: { precision: 'phrase', method: 'forced-alignment', status: 'aligned', score: .95, alignerVersion: 'ui-fixture-only', cues: units.slice(from, to).map((unit, i) => ({ unitId: unit.id, unitIds: [unit.id], blockId: 'b', start: unit.start, end: unit.end, startSeconds: i * 12 / (to - from), endSeconds: i === to - from - 1 ? seconds : (i + 1) * 12 / (to - from), score: .95 })) } }));
+    alignment: { precision: 'phrase', method: 'forced-alignment', status: 'aligned', score: .95, alignerVersion: 'ui-fixture-only', cues: units.slice(from, to).map((unit, i) => ({ unitId: unit.id, unitIds: [unit.id], blockId: 'b', start: unit.start, end: unit.end, startSeconds: fractional && index === 0 ? i / 3 : i * 12 / (to - from), endSeconds: i === to - from - 1 ? seconds : fractional && index === 0 ? (i + 1) / 3 : (i + 1) * 12 / (to - from), score: .95 })) } }));
   const manifest = JSON.stringify({ schemaVersion: 1, id, revision, title: '自作・読書設定検証', document: { blocks: [{ id: 'b', kind: 'paragraph', text, ruby: [{ start: units[1].start, end: units[1].start + 3, reading: 'としょかん' }], runs: [] }], units, versions: { parser: 'fixture', model: 'fixture', rules: 'fixture' } }, chunks, warnings: [], totalChunks: 2, completedChunks: 2, durationSeconds: seconds * 2, precision: 'sentence', attribution: 'Self-authored text and synthetic tone. Not an acoustic accuracy test.' });
   await page.route('**/library/index.json', route => route.fulfill({ json: { schemaVersion: 1, target: 'worker', createdAt: '2026-10-06T00:00:00Z', books: [{ id, revision, title: '自作・読書設定検証', manifestUrl: `library/books/${id}/${revision}/manifest.json`, manifestSha256: createHash('sha256').update(manifest).digest('hex'), manifestBytes: Buffer.byteLength(manifest), durationSeconds: seconds * 2, precision: 'sentence', attribution: 'Self-authored UI fixture', publicDemo: true }] } }));
   await page.route(`**/library/books/${id}/${revision}/manifest.json`, route => route.fulfill({ body: manifest, contentType: 'application/json' }));
@@ -322,7 +322,7 @@ test('audio uses original ±5 seconds across chunks, retains play intent, suppor
   const position = Number(await slider.inputValue()); await page.getByRole('button', { name: '全文表示', exact: true }).click();
   await expect(page.getByTestId('guide-reader')).toBeVisible(); expect(Number(await slider.inputValue())).toBeCloseTo(position, 2);
   await page.getByRole('button', { name: 'フレーズ表示', exact: true }).click(); await settings(page);
-  await page.getByLabel('まとめる', { exact: true }).selectOption('8'); await page.getByLabel('本文の書体', { exact: true }).selectOption('noto-sans-jp');
+  await page.getByRole('dialog').getByLabel('一度に表示する量').selectOption('phrase'); await page.getByLabel('本文の書体', { exact: true }).selectOption('noto-sans-jp');
   await expect(page.locator('.font-status')).toHaveAttribute('data-state', 'ready'); await close(page);
   expect(Number(await slider.inputValue())).toBeCloseTo(position, 2); await expect(page.getByRole('button', { name: '再生', exact: true })).toBeEnabled();
   expect((await inspectGuides(page, '[data-testid="audio-stage"]')).overlap).toBe(false);
@@ -462,7 +462,7 @@ test('vertical phrases fit ruby and guides, retain position and restore/reset th
   await expect(page.getByTestId('current-phrase')).toHaveCSS('writing-mode', 'horizontal-tb');
   await settings(page);
   await page.getByLabel('本文の向き', { exact: true }).selectOption('vertical-rl');
-  await page.getByLabel('まとめる', { exact: true }).selectOption('24');
+  await page.getByRole('dialog').getByLabel('一度に表示する量').selectOption('phrase');
   await page.getByLabel('文字サイズ', { exact: true }).fill('96'); await close(page);
   await expect.poll(() => verticalGlyphsFit(page, 'reader-stage')).toBe(true);
   await page.getByLabel('読む速さ（字/分）', { exact: true }).fill('100');
@@ -829,4 +829,146 @@ test('vertical fullscreen touch scrolling keeps visible text stable across virtu
   await page.keyboard.press('Space');
   await expect(full).toHaveAttribute('data-playing', 'false');
   await page.keyboard.press('Escape');
+});
+
+test('multiline sets cover paragraph remainders, retain font size and offer every amount from two to ten', async ({ page }) => {
+  const text = '朝の静かな図書館で、新しい本を開いて読み始めます。窓の向こうには青い空が広がり、ゆっくり流れる雲を眺めながらページをめくります。知らなかった世界に出会い、言葉の意味を確かめていきます。\n\n次の段落です。';
+  await page.setViewportSize({ width: 390, height: 844 }); await read(page, text);
+  await settings(page); await page.getByLabel('文字サイズ', { exact: true }).fill('32'); await close(page);
+  const amount = page.locator('.reader-display-toolbar').getByLabel('一度に表示する量');
+  const visible = page.getByTestId('display-set-text');
+  await amount.selectOption('2');
+  let output = ''; let previousEnd = 0; let previousBlock = '';
+  for (let i = 0; i < 50; i++) {
+    const range = await visible.evaluate(element => ({ text: element.textContent, block: element.dataset.blockId!, start: Number(element.dataset.sourceStart), end: Number(element.dataset.sourceEnd), lines: Number(element.dataset.lines) }));
+    if (range.block === previousBlock) expect(range.start).toBe(previousEnd); else { if (previousBlock) output += '\n\n'; expect(range.start).toBe(0); }
+    expect(range.end).toBeGreaterThan(range.start); expect(range.lines).toBeLessThanOrEqual(2);
+    expect(await visible.evaluate(element => parseFloat(getComputedStyle(element).fontSize))).toBe(32);
+    output += range.text; previousEnd = range.end; previousBlock = range.block;
+    const next = page.getByRole('button', { name: '次の表示セットへ', exact: true });
+    if (await next.isDisabled()) break;
+    await next.click(); await expect(visible).not.toHaveAttribute('data-source-start', String(range.start));
+  }
+  expect(output).toBe(text);
+  for (let lines = 2; lines <= 10; lines++) {
+    await amount.selectOption(String(lines)); await expect(visible).toBeVisible();
+    expect(Number(await visible.getAttribute('data-lines'))).toBeLessThanOrEqual(lines);
+  }
+  await amount.selectOption('phrase'); await expect(page.getByTestId('current-phrase')).toBeVisible();
+  await expect(page.getByRole('button', { name: '次の表示セットへ' })).toHaveCount(0);
+});
+
+test('multiline mobile portrait and landscape keep ruby, text selection and fullscreen pause controls separate from advance', async ({ page }) => {
+  await read(page, '朝に<ruby>図書館<rt>としょかん</rt></ruby>を訪ね、静かな窓辺で新しい本を開きます。知らなかった世界に出会い、次の頁の言葉を確かめます。');
+  await settings(page); await page.getByLabel('文字サイズ', { exact: true }).fill('32'); await close(page);
+  await page.locator('.reader-display-toolbar').getByLabel('一度に表示する量').selectOption('3');
+  for (const size of [{ width: 390, height: 844 }, { width: 844, height: 390 }]) {
+    await page.setViewportSize(size);
+    for (const mode of ['horizontal-tb', 'vertical-rl']) {
+      await settings(page); await page.getByLabel('本文の向き').selectOption(mode); await close(page);
+      await page.getByRole('button', { name: '全画面で読む', exact: true }).click();
+      const full = page.locator('.fullscreen-reader[data-fullscreen=true]');
+      const text = full.getByTestId('display-set-text');
+      await expect(text).toHaveCSS('writing-mode', mode);
+      expect(Number(await text.getAttribute('data-lines'))).toBeLessThanOrEqual(3);
+      await expect(full.getByRole('button', { name: /画面中央/ })).toHaveCount(0);
+      const initial = await text.getAttribute('data-set-id');
+      await text.evaluate(element => { const range = document.createRange(); range.selectNodeContents(element); const selection = window.getSelection()!; selection.removeAllRanges(); selection.addRange(range); });
+      await text.click(); await expect(text).toHaveAttribute('data-set-id', initial!);
+      await page.evaluate(() => window.getSelection()?.removeAllRanges());
+      await full.getByRole('button', { name: '再生', exact: true }).click();
+      await expect(full.getByRole('button', { name: '一時停止', exact: true })).toBeVisible();
+      await full.getByRole('button', { name: '一時停止', exact: true }).click();
+      await expect(full).toHaveAttribute('data-playing', 'false');
+      const overlap = await text.evaluate(element => {
+        const rect = element.getBoundingClientRect(); const footer = document.querySelector('.fullscreen-footer')!.getBoundingClientRect();
+        const stage = element.closest('section')!.getBoundingClientRect();
+        return rect.bottom > footer.top || rect.left < stage.left || rect.right > stage.right;
+      });
+      expect(overlap).toBe(false);
+      await page.screenshot({ path: test.info().outputPath(`multiline-${size.width}-${mode}.png`) });
+      await full.getByRole('button', { name: '全画面を終了', exact: true }).click();
+    }
+  }
+});
+
+test('multiline audio markers follow original cues and advance seeks media while preserving play intent and rate', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 740 }); await audioFixture(page);
+  await settings(page); await page.getByLabel('文字サイズ', { exact: true }).fill('72'); await close(page);
+  await page.locator('.reader-display-toolbar').getByLabel('一度に表示する量').selectOption('2');
+  const text = page.getByTestId('display-set-text'); const audio = page.locator('audio');
+  await expect(text.getByTestId('reading-marker')).toHaveAttribute('data-precision', 'spoken');
+  const before = await audio.getAttribute('src');
+  await page.getByRole('button', { name: '次の表示セットへ', exact: true }).click();
+  await expect.poll(() => audio.evaluate((element: HTMLAudioElement) => element.currentTime)).toBeCloseTo(6, 1);
+  await expect(page.getByRole('button', { name: '再生', exact: true })).toBeVisible();
+  await expect(text.getByTestId('reading-marker').first()).toContainText('図書館');
+  await page.getByRole('button', { name: '全画面で読む', exact: true }).click();
+  const full = page.locator('.fullscreen-reader[data-fullscreen=true]');
+  await full.getByRole('button', { name: '再生', exact: true }).click();
+  await full.getByRole('button', { name: '次の表示セットへ', exact: true }).click();
+  await expect(full).toHaveAttribute('data-playing', 'true');
+  await expect.poll(() => audio.evaluate((element: HTMLAudioElement) => element.currentTime)).toBeLessThan(5);
+  await expect(audio).not.toHaveAttribute('src', before!);
+  expect(await audio.evaluate((element: HTMLAudioElement) => element.playbackRate)).toBe(2.5);
+  await full.getByRole('button', { name: '一時停止', exact: true }).click();
+  await expect(full).toHaveAttribute('data-playing', 'false');
+});
+
+test('multiline long words advance automatically with no scrolling and tapping retains the same source remainder', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 740 });
+  const text = 'https://example.com/abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz';
+  await read(page, text);
+  await page.locator('.reader-display-toolbar').getByLabel('一度に表示する量').selectOption('2');
+  const visible = page.getByTestId('display-set-text');
+  const first = await visible.getAttribute('data-set-id');
+  const end = Number(await visible.getAttribute('data-source-end'));
+  expect(end).toBeLessThan(text.length);
+  expect(await page.locator('.display-set-viewport').evaluate(element => ({ x: element.scrollWidth > element.clientWidth + 1, y: element.scrollHeight > element.clientHeight + 1 }))).toEqual({ x: false, y: false });
+  await page.getByRole('button', { name: '次の表示セットへ' }).click();
+  await expect(visible).toHaveAttribute('data-source-start', String(end));
+  await page.getByLabel('読む速さ（字/分）', { exact: true }).fill('3000');
+  await page.getByRole('button', { name: '再生', exact: true }).click();
+  const second = await visible.getAttribute('data-set-id'); expect(second).not.toBe(first);
+  await expect(visible).not.toHaveAttribute('data-set-id', second!, { timeout: 10000 });
+  await page.getByRole('button', { name: '一時停止', exact: true }).click();
+  expect(Number(await visible.getAttribute('data-source-start'))).toBeGreaterThan(end);
+});
+
+test('multiline reduced ruby still respects two actual lines and full text remembers a separate font size', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 740 });
+  await read(page, '<ruby>国際情報通信技術研究開発機構<rt>こくさいじょうほうつうしんぎじゅつけんきゅうかいはつきこう</rt></ruby>で新しい本を開いて文章の意味を確かめます。次の頁もゆっくり読み進めていきます。');
+  await settings(page); await page.getByLabel('文字サイズ', { exact: true }).fill('96'); await close(page);
+  await page.locator('.reader-display-toolbar').getByLabel('一度に表示する量').selectOption('2');
+  const actual = await page.getByTestId('display-set-text').evaluate(element => {
+    const size = parseFloat(getComputedStyle(element).fontSize); const bands: number[] = [];
+    const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT); let node: Node | null;
+    while ((node = walker.nextNode())) {
+      if (node.parentElement?.closest('rt')) continue;
+      const range = document.createRange(); range.selectNodeContents(node);
+      for (const rect of range.getClientRects()) if (rect.height > 0 && !bands.some(value => Math.abs(value - rect.top) < size * .4)) bands.push(rect.top);
+    }
+    return { size, lines: bands.length };
+  });
+  expect(actual.size).toBeLessThan(96); expect(actual.lines).toBeLessThanOrEqual(2);
+  await page.getByRole('button', { name: '全文表示', exact: true }).click();
+  await settings(page); await page.getByLabel('文字サイズ', { exact: true }).fill('28'); await close(page);
+  await expect(page.locator('.guide-row').first()).toHaveCSS('font-size', '28px');
+  await page.getByRole('button', { name: 'フレーズ表示', exact: true }).click();
+  await settings(page); await expect(page.getByLabel('文字サイズ', { exact: true })).toHaveValue('96'); await close(page);
+});
+
+test('multiline paused audio advances across fractional cue and internal subdivision boundaries', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 740 }); await audioFixture(page, 12, true, true);
+  await settings(page); await page.getByLabel('文字サイズ', { exact: true }).fill('72'); await close(page);
+  await page.locator('.reader-display-toolbar').getByLabel('一度に表示する量').selectOption('2');
+  const text = page.getByTestId('display-set-text');
+  for (let i = 0; i < 8; i++) {
+    const end = Number(await text.getAttribute('data-source-end'));
+    await page.getByRole('button', { name: '次の表示セットへ' }).click();
+    await expect(text).toHaveAttribute('data-source-start', String(end));
+    await expect(page.getByRole('button', { name: '再生', exact: true })).toBeVisible();
+    if (end >= '国際情報通信技術研究開発機構の'.length) break;
+  }
+  expect(Number(await text.getAttribute('data-source-start'))).toBeGreaterThanOrEqual('国際情報通信技術研究開発機構の'.length);
 });

@@ -37,7 +37,7 @@ test('malformed, unsupported and inaccessible storage leave valid bounded defaul
 test('old audio display preferences migrate; reset preserves both speeds and rhythm', () => {
   const local = storage();
   const settings = { ...DEFAULT_SETTINGS, fontFamily: 'noto-serif-jp' as const, cpm: 900, punctuationPause: false, fontSize: 72, contrast: 'night' as const, writingMode: 'vertical-rl' as const };
-  local.setItem('rsvp-audio-reading-options-v2', JSON.stringify(settings));
+  local.setItem('rsvp-audio-reading-options-v2', JSON.stringify({ ...settings, settingsVersion: 2 }));
   assert.deepEqual(readPreferences(local).settings, { ...DEFAULT_SETTINGS, fontFamily: settings.fontFamily, cpm: 900, punctuationPause: false, fontSize: 72, writingMode: settings.writingMode });
   writePreferences({ audioRate: '4.75', settings: resetDisplaySettings(settings) }, local);
   assert.deepEqual(readPreferences(local), { audioRate: '4.75', settings: { ...DEFAULT_SETTINGS, cpm: 900, punctuationPause: false } });

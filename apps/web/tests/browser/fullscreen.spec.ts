@@ -289,7 +289,7 @@ test('display and silent speed persist across reload; reset keeps speed and save
   await page.getByRole('button', { name: '閉じる', exact: true }).click();
   await chooseTheme(page, 'ダーク');
   await page.getByRole('button', { name: '表示設定', exact: true }).click();
-  await page.getByLabel('まとめる', { exact: true }).selectOption('8');
+  await page.getByRole('dialog').getByLabel('一度に表示する量').selectOption('2');
   await page.getByRole('button', { name: '閉じる', exact: true }).click();
   await page.getByRole('button', { name: '端末に保存', exact: true }).click();
   await expect(page.getByRole('status')).toContainText('保存しました');
@@ -303,7 +303,7 @@ test('display and silent speed persist across reload; reset keeps speed and save
   await page.getByRole('button', { name: '表示設定', exact: true }).click();
   await expect(page.getByLabel('文字サイズ', { exact: true })).toHaveValue('72');
   await expect(page.locator('html')).toHaveAttribute('data-mantine-color-scheme', 'dark');
-  await expect(page.getByLabel('まとめる', { exact: true })).toHaveValue('8');
+  await expect(page.getByRole('dialog').getByLabel('一度に表示する量')).toHaveValue('2');
   await expect(page.getByLabel('ルビを表示', { exact: true })).not.toBeChecked();
   await expect(page.getByLabel('全画面で進行バーを表示', { exact: true })).not.toBeChecked();
   await page.getByRole('button', { name: '表示設定をリセット', exact: true }).click();
