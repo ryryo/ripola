@@ -37,7 +37,7 @@ function options(input: unknown): GenerationOptions {
   if (!input || typeof input !== 'object') inputError();
   const value = input as GenerationOptions;
   if (!['voicevox', 'gemini', 'irodori'].includes(value.provider) || !text(value.voice, 64) || !value.voice || !['direct', 'gateway'].includes(value.transport)
-    || (value.model !== undefined && !(value.provider === 'irodori' ? value.model === 'irodori-tts-mf' : GEMINI_MODELS.some(model => model === value.model))) || !Array.isArray(value.readings) || value.readings.length > 1000
+    || (value.model !== undefined && !(value.provider === 'irodori' ? ['irodori-tts', 'irodori-tts-mf'].includes(value.model) : GEMINI_MODELS.some(model => model === value.model))) || !Array.isArray(value.readings) || value.readings.length > 1000
     || !value.readings.every((reading) => reading && text(reading.text, 256) && reading.text.length > 0 && text(reading.reading, 256) && reading.reading.length > 0)
     || (value.style !== undefined && !text(value.style, 2000))
     || (value.chunking !== undefined && (!value.chunking || !['sentence', 'auto'].includes(value.chunking.mode)))
@@ -53,7 +53,7 @@ function options(input: unknown): GenerationOptions {
   return {
     provider: value.provider, voice: value.voice, transport: value.transport,
     ...(value.provider === 'gemini' ? { model: value.model ?? GEMINI_MODELS[0], style: value.style ?? '' } : {}),
-    ...(value.provider === 'irodori' ? { model: 'irodori-tts-mf' as const, style: value.style ?? '' } : {}),
+    ...(value.provider === 'irodori' ? { model: value.model ?? (value.voice === 'ripola' ? 'irodori-tts-mf' as const : 'irodori-tts' as const), style: value.style ?? '' } : {}),
     ...(value.chunking ? { chunking: { mode: value.chunking.mode } } : {}),
     ...(value.irodori ? { irodori: { ...(value.irodori.steps === undefined ? {} : { steps: value.irodori.steps }), ...(value.irodori.speed === undefined ? {} : { speed: value.irodori.speed }), ...(value.irodori.seed === undefined ? {} : { seed: value.irodori.seed }), ...(value.irodori.instructions === undefined ? {} : { instructions: value.irodori.instructions }) } } : {}),
     readings: value.readings.map(({ text, reading }) => ({ text, reading })),
@@ -190,8 +190,8 @@ export class GenerationService {
     const optional = this.adapters.irodori;
     let optionalVoices: GenerationConfig['voicevox']['voices'] = [];
     let optionalStatus = optional?.availability?.() ?? { available: Boolean(optional) };
-    if (optionalStatus.available) {
-      try { optionalVoices = await optional!.voices(); } catch { optionalStatus = { available: false, message: 'Irodoriの利用状態を確認できません。' }; }
+    if (optional) {
+      try { optionalVoices = await optional.voices(); } catch { optionalStatus = { available: false, message: 'Irodoriの利用状態を確認できません。' }; }
     }
     return {
       providers: [

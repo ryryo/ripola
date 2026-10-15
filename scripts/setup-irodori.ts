@@ -1,15 +1,15 @@
 import { join, resolve } from 'node:path';
 import { findRepositoryRoot } from '../apps/web/src/generation/core/config.ts';
 import { IrodoriModelStore } from '../apps/web/src/generation/core/irodori-model.ts';
-import { detectSpeechExecutable } from '../apps/web/src/generation/core/irodori-runtime.ts';
+import { IrodoriController } from '../apps/web/src/generation/core/irodori-controller.ts';
 
 async function main(): Promise<void> {
   const [command = 'status', ...args] = process.argv.slice(2);
   const store = new IrodoriModelStore(join(await findRepositoryRoot(), '.reader-data', 'irodori'));
-  if (command === 'status') { console.log(JSON.stringify({ ...await store.status(), executableAvailable: Boolean(await detectSpeechExecutable(process.env.RSVP_IRODORI_EXECUTABLE)), voiceAvailable: Boolean(await store.voice()) }, null, 2)); return; }
+  if (command === 'status') { console.log(JSON.stringify(await new IrodoriController(store, process.env.RSVP_IRODORI_EXECUTABLE).status(), null, 2)); return; }
   if (command === 'cancel') { await store.cancel(); return; }
   if (command === 'install') {
-    console.log('Irodori MFを明示導入します：約1.92GB。新規導入は約2.2GBの空き容量が必要です。取消し: Ctrl+C、再開: 同じinstallコマンド。');
+    console.log('Irodori v4.1 Small通常版を明示導入します：約1.91GB。新規導入は約2.2GBの空き容量が必要です。取消し: Ctrl+C、再開: 同じinstallコマンド。');
     const controller = new AbortController(); const abort = () => controller.abort();
     process.once('SIGINT', abort); process.once('SIGTERM', abort);
     try { await store.install(controller.signal, state => console.log(`${state.phase}: ${(state.downloadedBytes / store.spec.bytes * 100).toFixed(1)}% · ${state.message}`)); }

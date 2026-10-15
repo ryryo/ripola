@@ -38,7 +38,15 @@ test.describe('明示的に有効化したIrodori', () => {
   test.skip(process.env.RSVP_ENABLE_EXPERIMENTAL_IRODORI !== 'true', 'Irodori is disabled by default');
 test('Irodori未導入は容量と追加入口を示し通常利用では取得しない', async ({ page, context }, testInfo) => {
   const mutations: string[] = []; const downloads: string[] = []; const errors: string[] = [];
-  await page.route('**/_serverFn/**', route => route.request().method() === 'POST' ? route.abort('blockedbyclient') : route.continue());
+  await page.route('**/_serverFn/**', async route => {
+    if (route.request().method() === 'POST') { await route.abort('blockedbyclient'); return; }
+    const response = await route.fetch(); const body: unknown = await response.json(); const result = property(body, 'result');
+    if (property(result, 'downloadedBytes')) {
+      for (const [key, value] of Object.entries({ phase: 'not-installed', downloadedBytes: 0, runtime: 'stopped', message: '未導入fixture' })) setProperty(result, key, value);
+      await route.fulfill({ response, json: body }); return;
+    }
+    await route.fulfill({ response });
+  });
   context.on('request', request => {
     if (/huggingface\.co|hf\.co|xethub\.hf\.co/.test(request.url())) downloads.push(request.url());
     if (request.method() === 'POST' && request.url().includes('/_serverFn/')) {
@@ -51,9 +59,12 @@ test('Irodori未導入は容量と追加入口を示し通常利用では取得�
   await page.getByRole('combobox', { name: '生成手段', exact: true }).click();
   await page.getByRole('option', { name: '任意追加 · Irodori（このPC）', exact: true }).click();
   const panel = page.getByRole('region', { name: 'Irodoriの任意追加', exact: true });
-  await expect(panel).toContainText('未導入'); await expect(panel).toContainText('約1.92GB'); await expect(panel).toContainText('約2.2GB');
-  await expect(panel).toContainText('固定voiceが別途必要'); await expect(panel).toContainText('製品voiceを同梱していません');
-  await expect(panel.getByRole('button', { name: 'Irodoriを追加する（約1.92GB）', exact: true })).toBeVisible();
+  await expect(panel).toContainText('未導入'); await expect(panel).toContainText('約1.91GB'); await expect(panel).toContainText('約2.2GB');
+  await expect(panel).toContainText('丁寧な受付'); await expect(panel).toContainText('指示文を変更'); await expect(panel).toContainText('同じ参照音声をすべての区間で使います');
+  await expect(panel.getByRole('button', { name: 'Irodoriを追加する（約1.91GB）', exact: true })).toBeVisible();
+  const voice = page.getByRole('combobox', { name: '声・スタイル', exact: true }); await expect(voice).toHaveValue('丁寧な受付（女）');
+  await voice.click(); await page.getByRole('option', { name: '丁寧な受付（男）', exact: true }).click();
+  await expect(panel.getByLabel('声・読み上げ方のプロンプト', { exact: true })).toHaveValue('明朗快活な男性の受付スタッフ。明るく丁寧にてきぱきと');
   await expect(page.getByRole('button', { name: '生成計画を確認する', exact: true })).toBeDisabled();
   await panel.getByText('合成設定・取得資材の詳細', { exact: true }).click();
   await expect(panel).toContainText('減らしてもモデルの保存容量は減りません');
@@ -77,7 +88,7 @@ test('Irodori導入UIはmock進捗・取消し・検証・失敗再開を表示�
       const action = expectedAction; expectedAction = undefined;
       actions.push(action);
       if (action === 'stop') runtime = 'stopped';
-      else { phase = action === 'cancel' ? 'cancelled' : actions.length === 1 ? 'downloading' : 'verifying'; bytes = phase === 'verifying' ? 1_920_321_792 : 960_000_000; }
+      else { phase = action === 'cancel' ? 'cancelled' : actions.length === 1 ? 'downloading' : 'verifying'; bytes = phase === 'verifying' ? 1_905_903_936 : 960_000_000; }
       if (actions.length === 1) await installationReply;
       await route.fulfill({ status: 200, contentType: 'application/json', body: template }); return;
     }
@@ -91,9 +102,9 @@ test('Irodori導入UIはmock進捗・取消し・検証・失敗再開を表示�
   await page.goto('/generate'); await page.getByRole('combobox', { name: '生成手段', exact: true }).click(); await page.getByRole('option', { name: '任意追加 · Irodori（このPC）', exact: true }).click();
   const panel = page.getByRole('region', { name: 'Irodoriの任意追加', exact: true }); await expect(panel).toContainText('未導入'); await expect(panel).toContainText('mock導入状態');
   expectedAction = 'install';
-  await panel.getByRole('button', { name: 'Irodoriを追加する（約1.92GB）', exact: true }).click();
+  await panel.getByRole('button', { name: 'Irodoriを追加する（約1.91GB）', exact: true }).click();
   try { await expect(page.getByRole('combobox', { name: '生成手段', exact: true })).toBeDisabled(); } finally { releaseInstall(); }
-  await expect(panel).toContainText('取得中'); await expect(panel).toContainText('0.96 / 1.92GB');
+  await expect(panel).toContainText('取得中'); await expect(panel).toContainText('0.96 / 1.91GB');
   expectedAction = 'cancel'; await panel.getByRole('button', { name: '取得・検証を取り消す', exact: true }).click(); await expect(panel).toContainText('取消し・中断');
   expectedAction = 'install'; await panel.getByRole('button', { name: '途中から導入を再開する', exact: true }).click(); await expect(panel).toContainText('検証中'); await expect(panel).toContainText('途中の資材はまだ利用できません');
   phase = 'failed'; await expect(panel).toContainText('導入失敗'); await expect(panel.getByRole('button', { name: '途中から導入を再開する', exact: true })).toBeVisible();
@@ -125,7 +136,7 @@ test('Irodoriの起動待ちを取り消し、古い起動エラーを表示せ�
     }
     const response = await route.fetch(); const body: unknown = await response.json(); const result = property(body, 'result');
     if (property(result, 'downloadedBytes')) {
-      for (const [key, value] of Object.entries({ phase: 'ready', runtime, downloadedBytes: 1_920_321_792, executableAvailable: true, voiceAvailable: true, message: 'mock起動取消しの検査' })) {
+      for (const [key, value] of Object.entries({ phase: 'ready', runtime, downloadedBytes: 1_905_903_936, executableAvailable: true, voiceAvailable: true, message: 'mock起動取消しの検査' })) {
         setProperty(result, key, value);
       }
       template = JSON.stringify(body);
@@ -170,7 +181,7 @@ for (const oldReply of ['running', 'error'] as const) {
       if (property(result, 'voicevox')) configRequests++;
       if (!property(result, 'downloadedBytes')) { await route.fulfill({ response, json: body }); return; }
       const oldStatus = holdNextStatus; holdNextStatus = false;
-      for (const [key, value] of Object.entries({ phase: 'ready', runtime: oldStatus ? 'running' : runtime, downloadedBytes: 1_920_321_792, executableAvailable: true, voiceAvailable: true, message: oldStatus ? '古い起動後の状態' : runtime === 'stopped' ? '停止を確認しました' : '起動待ちを確認しました' })) {
+      for (const [key, value] of Object.entries({ phase: 'ready', runtime: oldStatus ? 'running' : runtime, downloadedBytes: 1_905_903_936, executableAvailable: true, voiceAvailable: true, message: oldStatus ? '古い起動後の状態' : runtime === 'stopped' ? '停止を確認しました' : '起動待ちを確認しました' })) {
         setProperty(result, key, value);
       }
       if (oldStatus) {
@@ -270,7 +281,7 @@ async function settingsFixture(page: Page, mode: 'success' | 'error' | 'supersed
       const payload = route.request().postData();
       const data = payload ? serializer.fromJSON<{ data?: unknown }>(JSON.parse(payload)).data : undefined;
       if (next === 'save') {
-        savedSettings = data as IrodoriSettings; currentSettings = savedSettings;
+        savedSettings = (data as { voice: string; settings: IrodoriSettings }).settings; currentSettings = savedSettings;
         saveUrl = route.request().url(); saveStarted.release();
         if (mode === 'superseded-save') await save.promise;
         await reply(route, template.response, template.envelope, undefined); return;
@@ -289,7 +300,7 @@ async function settingsFixture(page: Page, mode: 'success' | 'error' | 'supersed
     if (result && 'voicevox' in result) {
       const config = result as unknown as GenerationConfig;
       const provider = config.providers!.find(value => value.id === 'irodori')!;
-      provider.available = true; provider.voices = [{ id: 'fixture-voice', name: 'settings fixture voice' }];
+      provider.available = true; provider.voices = [{ id: 'reception-female', name: '丁寧な受付（女）' }];
       await reply(route, response, envelope, config); return;
     }
     if (result && 'downloadedBytes' in result) {
@@ -329,10 +340,10 @@ for (const oldReply of ['success', 'error'] as const) {
       await page.getByRole('textbox', { name: '原稿を貼り付け', exact: true }).fill('朝の光が机に差します。');
       await page.getByRole('button', { name: '本文を確認する', exact: true }).click();
       const panel = await openSettings(page); await fixture.initialStarted;
-      await panel.getByLabel('MF steps', { exact: true }).fill(String(editedSettings.steps));
+      await panel.getByLabel('合成steps', { exact: true }).fill(String(editedSettings.steps));
       await panel.getByLabel('速度', { exact: true }).fill(String(editedSettings.speed));
       await panel.getByLabel('合成seed', { exact: true }).fill(String(editedSettings.seed));
-      await panel.getByLabel('読み上げ方の指示（任意）', { exact: true }).fill(editedSettings.instructions);
+      await panel.getByLabel('声・読み上げ方のプロンプト', { exact: true }).fill(editedSettings.instructions);
       fixture.action('save'); await panel.getByRole('button', { name: '設定を保存して計画を更新', exact: true }).click();
       await fixture.saveStarted;
       await expect(panel.getByRole('button', { name: '設定を保存して計画を更新', exact: true })).toBeEnabled();
@@ -340,12 +351,12 @@ for (const oldReply of ['success', 'error'] as const) {
       const oldResponse = page.waitForResponse(response => response.url() === fixture.settingsUrl() && response.request().method() === 'GET');
       fixture.releaseInitial(); await (await oldResponse).finished();
       await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => resolve())));
-      await expect(panel.getByLabel('MF steps', { exact: true })).toHaveValue(String(editedSettings.steps));
+      await expect(panel.getByLabel('合成steps', { exact: true })).toHaveValue(String(editedSettings.steps));
       await expect(panel.getByLabel('速度', { exact: true })).toHaveValue(String(editedSettings.speed));
       await expect(panel.getByLabel('合成seed', { exact: true })).toHaveValue(String(editedSettings.seed));
       await expect(panel.getByRole('alert')).toHaveCount(0);
       fixture.action('plan'); await page.getByRole('button', { name: '生成計画を確認する', exact: true }).click();
-      await expect(page.locator('.generation-confirm')).toContainText('MF 12 steps · 速度 1.5 · seed 73');
+      await expect(page.locator('.generation-confirm')).toContainText('12 steps · 速度 1.5 · seed 73');
       expect(fixture.plans).toEqual([editedSettings]); expect(fixture.actions).toEqual(['save', 'plan']);
     } finally { fixture.releaseInitial(); fixture.releaseSave(); }
   });
@@ -358,10 +369,10 @@ test('Irodoriの古い設定保存完了は停止と再表示後の設定を次�
     await page.getByRole('textbox', { name: '原稿を貼り付け', exact: true }).fill('本を閉じて窓を開きます。');
     await page.getByRole('button', { name: '本文を確認する', exact: true }).click();
     const panel = await openSettings(page); await fixture.initialStarted;
-    await panel.getByLabel('MF steps', { exact: true }).fill(String(editedSettings.steps));
+    await panel.getByLabel('合成steps', { exact: true }).fill(String(editedSettings.steps));
     await panel.getByLabel('速度', { exact: true }).fill(String(editedSettings.speed));
     await panel.getByLabel('合成seed', { exact: true }).fill(String(editedSettings.seed));
-    await panel.getByLabel('読み上げ方の指示（任意）', { exact: true }).fill(editedSettings.instructions);
+    await panel.getByLabel('声・読み上げ方のプロンプト', { exact: true }).fill(editedSettings.instructions);
     fixture.action('save'); await panel.getByRole('button', { name: '設定を保存して計画を更新', exact: true }).click(); await fixture.saveStarted;
     expect(fixture.savedSettings()).toEqual(editedSettings);
     fixture.action('stop'); await panel.getByRole('button', { name: 'このPCのIrodoriを停止', exact: true }).click();
@@ -369,15 +380,70 @@ test('Irodoriの古い設定保存完了は停止と再表示後の設定を次�
     await page.getByRole('option', { name: '無料 · VOICEVOX', exact: true }).click();
     await expect(panel).toHaveCount(0); fixture.currentSettings(newerSettings);
     const reopened = await openSettings(page);
-    await expect(reopened.getByLabel('MF steps', { exact: true })).toHaveValue(String(newerSettings.steps));
+    await expect(reopened.getByLabel('合成steps', { exact: true })).toHaveValue(String(newerSettings.steps));
     const oldResponse = page.waitForResponse(response => response.url() === fixture.saveUrl() && response.request().method() === 'POST');
     fixture.releaseSave(); await (await oldResponse).finished();
     await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => resolve())));
-    await expect(reopened.getByLabel('MF steps', { exact: true })).toHaveValue(String(newerSettings.steps));
+    await expect(reopened.getByLabel('合成steps', { exact: true })).toHaveValue(String(newerSettings.steps));
     fixture.action('plan'); await page.getByRole('button', { name: '生成計画を確認する', exact: true }).click();
-    await expect(page.locator('.generation-confirm')).toContainText('MF 8 steps · 速度 0.8 · seed 89');
+    await expect(page.locator('.generation-confirm')).toContainText('8 steps · 速度 0.8 · seed 89');
     expect(fixture.plans).toEqual([newerSettings]); expect(fixture.actions).toEqual(['save', 'stop', 'plan']);
   } finally { fixture.releaseInitial(); fixture.releaseSave(); }
+});
+
+test('受付の男女声はプロンプトを別々に保存し声の切替後に古い設定を適用しない', async ({ page }, testInfo) => {
+  const firstFemale = gate(), firstFemaleStarted = gate(); let held = false;
+  const saved = new Map<string, IrodoriSettings>(); const plans: PrepareGenerationInput[] = [];
+  let template: { response: APIResponse; envelope: Record<string, unknown> } | undefined;
+  async function reply(route: Route, response: APIResponse, envelope: Record<string, unknown>, result: unknown) {
+    await route.fulfill({ response, json: serializer.toCrossJSON({ ...envelope, result }, { refs: new Map() }) });
+  }
+  await page.route('**/_serverFn/**', async route => {
+    if (route.request().method() === 'POST') {
+      const payload = route.request().postData(); const data = payload ? serializer.fromJSON<{ data: unknown }>(JSON.parse(payload)).data : undefined;
+      if (!template || !data || typeof data !== 'object') { await route.abort('blockedbyclient'); throw new Error('Unexpected reception mutation'); }
+      if ('settings' in data && 'voice' in data) {
+        const input = data as { voice: string; settings: IrodoriSettings }; saved.set(input.voice, input.settings);
+        await reply(route, template.response, template.envelope, undefined); return;
+      }
+      if ('document' in data && 'options' in data) {
+        const input = data as PrepareGenerationInput; plans.push(input);
+        const plan: GenerationPlan = { schemaVersion: 1, id: 'reception-plan', hash: 'reception-hash', bookId: input.document.id, revision: input.document.contentHash, title: input.document.title, createdAt: new Date().toISOString(), options: input.options, chunks: [], sendingText: '', endpoint: 'reception fixture', available: false, unavailableReason: 'fixture', estimatedSeconds: 0, estimatedOutputUsd: 0, estimateNote: 'fixture', warnings: [] };
+        await reply(route, template.response, template.envelope, plan); return;
+      }
+      await route.abort('blockedbyclient'); throw new Error('Unexpected reception mutation');
+    }
+    const response = await route.fetch(); const envelope = serializer.fromCrossJSON<Record<string, unknown>>(await response.json(), { refs: new Map() });
+    const result = envelope.result as Record<string, unknown> | undefined;
+    if (result && 'voicevox' in result) {
+      const config = result as unknown as GenerationConfig; const provider = config.providers!.find(value => value.id === 'irodori')!;
+      provider.available = true; provider.voices = [{ id: 'reception-female', name: '丁寧な受付（女）' }, { id: 'reception-male', name: '丁寧な受付（男）' }];
+      await reply(route, response, envelope, config); return;
+    }
+    if (result && 'downloadedBytes' in result) { await reply(route, response, envelope, { ...result, phase: 'ready', runtime: 'running', executableAvailable: true, voiceAvailable: true, message: '受付設定fixture' }); return; }
+    if (result && typeof result.steps === 'number') {
+      template = { response, envelope }; const voice = String(result.instructions).includes('男性') ? 'reception-male' : 'reception-female';
+      if (voice === 'reception-female' && !held) { held = true; firstFemaleStarted.release(); await firstFemale.promise; }
+      await reply(route, response, envelope, saved.get(voice) ?? result); return;
+    }
+    await route.fulfill({ response });
+  });
+  try {
+    await page.goto('/generate', { waitUntil: 'domcontentloaded' });
+    await page.getByRole('textbox', { name: '原稿を貼り付け', exact: true }).fill('本日はご来館ありがとうございます。'); await page.getByRole('button', { name: '本文を確認する', exact: true }).click();
+    await page.getByRole('combobox', { name: '生成手段', exact: true }).click(); await page.getByRole('option', { name: '任意追加 · Irodori（このPC）', exact: true }).click(); await firstFemaleStarted.promise;
+    const voice = page.getByRole('combobox', { name: '声・スタイル', exact: true }); await voice.click(); await page.getByRole('option', { name: '丁寧な受付（男）', exact: true }).click();
+    const panel = page.getByRole('region', { name: 'Irodoriの任意追加', exact: true }); await panel.getByText('合成設定・取得資材の詳細', { exact: true }).click();
+    const prompt = panel.getByLabel('声・読み上げ方のプロンプト', { exact: true }); await expect(prompt).toHaveValue('明朗快活な男性の受付スタッフ。明るく丁寧にてきぱきと'); await expect(panel.getByLabel('合成steps', { exact: true })).toHaveValue('40');
+    await prompt.fill('男性の受付スタッフ。穏やかに丁寧に話す'); await panel.getByRole('button', { name: '設定を保存して計画を更新', exact: true }).click(); await expect.poll(() => saved.size).toBe(1);
+    firstFemale.release(); await expect(prompt).toHaveValue('男性の受付スタッフ。穏やかに丁寧に話す');
+    await page.getByRole('button', { name: '生成計画を確認する', exact: true }).click(); await expect(page.locator('.generation-confirm')).toContainText('穏やかに丁寧に話す'); expect(plans[0].options.model).toBe('irodori-tts'); expect(plans[0].options.voice).toBe('reception-male');
+    await voice.click(); await page.getByRole('option', { name: '丁寧な受付（女）', exact: true }).click(); await expect(page.locator('.generation-confirm')).toHaveCount(0);
+    await panel.getByText('合成設定・取得資材の詳細', { exact: true }).click(); await expect(prompt).toHaveValue('明朗快活な受付嬢。明るく丁寧にてきぱきと');
+    await voice.click(); await page.getByRole('option', { name: '丁寧な受付（男）', exact: true }).click(); await panel.getByText('合成設定・取得資材の詳細', { exact: true }).click(); await expect(prompt).toHaveValue('男性の受付スタッフ。穏やかに丁寧に話す');
+    await panel.getByRole('button', { name: 'プロンプトを既定に戻す', exact: true }).click(); await expect(prompt).toHaveValue('明朗快活な男性の受付スタッフ。明るく丁寧にてきぱきと');
+    await page.screenshot({ path: testInfo.outputPath('reception-settings.png'), fullPage: true });
+  } finally { firstFemale.release(); }
 });
 
 });
