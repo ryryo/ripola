@@ -20,21 +20,16 @@ async function viewportSurface(page: Page) {
   expect(bounds.x).toBeCloseTo(0, 0); expect(bounds.y).toBeCloseTo(0, 0);
   expect(bounds.width).toBeCloseTo(bounds.viewportWidth, 0);
   expect(bounds.height).toBeCloseTo(bounds.viewportHeight, 0);
-  const play = await full.locator('.reader-play-overlay').boundingBox();
-  expect(play!.x + play!.width / 2).toBeCloseTo(bounds.viewportWidth / 2, 0);
   if (await full.locator('.guide-viewport').count()) {
+    await expect(full.locator('.reader-play-overlay')).toHaveCount(0);
     const viewport = await full.locator('.guide-viewport').boundingBox();
     const toolbar = await full.locator('.guide-toolbar').boundingBox();
     const footer = await full.locator('.fullscreen-footer').boundingBox();
-    expect(play!.y + play!.height / 2).toBeCloseTo(viewport!.y + viewport!.height / 2, 0);
-    expect(play!.y).toBeGreaterThanOrEqual(viewport!.y);
-    expect(play!.y).toBeGreaterThanOrEqual(toolbar!.y + toolbar!.height);
-    expect(play!.y + play!.height).toBeLessThanOrEqual(Math.min(viewport!.y + viewport!.height, footer!.y));
-    if (await full.getByTestId('stopped-context').count()) {
-      const context = await full.getByTestId('stopped-context').boundingBox();
-      expect(play!.y + play!.height).toBeLessThanOrEqual(context!.y);
-    }
+    expect(viewport!.y).toBeGreaterThanOrEqual(toolbar!.y + toolbar!.height);
+    expect(viewport!.y + viewport!.height).toBeLessThanOrEqual(footer!.y);
   } else {
+    const play = await full.locator('.reader-play-overlay').boundingBox();
+    expect(play!.x + play!.width / 2).toBeCloseTo(bounds.viewportWidth / 2, 0);
     await expect.poll(() => full.locator('.phrase').evaluate(element => {
       const bounds = element.getBoundingClientRect();
       return Math.abs(bounds.y + bounds.height / 2 - innerHeight / 2);
@@ -176,6 +171,8 @@ test('fullscreen expands the text surface, isolates playback, keeps progress vis
   const phrase = await full.getByTestId('current-phrase').innerText();
   await full.getByRole('button', { name: '全文表示', exact: true }).click();
   await expect(full.getByTestId('guide-reader')).toBeVisible();
+  await expect(centerPlay).toHaveCount(0);
+  await expect(full.getByRole('button', { name: '再生', exact: true })).toBeVisible();
   await expect(full.getByRole('button', { name: '全文表示', exact: true })).toHaveAttribute('aria-pressed', 'true');
   await expect(full.getByRole('slider', { name: '読書の再生位置' })).toHaveValue('3');
   await full.getByRole('button', { name: 'フレーズ表示', exact: true }).click();
@@ -248,8 +245,13 @@ test('fullscreen falls back when denied, traps keyboard focus, supports Guide an
   expect(await full.evaluate(element => element.contains(document.activeElement))).toBe(true);
   await full.getByRole('button', { name: '再生', exact: true }).click();
   await expect(full.locator('.guide-toolbar')).toBeHidden();
-  await page.keyboard.press('Space');
+  await expect(full).toHaveAttribute('data-playing', 'true');
+  await expect(full.locator('.reader-play-overlay')).toHaveCount(0);
+  await full.locator('.guide-viewport').click({ position: { x: 20, y: 20 } });
+  await expect(full).toHaveAttribute('data-playing', 'false');
   await expect(full.locator('.guide-toolbar')).toBeVisible();
+  await expect(full.locator('.reader-play-overlay')).toHaveCount(0);
+  await expect(full.getByRole('button', { name: '再生', exact: true })).toBeVisible();
   await page.keyboard.press('Escape');
   await expect(full).toHaveCount(0);
   expect(await page.evaluate(() => document.body.style.overflow)).toBe('');
