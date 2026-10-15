@@ -1,0 +1,12 @@
+.phrase-container { --guide-font-size: var(--reader-font-size, 56px); }
+/* Reserve one line plus ruby at the selected size, independent of each phrase's fitted size. */
+.phrase-slot { display: flex; justify-content: center; align-items: center; flex: 0 1 calc(var(--guide-font-size) * 2.4); width: 100%; min-width: 0; min-height: 0; }
+/* Indivisible URLs and ruby can still need the existing multiline fallback. */
+.phrase-slot[data-expanded='true'] { flex-grow: 1; }
+.vertical-phrase-frame > .phrase-slot { width: auto; height: 100%; }
+@media (max-width: 600px) {
+  .phrase-container { --guide-font-size: min(var(--reader-font-size, 56px), 11vw); }
+}
+@media (max-height: 520px) and (min-width: 601px) {
+  .phrase-container { --guide-font-size: min(var(--reader-font-size, 56px), 36px); }
+}

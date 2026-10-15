@@ -20,6 +20,24 @@ async function close(page: Page) {
   await expect(page.getByRole('dialog')).toHaveCount(0);
 }
 
+async function fixationLayout(page: Page) {
+  return page.locator('.phrase-container').evaluate(frame => {
+    const bounds = frame.getBoundingClientRect();
+    const phrase = frame.querySelector<HTMLElement>('.phrase')!;
+    return { size: parseFloat(getComputedStyle(phrase).fontSize), markers: [...frame.querySelectorAll('.guide')].map(guide => {
+      const rect = guide.getBoundingClientRect();
+      return { x: rect.x + rect.width / 2 - bounds.x, y: rect.y + rect.height / 2 - bounds.y };
+    }) };
+  });
+}
+function expectStableFixation(before: Awaited<ReturnType<typeof fixationLayout>>, after: Awaited<ReturnType<typeof fixationLayout>>) {
+  expect(Math.abs(after.size - before.size)).toBeGreaterThan(2);
+  for (let index = 0; index < before.markers.length; index++) {
+    expect(after.markers[index].x).toBeCloseTo(before.markers[index].x, 0);
+    expect(after.markers[index].y).toBeCloseTo(before.markers[index].y, 0);
+  }
+}
+
 test('single-line phrases shrink before wrapping and subdivide long natural units on mobile', async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 740 });
   await read(page, 'Visualization。');
@@ -33,11 +51,33 @@ test('single-line phrases shrink before wrapping and subdivide long natural unit
   await page.getByLabel('読む速さ（字/分）', { exact: true }).fill('100');
   await expect(phrase).not.toHaveText('国際情報通信技術研究開発機構の');
   await expect.poll(lines).toBeLessThan(1.1);
+  for (const fullscreen of [false, true]) {
+    if (fullscreen) await page.getByRole('button', { name: '1つ戻る', exact: true }).click();
+    if (fullscreen) {
+      await page.evaluate(() => { Element.prototype.requestFullscreen = () => Promise.reject(new Error('test denied')); });
+      await page.getByRole('button', { name: '全画面で読む', exact: true }).click();
+    }
+    const before = await fixationLayout(page);
+    if (fullscreen) await page.getByRole('slider', { name: '読書の再生位置', exact: true }).fill('1');
+    else await page.getByRole('button', { name: '1つ進む', exact: true }).click();
+    expectStableFixation(before, await fixationLayout(page));
+    if (fullscreen) await page.keyboard.press('Escape');
+  }
+  await page.getByRole('button', { name: '1つ戻る', exact: true }).click();
   const first = await phrase.innerText();
+  const beforePlayback = await fixationLayout(page);
   await page.getByRole('button', { name: '再生', exact: true }).click();
   await expect(phrase).not.toHaveText(first, { timeout: 15000 });
+  expectStableFixation(beforePlayback, await fixationLayout(page));
   await page.getByRole('button', { name: '一時停止', exact: true }).click();
   await expect.poll(lines).toBeLessThan(1.1);
+  // Protected runs retain their existing multiline fallback without crossing the guides.
+  await read(page, 'https://example.com/abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz');
+  for (const fullscreen of [false, true]) {
+    if (fullscreen) await page.getByRole('button', { name: '全画面で読む', exact: true }).click();
+    await expect.poll(async () => (await inspectGuides(page, '[data-testid="reader-stage"]')).minimumGap).toBeGreaterThan(2);
+    if (fullscreen) await page.keyboard.press('Escape');
+  }
 });
 
 test('optional fonts load from the same origin only, keep anchor paused and fit ruby at both sizes', async ({ page, baseURL }, info) => {
@@ -224,12 +264,24 @@ test('single-line audio subdivisions follow media seek and rate without changing
   await expect(phrase).toHaveText('図書館としょかんへ。');
   await expect(sentence).toHaveAttribute('data-method', 'forced-alignment');
   await expect(sentence).toHaveAttribute('data-score', '0.95');
+  const short = await fixationLayout(page);
   await slider.fill('0');
   await expect(phrase).toHaveText(first);
+  expectStableFixation(short, await fixationLayout(page));
+  await page.evaluate(() => { Element.prototype.requestFullscreen = () => Promise.reject(new Error('test denied')); });
+  await page.getByRole('button', { name: '全画面で読む', exact: true }).click();
+  const fullscreenLong = await fixationLayout(page);
+  await page.getByRole('slider', { name: '音声の再生位置', exact: true }).fill('6');
+  await expect(phrase).toHaveText('図書館としょかんへ。');
+  expectStableFixation(fullscreenLong, await fixationLayout(page));
+  await page.keyboard.press('Escape');
+  await slider.fill('0');
   await page.getByRole('combobox', { name: '音声の速さ', exact: true }).click();
   await page.getByRole('option', { name: '1.25倍', exact: true }).click();
+  const beforePlayback = await fixationLayout(page);
   await page.getByRole('button', { name: '再生', exact: true }).click();
   await expect(phrase).not.toHaveText(first, { timeout: 10000 });
+  expectStableFixation(beforePlayback, await fixationLayout(page));
   await page.getByRole('button', { name: '一時停止', exact: true }).click();
   expect(await sentence.evaluate(element => element.getBoundingClientRect().height / parseFloat(getComputedStyle(element).lineHeight))).toBeLessThan(1.1);
   const clock = await page.locator('audio').evaluate((audio: HTMLAudioElement) => ({ seconds: audio.currentTime, rate: audio.playbackRate }));
@@ -400,6 +452,7 @@ test('vertical phrases fit ruby and guides, retain position and restore/reset th
   await page.screenshot({ path: test.info().outputPath('vertical-phrase-fullscreen.png') });
   await page.getByRole('button', { name: '全画面を終了', exact: true }).click();
   await page.getByRole('button', { name: '端末に保存', exact: true }).click();
+  await expect(page.getByText('本文・現在位置・設定を、このブラウザに保存しました。', { exact: true })).toBeVisible();
   await page.reload(); await page.getByRole('button', { name: '続きから開く', exact: true }).click();
   await expect(page.getByTestId('current-phrase')).toHaveCSS('writing-mode', 'vertical-rl');
   await expect(page.getByTestId('current-phrase')).toHaveText(anchor);

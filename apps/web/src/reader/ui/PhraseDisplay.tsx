@@ -41,17 +41,20 @@ export function PhraseDisplay({ unit, sourceUnits, activeUnit, getProgress, play
   }, [playing, pages]);
   useLayoutEffect(() => {
     const frame = container.current; const element = text.current;
-    if (!frame || !element || !unit) return;
+    const slot = frame?.querySelector<HTMLElement>(':scope > .phrase-slot');
+    if (!frame || !element || !slot || !unit) return;
     let measuredKey = '';
     const fit = () => {
+      const availableWidth = slot.clientWidth;
+      const availableHeight = slot.clientHeight;
       const style = getComputedStyle(frame);
       const guides = [...frame.querySelectorAll<HTMLElement>(':scope > .guide')];
       const guideSize = guides.reduce((size, guide) => size + (vertical ? guide.offsetWidth : guide.offsetHeight), 0);
       const gap = parseFloat(vertical ? style.columnGap : style.rowGap) || 0;
-      const availableWidth = frame.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight) - (vertical ? guideSize + gap * 2 : 0);
-      const availableHeight = frame.clientHeight - parseFloat(style.paddingTop) - parseFloat(style.paddingBottom) - (vertical ? 0 : guideSize + gap * 2);
+      const expandedWidth = frame.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight) - (vertical ? guideSize + gap * 2 : 0);
+      const expandedHeight = frame.clientHeight - parseFloat(style.paddingTop) - parseFloat(style.paddingBottom) - (vertical ? 0 : guideSize + gap * 2);
       const desired = Math.min(fontSize, window.innerWidth <= 600 ? window.innerWidth * .11 : window.innerHeight <= 520 ? 36 : fontSize);
-      const key = `${availableWidth}:${availableHeight}:${desired}`;
+      const key = `${availableWidth}:${availableHeight}:${expandedWidth}:${expandedHeight}:${desired}`;
       if (availableWidth <= 0 || availableHeight <= 0 || key === measuredKey) return;
       measuredKey = key;
       // Measure a zero-layout, clipped clone. Mobile CSS uses !important and a
@@ -77,6 +80,8 @@ export function PhraseDisplay({ unit, sourceUnits, activeUnit, getProgress, play
       host.append(probe); document.body.append(host);
       try {
         const planned = planPhrasePages(unit, sourceUnits ?? [unit], desired, (value, size, wrap) => {
+          const width = wrap ? expandedWidth : availableWidth;
+          const height = wrap ? expandedHeight : availableHeight;
           probe.replaceChildren();
           let offset = 0;
           for (const span of ruby ? value.ruby : []) {
@@ -89,25 +94,25 @@ export function PhraseDisplay({ unit, sourceUnits, activeUnit, getProgress, play
           probe.append(document.createTextNode(value.text.slice(offset)));
           probe.style.setProperty('font-size', `${size}px`, 'important');
           probe.style.setProperty('white-space', wrap ? 'pre-wrap' : 'nowrap', 'important');
-          probe.style.setProperty('max-width', wrap && !vertical ? `${availableWidth}px` : 'none');
-          probe.style.setProperty('max-height', wrap && vertical ? `${availableHeight}px` : 'none');
+          probe.style.setProperty('max-width', wrap && !vertical ? `${width}px` : 'none');
+          probe.style.setProperty('max-height', wrap && vertical ? `${height}px` : 'none');
           const range = document.createRange(); range.selectNodeContents(probe);
           const glyphs = range.getBoundingClientRect(); const bounds = probe.getBoundingClientRect();
-          return Math.max(glyphs.width, bounds.width) <= availableWidth + .5 && Math.max(glyphs.height, bounds.height) <= availableHeight + .5;
+          return Math.max(glyphs.width, bounds.width) <= width + .5 && Math.max(glyphs.height, bounds.height) <= height + .5;
         });
         setLayout({ unit, pages: planned });
       } finally { host.remove(); }
     };
     fit();
     // Refit when either axis changes, including fullscreen and wrapped controls.
-    const observer = new ResizeObserver(fit); observer.observe(frame);
+    const observer = new ResizeObserver(fit); observer.observe(slot); observer.observe(frame);
     return () => observer.disconnect();
   }, [unit, sourceUnits, fontSize, ruby, family, vertical, writingMode]);
   const page = pages?.[Math.min(pageIndex, pages.length - 1)];
   const visible = page?.unit ?? unit;
   const estimated = audio && activeUnit && visible && (visible.start > activeUnit.start || visible.end < activeUnit.end);
   const visibleIds = page && sourceUnits ? sourceUnits.filter(value => value.start < page.unit.end && value.end > page.unit.start).map(value => value.id).join(' ') : unitIds ?? unit?.id;
-  return <PhraseFrame containerRef={container} vertical={vertical}><div ref={text} className={audio ? 'phrase audio-sentence' : 'phrase'}
+  return <PhraseFrame containerRef={container} vertical={vertical} expanded={pages?.some(page => page.wrapped)}><div ref={text} className={audio ? 'phrase audio-sentence' : 'phrase'}
     style={{ fontSize: `${page?.fontSize ?? fontSize}px`, '--phrase-size': `${page?.fontSize ?? fontSize}px`, fontFamily: family, fontWeight: 400, writingMode } as CSSProperties}
     data-testid={audio ? 'audio-sentence' : 'current-phrase'} data-precision={audio ? precision : undefined} data-method={estimated ? 'estimated' : timingMethod} data-score={estimated ? undefined : timingScore}
     data-source-start={visible?.start} data-source-end={visible?.end} data-pages={pages?.length ?? 1} aria-live="off">
