@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { audioDemoHref } from '../../src/reader/audio-demo';
 
 test('A samples are three visible rows below the form with direct silent entry and 44px controls', async ({page}, testInfo) => {
   await page.goto('/');const panel=page.getByRole('region',{name:'サンプルで試す'});
@@ -35,20 +36,23 @@ const audioSamples = [
   { label: 'Gemini（女）', key: 'gemini-female' },
   { label: 'Irodori（男）', key: 'irodori-male' },
   { label: 'Irodori（女）', key: 'irodori-female' },
-];
-for (const sample of audioSamples) test(`音声サンプル ${sample.key} は1クリックで開き、戻る・連打でも生成しない`, async ({ page }, testInfo) => {
+] as const;
+for (const sample of audioSamples) test(sample.key.startsWith('irodori-') ? `非表示の音声サンプル ${sample.key} は保存済みURLから再生でき、生成しない` : `音声サンプル ${sample.key} は1クリックで開き、戻る・連打でも生成しない`, async ({ page }, testInfo) => {
   let generationCalls = 0;
   page.on('request', request => { if (/\/api\/local-generation/.test(request.url()) || /\/_serverFn\//.test(request.url()) && request.method() === 'POST') generationCalls++; });
   const open = page.getByRole('link', { name: `${sample.label}で読む`, exact: true });
   await page.goto('/');
   await expect(page.getByLabel('読む文章', { exact: true })).toBeVisible();
   const group = page.getByRole('group', { name: '音声サンプルを開く' });
-  await expect(group.getByRole('link')).toHaveCount(5);
+  await expect(group.getByRole('link')).toHaveCount(3);
   await expect(page.getByRole('link', { name: '音声付きで読む', exact: true })).toHaveCount(0);
   await expect(page.getByRole('radio')).toHaveCount(0);
-  expect((await open.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+  const hidden = sample.key.startsWith('irodori-');
+  const href = audioDemoHref(sample.key, 'local', '/');
+  if (hidden) await expect(open).toHaveCount(0);
+  else expect((await open.boundingBox())!.height).toBeGreaterThanOrEqual(44);
   if (sample.key === 'voicevox') await page.locator('.home-samples').screenshot({ path: `docs/validation/audio-one-click-2026-10-07/${testInfo.project.name}-group.png` });
-  await open.click();
+  if (hidden) await page.goto(href); else await open.click();
   await expect(page.getByTestId('audio-stage')).toBeVisible();
   expect(new URL(page.url()).searchParams.get('sample')).toBe(sample.key);
   await expect(page.getByTestId('audio-presentation-report')).toHaveCount(0);
@@ -56,23 +60,23 @@ for (const sample of audioSamples) test(`音声サンプル ${sample.key} は1�
   expect(await page.locator('audio').evaluate((audio: HTMLAudioElement) => audio.paused)).toBe(true);
   await page.getByRole('button', { name: 'トップへ戻る', exact: true }).click();
   await expect(page.getByLabel('読む文章', { exact: true })).toBeVisible();
-  await expect(open).toBeVisible();
-  await open.dblclick({ delay: 20 });
+  if (hidden) { await expect(open).toHaveCount(0); await page.goto(href); }
+  else { await expect(open).toBeVisible(); await open.dblclick({ delay: 20 }); }
   await expect(page.getByTestId('audio-stage')).toBeVisible();
   expect(new URL(page.url()).searchParams.get('sample')).toBe(sample.key);
   await page.goBack();
-  await expect(group.getByRole('link')).toHaveCount(5);
+  await expect(group.getByRole('link')).toHaveCount(3);
   expect(generationCalls).toBe(0);
   expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1)).toBe(false);
 });
 
-test('音声サンプルはTab・Shift+TabとEnterで5種類を直接開ける', async ({ page }) => {
+test('音声サンプルはTab・Shift+TabとEnterで3種類を直接開ける', async ({ page }) => {
   test.setTimeout(60_000);
   await page.goto('/');
-  for (const [index, sample] of audioSamples.entries()) {
+  for (const [index, sample] of audioSamples.filter(sample => !sample.key.startsWith('irodori-')).entries()) {
     await expect(page.getByLabel('読む文章', { exact: true })).toBeVisible({ timeout: 30_000 });
     const links = page.getByRole('group', { name: '音声サンプルを開く' }).getByRole('link');
-    await expect(links).toHaveCount(5);
+    await expect(links).toHaveCount(3);
     await links.first().focus();
     for (let step = 0; step < index; step++) await page.keyboard.press('Tab');
     await expect(links.nth(index)).toBeFocused();
@@ -94,10 +98,11 @@ test('音声サンプル取得失敗から再確認でき、320pxでも1枠の�
   for (const button of await group.getByRole('button').all()) await expect(button).toBeDisabled();
   await page.unroute('**/samples/audio/library/index.json');
   await page.getByRole('button', { name: '音声サンプルを再確認', exact: true }).click();
-  await expect(group.getByRole('link')).toHaveCount(5);
+  await expect(group.getByRole('link')).toHaveCount(3);
   await expect(page.getByRole('button', { name: '音声サンプルを再確認', exact: true })).toHaveCount(0);
   expect(await page.locator('.home-audio-demo').count()).toBe(1);
   expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1)).toBe(false);
-  await group.getByRole('link', { name: 'Irodori（女）で読む', exact: true }).click();
+  await expect(group.getByRole('link', { name: /Irodori/ })).toHaveCount(0);
+  await group.getByRole('link', { name: 'Gemini（女）で読む', exact: true }).click();
   await expect(page.getByTestId('audio-stage')).toBeVisible();
 });

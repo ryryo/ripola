@@ -2,7 +2,6 @@
 
 ローカルWebサービスは`RSVP_ENABLE_EXPERIMENTAL_IRODORI=true`のときだけadapterを登録します。通常はcontrollerも生成せず、provider一覧にIrodoriを含めません。GUIはその一覧を表示条件に使い、未起動でも明示的に有効化された環境では導入画面を利用できます。導入・設定RPCは同じサーバー設定で拒否します。共通serviceは未登録providerでの計画・開始・生成再開を拒否し、既存book/audioの読み出しと保存済み音声の公開再試行は維持します。CLIやunit fixtureでのadapter明示注入は維持します。
 
-
 Irodoriは共通生成サービスへ追加adapterとして接続します。初期setupやGenerationServiceのconstructor、configuration取得、通常閲覧でdownloadやnative起動を行いません。専用storeとcontrollerは`.reader-data/irodori/`だけを管理し、既存alignment runtimeやlibraryの責務を引き取りません。
 
 | 案 | 境界と検証 | 判断 |

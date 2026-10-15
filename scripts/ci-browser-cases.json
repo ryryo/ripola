@@ -1888,7 +1888,7 @@
   {
     "project": "desktop-chromium",
     "file": "creation-options.spec.ts",
-    "title": "音声サンプル irodori-male は1クリックで開き、戻る・連打でも生成しない",
+    "title": "非表示の音声サンプル irodori-male は保存済みURLから再生でき、生成しない",
     "lane": "related",
     "domains": [
       "generation",
@@ -1900,7 +1900,7 @@
   {
     "project": "desktop-chromium",
     "file": "creation-options.spec.ts",
-    "title": "音声サンプル irodori-female は1クリックで開き、戻る・連打でも生成しない",
+    "title": "非表示の音声サンプル irodori-female は保存済みURLから再生でき、生成しない",
     "lane": "related",
     "domains": [
       "generation",
@@ -1912,7 +1912,7 @@
   {
     "project": "desktop-chromium",
     "file": "creation-options.spec.ts",
-    "title": "音声サンプルはTab・Shift+TabとEnterで5種類を直接開ける",
+    "title": "音声サンプルはTab・Shift+TabとEnterで3種類を直接開ける",
     "lane": "related",
     "domains": [
       "generation",
@@ -1924,7 +1924,7 @@
   {
     "project": "mobile-chromium",
     "file": "creation-options.spec.ts",
-    "title": "音声サンプル irodori-male は1クリックで開き、戻る・連打でも生成しない",
+    "title": "非表示の音声サンプル irodori-male は保存済みURLから再生でき、生成しない",
     "lane": "manual_full",
     "domains": [
       "generation",
@@ -1936,7 +1936,7 @@
   {
     "project": "mobile-chromium",
     "file": "creation-options.spec.ts",
-    "title": "音声サンプル irodori-female は1クリックで開き、戻る・連打でも生成しない",
+    "title": "非表示の音声サンプル irodori-female は保存済みURLから再生でき、生成しない",
     "lane": "manual_full",
     "domains": [
       "generation",
@@ -1948,7 +1948,7 @@
   {
     "project": "mobile-chromium",
     "file": "creation-options.spec.ts",
-    "title": "音声サンプルはTab・Shift+TabとEnterで5種類を直接開ける",
+    "title": "音声サンプルはTab・Shift+TabとEnterで3種類を直接開ける",
     "lane": "manual_full",
     "domains": [
       "generation",
@@ -2386,38 +2386,38 @@
   {
     "project": "desktop-chromium",
     "file": "irodori.spec.ts",
-    "title": "受付の男女声はプロンプトを別々に保存し声の切替後に古い設定を適用しない",
+    "title": "通常GUIはIrodoriを表示せずVOICEVOXとGeminiを選べる",
     "lane": "related",
     "domains": [
+      "generation",
       "audio"
     ]
   },
   {
     "project": "mobile-chromium",
     "file": "irodori.spec.ts",
-    "title": "受付の男女声はプロンプトを別々に保存し声の切替後に古い設定を適用しない",
+    "title": "通常GUIはIrodoriを表示せずVOICEVOXとGeminiを選べる",
     "lane": "related",
     "domains": [
+      "generation",
       "audio"
     ]
   },
   {
     "project": "desktop-chromium",
     "file": "irodori.spec.ts",
-    "title": "通常GUIはIrodoriを表示せずVOICEVOXとGeminiを選べる",
+    "title": "受付の男女声はプロンプトを別々に保存し声の切替後に古い設定を適用しない",
     "lane": "related",
     "domains": [
-      "generation",
       "audio"
     ]
   },
   {
     "project": "mobile-chromium",
     "file": "irodori.spec.ts",
-    "title": "通常GUIはIrodoriを表示せずVOICEVOXとGeminiを選べる",
+    "title": "受付の男女声はプロンプトを別々に保存し声の切替後に古い設定を適用しない",
     "lane": "related",
     "domains": [
-      "generation",
       "audio"
     ]
   }

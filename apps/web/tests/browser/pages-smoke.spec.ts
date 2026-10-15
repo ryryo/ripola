@@ -37,7 +37,8 @@ test('完成Pagesの全音声サンプル・直リンク・seek・公開API境�
   expect(catalogResponse.ok()).toBe(true);
   const catalog = await catalogResponse.json(); expect(catalog.books).toHaveLength(5);
   await page.goto('./');
-  await expect(page.getByRole('group', { name: '音声サンプルを開く' }).getByRole('link')).toHaveCount(5);
+  await expect(page.getByRole('group', { name: '音声サンプルを開く' }).getByRole('link')).toHaveCount(3);
+  await expect(page.getByRole('link', { name: /Irodori.*で読む/ })).toHaveCount(0);
   for (const sample of AUDIO_DEMOS) {
     const entry = catalog.books.find((item: { id: string; revision: string }) => item.id === sample.id && item.revision === sample.revision);
     expect(entry?.publicDemo).toBe(true);

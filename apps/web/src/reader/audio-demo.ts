@@ -9,6 +9,7 @@ export const AUDIO_DEMOS = [
   { key: 'irodori-male', label: 'Irodori（男）', voice: '元気な男声', id: 'book-irodori-male-4600929a79aadc3e', revision: '29fe3fa4ff0ba21654137ea1cc984bf401fb39169088624acef1a2f9501bc5e9' },
   { key: 'irodori-female', label: 'Irodori（女）', voice: '落ち着いた女声', id: 'book-irodori-female-5c1db7bbdb9688ce', revision: '665d44028e4e410293c348d2700235f544361aa916bfa232eff4ed5bce99af3f' },
 ] as const;
+export const HOME_AUDIO_DEMOS = AUDIO_DEMOS.filter(sample => !sample.key.startsWith('irodori-'));
 export const AUDIO_DEMO_BOOK_ID = AUDIO_DEMOS[0].id;
 export type AudioDemoKey = typeof AUDIO_DEMOS[number]['key'];
 export function audioDemo(key: string | null) { return AUDIO_DEMOS.find(sample => sample.key === key); }

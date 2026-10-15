@@ -1,7 +1,7 @@
 import { Button } from '@mantine/core';
 import { useEffect, useState } from 'react';
 import type { PublicBookEntry } from '../../distribution/library';
-import { AUDIO_DEMOS, audioDemoHref, loadAudioDemos } from '../audio-demo';
+import { HOME_AUDIO_DEMOS, audioDemoHref, loadAudioDemos } from '../audio-demo';
 
 export function AudioDemo({ disabled = false }: { disabled?: boolean }) {
   const [samples, setSamples] = useState<PublicBookEntry[]>([]);
@@ -19,7 +19,7 @@ export function AudioDemo({ disabled = false }: { disabled?: boolean }) {
     <span className="sample-glyph" aria-hidden="true">♫</span>
     <div className="sample-copy"><h3>音声と一緒に</h3><p>吾輩は猫である · 冒頭</p></div>
       <div className="sample-voice-group" role="group" aria-label="音声サンプルを開く">
-        {AUDIO_DEMOS.map(option => {
+        {HOME_AUDIO_DEMOS.map(option => {
           const sample = samples.find(entry => entry.id === option.id && entry.revision === option.revision);
           const content = <><span>{option.label}</span><small><span>{option.voice}</span><span>{sample ? `約${Math.round(sample.durationSeconds)}秒` : state === 'loading' ? '確認中' : '利用できません'}</span></small></>;
           return sample && state === 'ready' && !disabled
