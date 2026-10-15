@@ -58,7 +58,7 @@ function timeline(entries: AudioTimelineEntry[], sourceDuration: number, mediaDu
 }
 async function compress(input: string, output: string): Promise<void> {
   try {
-    await run('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-nostdin', '-i', input, '-map_metadata', '-1', '-vn', '-sn', '-dn', '-ac', '1', '-ar', '24000', '-c:a', 'aac', '-profile:a', 'aac_low', '-b:a', '64k', '-movflags', '+faststart', output], { maxBuffer: 256 * 1024, timeout: 120_000 });
+    await run('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-nostdin', '-i', input, '-map_metadata', '-1', '-vn', '-sn', '-dn', '-ac', '1', '-ar', '24000', '-c:a', 'aac', '-profile:a', 'aac_low', '-b:a', '48k', '-movflags', '+faststart', output], { maxBuffer: 256 * 1024, timeout: 120_000 });
   } catch { throw new Error('AAC compression failed or ffmpeg is unavailable. Source audio is unchanged; no TTS was rerun.'); }
 }
 export async function stageLibrary(input: unknown, options: StageOptions): Promise<{ output: string; books: number; fileCount: number; totalBytes: number }> {

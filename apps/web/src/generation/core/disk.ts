@@ -9,6 +9,7 @@ export function requireId(value: unknown): string { if (!validId(value)) throw n
 export function requireKey(value: unknown): string { if (typeof value !== 'string' || !/^[a-f0-9]{64}$/.test(value)) throw new Error('音声IDが正しくありません。'); return value; }
 function missing(error: unknown): boolean { return (error as NodeJS.ErrnoException).code === 'ENOENT'; }
 export function processAlive(pid: number): boolean { try { process.kill(pid, 0); return true; } catch (error) { return (error as NodeJS.ErrnoException).code !== 'ESRCH'; } }
+export const BOOK_REFERENCES_LOCK = 'book-references';
 
 export class LibraryDisk {
   constructor(readonly root: string) {}
@@ -43,6 +44,10 @@ export class LibraryDisk {
   }
   async write(parts: string[], value: unknown): Promise<void> { await this.writeBytes(parts, new TextEncoder().encode(JSON.stringify(value))); }
   async writeBytes(parts: string[], value: Uint8Array): Promise<void> {
+    if (parts[0] === 'books') return this.withLock(BOOK_REFERENCES_LOCK, () => this.writeBytesUnlocked(parts, value));
+    await this.writeBytesUnlocked(parts, value);
+  }
+  private async writeBytesUnlocked(parts: string[], value: Uint8Array): Promise<void> {
     const destination = await this.safe(parts);
     await mkdir(dirname(destination), { recursive: true, mode: 0o700 });
     // Recheck after directory creation. Use exclusive private temporary files, then atomic rename.
@@ -51,6 +56,11 @@ export class LibraryDisk {
     const handle = await open(temporary, 'wx', 0o600);
     try { await handle.writeFile(value); await handle.sync(); } finally { await handle.close(); }
     await rename(temporary, destination);
+  }
+  /** Atomic book replacement changes the directory stamp even when the name is unchanged. */
+  async directoryVersion(directory: string): Promise<string> {
+    const info = await lstat(await this.safe([directory]), { bigint: true });
+    return `${info.mtimeNs}:${info.ctimeNs}`;
   }
   async list(directory: string): Promise<string[]> {
     try { return (await readdir(await this.safe([directory]))).filter((name) => /^[a-zA-Z0-9_-]+\.json$/.test(name)); }
@@ -95,7 +105,8 @@ export class LibraryDisk {
   }
   async withLock<T>(id: string, action: () => Promise<T>): Promise<T> {
     let release = await this.lock(id);
-    for (let attempt = 0; !release && attempt < 100; attempt++) { await pause(10); release = await this.lock(id); }
+    const deadline = id === BOOK_REFERENCES_LOCK ? Date.now() + 30_000 : undefined;
+    for (let attempt = 0; !release && (deadline === undefined ? attempt < 100 : Date.now() < deadline); attempt++) { await pause(10); release = await this.lock(id); }
     if (!release) throw new Error('別の処理が操作中です。少し待って再試行してください。');
     try { return await action(); } finally { await release(); }
   }

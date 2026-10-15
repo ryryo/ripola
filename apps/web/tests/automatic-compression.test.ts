@@ -51,6 +51,9 @@ for (const provider of ['voicevox', 'gemini'] as const) test(`default ${provider
   assert.ok(first.book.chunks.every(c => c.mimeType === 'audio/mpeg'));
   for (const c of first.book.chunks) {
     await assert.rejects(access(join(f.config.libraryDir, 'audio', c.speechKey + '.wav')));
+    const profile = spawnSync('ffprobe', ['-v', 'error', '-show_entries', 'stream=codec_name,bit_rate,channels,sample_rate', '-of', 'json', join(f.config.libraryDir, 'audio', c.speechKey + '.mp3')], { encoding: 'utf8' });
+    assert.equal(profile.status, 0);
+    assert.deepEqual(JSON.parse(profile.stdout).streams[0], { codec_name: 'mp3', sample_rate: '24000', channels: 1, bit_rate: '48000' });
     const legacy = await f.service.getAudio(c.speechKey, 'wav');
     assert.equal(legacy.mimeType, 'audio/mpeg');
     assert.equal(legacy.sourceAudioHash, c.alignment!.audioHash);
@@ -146,7 +149,7 @@ for (const mode of ['unmatched', 'stale'] as const) test(`another book with ${mo
   assert.equal(f.calls().speechCalls, 2);
 });
 
-test('preexisting raw audio without a cache ledger is compressed but never treated as a new disposable intermediate', { skip: !available }, async t => {
+test('adopted raw audio is removed after its cache, synchronization and MP3 are verified', { skip: !available }, async t => {
   const f = await fixture(t, 'voicevox', 3);
   const { LibraryDisk } = await import('../src/generation/core/disk');
   const document = await prepareDocument(importText(text, 'txt', '自動圧縮の自作検証'));
@@ -155,8 +158,48 @@ test('preexisting raw audio without a cache ledger is compressed but never treat
   for (const chunk of plan.chunks) await disk.writeBytes(['audio', chunk.speechKey + '.wav'], fixtureWav(3));
   const result = await f.generate();
   assert.equal(result.job.automaticCompression?.status, 'completed');
-  assert.equal(result.job.automaticCompression?.removedWavBytes, 0);
-  assert.equal(result.job.automaticCompression?.retainedWavFiles, 2);
+  assert.ok(result.job.automaticCompression!.removedWavBytes > 0);
+  assert.equal(result.job.automaticCompression?.retainedWavFiles, 0);
   assert.equal(f.calls().speechCalls, 0);
-  for (const c of result.book.chunks) await access(join(f.config.libraryDir, 'audio', c.speechKey + '.wav'));
+  for (const c of result.book.chunks) await assert.rejects(access(join(f.config.libraryDir, 'audio', c.speechKey + '.wav')));
+});
+
+test('a shared book saved during encoding keeps the WAV it still needs for correction', { skip: !available }, async t => {
+  const { encodeVerifiedMp3 } = await import('../src/generation/core/audio-compression');
+  const { LibraryDisk } = await import('../src/generation/core/disk');
+  let encoded = 0;
+  const f = await fixture(t, 'voicevox', 3, { async available() { return true; }, async encode(...args) {
+    const media = await encodeVerifiedMp3(...args);
+    if (++encoded === 2) {
+      const disk = new LibraryDisk(f.config.libraryDir);
+      const [file] = await disk.list('books');
+      const book = (await disk.read<import('../src/generation/contracts').AudioBookManifest>(['books', file]))!;
+      const shared = { ...book, id: 'book-added-during-encoding', chunks: book.chunks.map((c, i) => i ? { ...c, alignment: undefined } : c) };
+      await disk.write(['books', shared.id + '_' + shared.revision + '.json'], shared);
+    }
+    return media;
+  } });
+  const result = await f.generate();
+  assert.equal(result.job.automaticCompression?.retainedWavFiles, 1);
+  await assert.rejects(access(join(f.config.libraryDir, 'audio', result.book.chunks[0].speechKey + '.wav')));
+  await access(join(f.config.libraryDir, 'audio', result.book.chunks[1].speechKey + '.wav'));
+});
+
+test('a cache-only retry removes previously retained WAV after compression becomes available', { skip: !available }, async t => {
+  const { encodeVerifiedMp3 } = await import('../src/generation/core/audio-compression');
+  let codecAvailable = false;
+  const f = await fixture(t, 'gemini', 3, { async available() { return codecAvailable; }, encode: encodeVerifiedMp3 });
+  const first = await f.generate();
+  assert.equal(first.job.automaticCompression?.status, 'unavailable');
+  for (const c of first.book.chunks) await access(join(f.config.libraryDir, 'audio', c.speechKey + '.wav'));
+  const before = f.calls();
+  codecAvailable = true;
+  const retry = await f.generate(text, 'codec-now-available');
+  assert.equal(retry.plan.sendingText, '');
+  assert.ok(retry.job.chunks.every(c => c.reused));
+  assert.equal(retry.job.automaticCompression?.retainedWavFiles, 0);
+  assert.ok(retry.job.automaticCompression!.removedWavBytes > 0);
+  assert.deepEqual(f.calls(), before);
+  assert.deepEqual(retry.book.chunks.map(c => c.alignment), first.book.chunks.map(c => c.alignment));
+  for (const c of retry.book.chunks) await assert.rejects(access(join(f.config.libraryDir, 'audio', c.speechKey + '.wav')));
 });
