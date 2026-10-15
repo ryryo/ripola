@@ -700,14 +700,15 @@
   ],
   "notRun": [
     "Windows/Linux/Intel Mac audio initial setup QA (deferred)",
-    "Exhaustive physical-device coverage (outside scope)",
+    "New exhaustive physical-device testing (phone already confirmed by user)",
     "Paid audio generation (outside scope)",
-    "Private text/audio/library transfer (outside scope)"
+    "Private text/audio/library transfer (outside scope)",
+    "Additional commit/push/deployment after this validation (not requested)"
   ],
   "blockers": [],
   "pendingDecisions": [],
+  "localRecordOnly": true,
   "privateInputsUsed": false,
   "paidGeneration": false,
-  "verificationScope": "Snapshot at checkedAt for sourceRevision. Later revisions and OS-specific audio setup are outside this record.",
-  "earlierCandidateRecord": "pages-default-draft-2026-10-08.md/json record the earlier local validation before publication."
+  "historicalCandidateRecord": "pages-default-draft-2026-10-08.md/json describe the earlier local candidate before authorization was confirmed. The current publication is verified by CI/deployment/remote SHA and actual public URL checks above."
 }

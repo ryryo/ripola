@@ -2,7 +2,7 @@ import { AudioSampleReader } from '../reader/ui/AudioSampleReader';
 import { Brand } from '../ui/Brand';
 import { ThemeControl } from '../ui/ThemeControl';
 import { AUDIO_DEMO_BOOK_ID } from '../reader/audio-demo';
-import { Alert, Badge, Button, Loader } from '@mantine/core';
+import { Alert, Badge, Button, Loader, Modal } from '@mantine/core';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { AudioBookManifest, AudioBookSummary } from '../generation/contracts';
 import { ProgressiveAudioReader } from '../reader/ui/ProgressiveAudioReader';
@@ -10,7 +10,7 @@ import { getBook, listLibrary, renameBook } from './api';
 import { AlignmentPanel } from './AlignmentPanel';
 import { AudioInspectionPanel } from './AudioInspectionPanel';
 import { TitleEditor } from '../reader/ui/TitleEditor';
-import { Bookshelf, bookDurationLabel } from '../reader/ui/Bookshelf';
+import { Bookshelf } from '../reader/ui/Bookshelf';
 import { BookReadingProgress } from '../reader/ui/BookReadingProgress';
 import './generation.css';
 
@@ -24,6 +24,7 @@ export function LibraryApp() {
 function LocalLibraryApp() {
   const [books, setBooks] = useState<AudioBookSummary[]>([]);
   const [book, setBook] = useState<AudioBookManifest>();
+  const [renamingBook, setRenamingBook] = useState<AudioBookSummary>();
   const [loading, setLoading] = useState(true);
   const [catalogStatus, setCatalogStatus] = useState<'loading' | 'ready' | 'failed'>('loading');
   const [error, setError] = useState('');
@@ -92,9 +93,10 @@ function LocalLibraryApp() {
       {loading && <Loader aria-label="本棚を読み込み中" />}
       {!loading && !error && !listedBooks.length && <div className="generation-card"><p>まだ音声がありません。短い自作文から試せます。</p><Button component="a" href="/generate">音声を生成する</Button></div>}
       {!loading && listedBooks.length > 0 && <Bookshelf count={listedBooks.length}>{listedBooks.map(value => <li key={`${value.id}:${value.revision}`}><article className="generation-card bookshelf-book" aria-labelledby={`shelf-${value.id}-${value.revision}`}>
-        <div className="bookshelf-book-content"><h2 id={`shelf-${value.id}-${value.revision}`}>{value.title}</h2><p className="bookshelf-book-meta"><span>保存音声</span><span>{value.completedChunks} / {value.totalChunks}文</span><span>{bookDurationLabel(value.durationSeconds)}</span></p><BookReadingProgress book={value} incomplete={value.completedChunks < value.totalChunks} catalogStatus={catalogStatus} /><p className="bookshelf-book-updated">更新：{new Date(value.updatedAt).toLocaleString()}</p></div>
-        <div className="bookshelf-book-actions"><Button onClick={() => void open(value)} disabled={loading || value.completedChunks === 0} aria-describedby={`shelf-${value.id}-${value.revision}`}>保存音声を読む</Button><details className="bookshelf-book-details"><summary>名前を変更</summary><TitleEditor title={value.title} onRename={title => rename(value, title)} /></details></div>
+        <div className="bookshelf-book-content"><h2 id={`shelf-${value.id}-${value.revision}`} title={value.title}>{value.title}</h2><BookReadingProgress book={value} incomplete={value.completedChunks < value.totalChunks} catalogStatus={catalogStatus} /></div>
+        <div className="bookshelf-book-actions"><Button variant="light" onClick={() => void open(value)} disabled={loading || value.completedChunks === 0} aria-label="保存音声を読む" aria-describedby={`shelf-${value.id}-${value.revision}`}>読む</Button><Button variant="subtle" className="bookshelf-book-menu" aria-label="名前を変更" aria-describedby={`shelf-${value.id}-${value.revision}`} onClick={() => setRenamingBook(value)}><span aria-hidden="true">•••</span></Button></div>
       </article></li>)}</Bookshelf>}
+      <Modal opened={Boolean(renamingBook)} onClose={() => setRenamingBook(undefined)} title="名前を変更" centered>{renamingBook && <TitleEditor key={`${renamingBook.id}:${renamingBook.revision}`} title={renamingBook.title} onRename={title => rename(renamingBook, title)} />}</Modal>
     </main>
   </div>;
 }

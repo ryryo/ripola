@@ -59,3 +59,15 @@ test('pace choice persists independently of speeds; old or unknown choices keep 
     assert.equal(readPreferences(local).audioRate, '4');
   }
 });
+
+test('fullscreen progress defaults to visible, persists hiding and returns on display reset', () => {
+  const local = storage();
+  assert.equal(readPreferences(local).settings.fullscreenProgress, true);
+  writePreferences({ settings: { ...DEFAULT_SETTINGS, fullscreenProgress: false, ruby: false } }, local);
+  assert.equal(readPreferences(local).settings.fullscreenProgress, false);
+  assert.equal(readPreferences(local).settings.ruby, false);
+  assert.equal(resetDisplaySettings(readPreferences(local).settings).fullscreenProgress, true);
+  for (const fullscreenProgress of [undefined, null, 'false', 0]) {
+    assert.equal(normalizeSettings({ fullscreenProgress }).fullscreenProgress, true);
+  }
+});

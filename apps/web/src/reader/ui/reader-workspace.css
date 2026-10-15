@@ -1,14 +1,7 @@
 .reader-display-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin: 18px 0 14px; }
 .reader-display-toolbar .reading-mode-controls { margin: 0; gap: 2px; padding: 3px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius-control); }
 .reader-display-toolbar .reading-mode-controls button { min-height: 40px; font-size: 13px; }
-.reader-display-tools { display: flex; align-items: center; gap: 16px; }
-.reader-display-tools > button { min-height: 44px; }
-.reader-display-tools .mantine-Switch-label { font-size: 12px; }
-.reader-text-size { display: flex; align-items: center; gap: 2px; border: 1px solid var(--line); border-radius: var(--radius-control); background: var(--panel); }
-.reader-text-size button { width: 40px; min-height: 42px; border: 0; border-radius: var(--radius-control); background: transparent; color: var(--ink); cursor: pointer; }
-.reader-text-size button:hover:enabled { background: var(--accent-soft); }
-.reader-text-size button:disabled { opacity: .4; cursor: default; }
-.reader-text-size > span { min-width: 24px; text-align: center; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.reader-display-toolbar > button { min-height: 44px; }
 .reader-book-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; margin: 0 0 18px; }
 .reader-book-heading h1 { margin: 8px 0 0; font-family: var(--reading-font); font-weight: 500; font-size: clamp(22px, 2.5vw, 30px); line-height: 1.65; overflow-wrap: anywhere; }
 .reader-book-heading .eyebrow { font-size: 11px; letter-spacing: .08em; }
@@ -28,7 +21,6 @@
 .reader-player-secondary { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; border-top: 1px solid var(--line); margin-top: 14px; padding-top: 10px; }
 .reader-player-secondary button { min-height: 44px; font-size: 12px; }
 .reader-player-secondary > div { min-width: 0; }
-.reader-step-navigation { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
 .reader-step-actions { display: flex; align-items: center; gap: 4px; }
 .reader-step-actions > span { margin-right: 4px; font-size: 12px; color: var(--muted); white-space: nowrap; }
 .reader-player .reading-progress { margin: 0 0 18px; }
@@ -45,6 +37,11 @@
 .reader-book-panel .shortcut-help { margin: 0; }
 .audio-reader > main { padding-top: 24px; }
 .audio-reader .audio-stage { margin: 0; }
+.audio-playback-status { display: inline-flex; align-items: center; gap: 8px; }
+.audio-playback-status .mantine-Loader-root { flex-shrink: 0; }
+.audio-stage[data-buffering='true'] .audio-playback-status { font-size: 13px; color: var(--ink); }
+.fullscreen-reader[data-fullscreen='true'][data-playing='true'] .audio-stage[data-buffering='true'] .stage-topline { visibility: visible; }
+.fullscreen-reader[data-fullscreen='true'] .audio-stage[data-buffering='true'] .audio-playback-status { max-width: 100%; }
 .fullscreen-reader .phrase-container { flex: 1 1 0; min-height: 0; }
 .audio-reader .fullscreen-reader[data-fullscreen='false'] .audio-stage:not(.guide-mode),
 .is-reading .fullscreen-reader[data-fullscreen='false'] .reader-stage:not(.guide-mode),
@@ -78,9 +75,8 @@
   .is-reading .reader-book-heading .document-heading h1 { font-size: 20px; }
   .reader-book-actions { align-self: flex-end; max-width: 100%; flex-wrap: wrap; justify-content: flex-end; }
   .reader-display-toolbar { gap: 8px; margin-top: 12px; }
-  .reader-display-toolbar .reading-mode-controls { width: 100%; }
+  .reader-display-toolbar .reading-mode-controls { flex: 1; min-width: 0; }
   .reader-display-toolbar .reading-mode-controls button { flex: 1; }
-  .reader-display-tools { width: 100%; justify-content: space-between; gap: 8px; }
   .reader-player { margin-top: 12px; padding: 12px 0 max(12px, env(safe-area-inset-bottom)); }
   .reader-player-main { grid-template-columns: minmax(0, 1fr); gap: 12px; }
   .reader-player-transport { width: 100%; grid-template-columns: minmax(0, 1fr) 100px minmax(0, 1fr); }

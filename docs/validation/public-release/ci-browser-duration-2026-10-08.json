@@ -1,0 +1,450 @@
+{
+  "date": "2026-10-08",
+  "timezone": "Asia/Tokyo",
+  "baselineRun": 37726821897,
+  "baselineUrl": "https://github.com/ryryo/ripola/actions/runs/37726821897",
+  "baselineBrowserSeconds": 556,
+  "baselinePassed": 128,
+  "baselineSkipped": 4,
+  "workers": 2,
+  "fullyParallel": false,
+  "retryMarkersFound": false,
+  "serverStartupToFirstRunningSummarySecondsApprox": 4,
+  "serialTailAfterOtherFilesFinishedSeconds": 234,
+  "wrappingObservationMinimumSeconds": 144,
+  "baselineFilesAndCases": {
+    "run": 37726821897,
+    "completed": 128,
+    "durationSumSeconds": 850.2,
+    "files": [
+      {
+        "file": "wrapping.spec.ts",
+        "count": 6,
+        "sumSeconds": 235.9
+      },
+      {
+        "file": "generation.spec.ts",
+        "count": 34,
+        "sumSeconds": 130.9
+      },
+      {
+        "file": "creation-options.spec.ts",
+        "count": 16,
+        "sumSeconds": 97.8
+      },
+      {
+        "file": "reading-options.spec.ts",
+        "count": 16,
+        "sumSeconds": 78.5
+      },
+      {
+        "file": "audio-alignment.spec.ts",
+        "count": 16,
+        "sumSeconds": 77.4
+      },
+      {
+        "file": "reader.spec.ts",
+        "count": 16,
+        "sumSeconds": 64.6
+      },
+      {
+        "file": "audio-presentation.spec.ts",
+        "count": 2,
+        "sumSeconds": 48.2
+      },
+      {
+        "file": "aozora.spec.ts",
+        "count": 4,
+        "sumSeconds": 39.2
+      },
+      {
+        "file": "progress.spec.ts",
+        "count": 5,
+        "sumSeconds": 21.8
+      },
+      {
+        "file": "responsive.spec.ts",
+        "count": 6,
+        "sumSeconds": 19.9
+      },
+      {
+        "file": "titles.spec.ts",
+        "count": 4,
+        "sumSeconds": 17.8
+      },
+      {
+        "file": "guide.spec.ts",
+        "count": 2,
+        "sumSeconds": 16.7
+      },
+      {
+        "file": "local-security.spec.ts",
+        "count": 1,
+        "sumSeconds": 1.5
+      }
+    ],
+    "slowest": [
+      {
+        "project": "mobile-chromium",
+        "file": "wrapping.spec.ts",
+        "seconds": 52.0,
+        "test": "  ✓  131 [mobile-chromium] › apps/web/tests/browser/wrapping.spec.ts:4:2 › silent wrapping 844x390: fonts, sizes, ruby and real playback (52.0s)"
+      },
+      {
+        "project": "mobile-chromium",
+        "file": "wrapping.spec.ts",
+        "seconds": 43.9,
+        "test": "  ✓  127 [mobile-chromium] › apps/web/tests/browser/wrapping.spec.ts:4:2 › silent wrapping 320x740: fonts, sizes, ruby and real playback (43.9s)"
+      },
+      {
+        "project": "mobile-chromium",
+        "file": "wrapping.spec.ts",
+        "seconds": 43.8,
+        "test": "  ✓  129 [mobile-chromium] › apps/web/tests/browser/wrapping.spec.ts:4:2 › silent wrapping 390x844: fonts, sizes, ruby and real playback (43.8s)"
+      },
+      {
+        "project": "mobile-chromium",
+        "file": "wrapping.spec.ts",
+        "seconds": 32.4,
+        "test": "  ✓  132 [mobile-chromium] › apps/web/tests/browser/wrapping.spec.ts:12:2 › audio wrapping 844x390: fonts, ruby and media playback (32.4s)"
+      },
+      {
+        "project": "mobile-chromium",
+        "file": "wrapping.spec.ts",
+        "seconds": 32.2,
+        "test": "  ✓  128 [mobile-chromium] › apps/web/tests/browser/wrapping.spec.ts:12:2 › audio wrapping 320x740: fonts, ruby and media playback (32.2s)"
+      },
+      {
+        "project": "mobile-chromium",
+        "file": "wrapping.spec.ts",
+        "seconds": 31.6,
+        "test": "  ✓  130 [mobile-chromium] › apps/web/tests/browser/wrapping.spec.ts:12:2 › audio wrapping 390x844: fonts, ruby and media playback (31.6s)"
+      },
+      {
+        "project": "desktop-chromium",
+        "file": "audio-presentation.spec.ts",
+        "seconds": 24.9,
+        "test": "  ✓    9 [desktop-chromium] › apps/web/tests/browser/audio-presentation.spec.ts:31:1 › 新規保存を実local APIで再開・seek・有音再生し、AAC静的配布でも全区切りを検査する (24.9s)"
+      },
+      {
+        "project": "mobile-chromium",
+        "file": "audio-presentation.spec.ts",
+        "seconds": 23.3,
+        "test": "  ✓   79 [mobile-chromium] › apps/web/tests/browser/audio-presentation.spec.ts:31:1 › 新規保存を実local APIで再開・seek・有音再生し、AAC静的配布でも全区切りを検査する (23.3s)"
+      }
+    ]
+  },
+  "baselineSteps": [
+    {
+      "job": "check",
+      "step": "Set up job",
+      "durationSeconds": 1,
+      "conclusion": "success"
+    },
+    {
+      "job": "check",
+      "step": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+      "durationSeconds": 1,
+      "conclusion": "success"
+    },
+    {
+      "job": "check",
+      "step": "Run actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38",
+      "durationSeconds": 6,
+      "conclusion": "success"
+    },
+    {
+      "job": "check",
+      "step": "Run pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320",
+      "durationSeconds": 2,
+      "conclusion": "success"
+    },
+    {
+      "job": "check",
+      "step": "Media tools",
+      "durationSeconds": 25,
+      "conclusion": "success"
+    },
+    {
+      "job": "check",
+      "step": "Run pnpm install --frozen-lockfile",
+      "durationSeconds": 5,
+      "conclusion": "success"
+    },
+    {
+      "job": "check",
+      "step": "Run pnpm check",
+      "durationSeconds": 42,
+      "conclusion": "success"
+    },
+    {
+      "job": "check",
+      "step": "Python calculation tests",
+      "durationSeconds": 4,
+      "conclusion": "success"
+    },
+    {
+      "job": "check",
+      "step": "Run pnpm build:worker",
+      "durationSeconds": 3,
+      "conclusion": "success"
+    },
+    {
+      "job": "check",
+      "step": "Run pnpm build:pages",
+      "durationSeconds": 4,
+      "conclusion": "success"
+    },
+    {
+      "job": "check",
+      "step": "Run pnpm audit:audio --distribution dist/distribution/worker",
+      "durationSeconds": 0,
+      "conclusion": "success"
+    },
+    {
+      "job": "check",
+      "step": "Run pnpm audit:audio --distribution dist/distribution/pages",
+      "durationSeconds": 1,
+      "conclusion": "success"
+    },
+    {
+      "job": "check",
+      "step": "Source package",
+      "durationSeconds": 2,
+      "conclusion": "success"
+    },
+    {
+      "job": "check",
+      "step": "Run pnpm test:e2e",
+      "durationSeconds": 556,
+      "conclusion": "success"
+    },
+    {
+      "job": "check",
+      "step": "Configure Pages",
+      "durationSeconds": 0,
+      "conclusion": "success"
+    },
+    {
+      "job": "check",
+      "step": "Upload audited public demo",
+      "durationSeconds": 2,
+      "conclusion": "success"
+    },
+    {
+      "job": "check",
+      "step": "Post Run pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320",
+      "durationSeconds": 0,
+      "conclusion": "success"
+    },
+    {
+      "job": "check",
+      "step": "Post Run actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38",
+      "durationSeconds": 0,
+      "conclusion": "success"
+    },
+    {
+      "job": "check",
+      "step": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+      "durationSeconds": 0,
+      "conclusion": "success"
+    },
+    {
+      "job": "check",
+      "step": "Complete job",
+      "durationSeconds": 0,
+      "conclusion": "success"
+    },
+    {
+      "job": "deploy-pages",
+      "step": "Set up job",
+      "durationSeconds": 1,
+      "conclusion": "success"
+    },
+    {
+      "job": "deploy-pages",
+      "step": "Deploy audited public demo",
+      "durationSeconds": 7,
+      "conclusion": "success"
+    },
+    {
+      "job": "deploy-pages",
+      "step": "Complete job",
+      "durationSeconds": 0,
+      "conclusion": "success"
+    }
+  ],
+  "currentRun": 37740367548,
+  "currentBrowserSeconds": 622,
+  "currentFilesAndCases": {
+    "completed": 128,
+    "durationSumSeconds": 973.3,
+    "files": [
+      {
+        "file": "wrapping.spec.ts",
+        "count": 6,
+        "sumSeconds": 243.7
+      },
+      {
+        "file": "generation.spec.ts",
+        "count": 34,
+        "sumSeconds": 156.7
+      },
+      {
+        "file": "creation-options.spec.ts",
+        "count": 16,
+        "sumSeconds": 119.7
+      },
+      {
+        "file": "reading-options.spec.ts",
+        "count": 16,
+        "sumSeconds": 95.0
+      },
+      {
+        "file": "audio-alignment.spec.ts",
+        "count": 16,
+        "sumSeconds": 87.6
+      },
+      {
+        "file": "reader.spec.ts",
+        "count": 16,
+        "sumSeconds": 78.1
+      },
+      {
+        "file": "audio-presentation.spec.ts",
+        "count": 2,
+        "sumSeconds": 55.5
+      },
+      {
+        "file": "aozora.spec.ts",
+        "count": 4,
+        "sumSeconds": 47.4
+      },
+      {
+        "file": "progress.spec.ts",
+        "count": 5,
+        "sumSeconds": 25.4
+      },
+      {
+        "file": "responsive.spec.ts",
+        "count": 6,
+        "sumSeconds": 22.6
+      },
+      {
+        "file": "titles.spec.ts",
+        "count": 4,
+        "sumSeconds": 20.2
+      },
+      {
+        "file": "guide.spec.ts",
+        "count": 2,
+        "sumSeconds": 19.4
+      },
+      {
+        "file": "local-security.spec.ts",
+        "count": 1,
+        "sumSeconds": 2.0
+      }
+    ],
+    "slowest": [
+      {
+        "project": "mobile-chromium",
+        "file": "wrapping.spec.ts",
+        "seconds": 53.1,
+        "test": "  ✓  131 [mobile-chromium] › apps/web/tests/browser/wrapping.spec.ts:4:2 › silent wrapping 844x390: fonts, sizes, ruby and real playback (53.1s)"
+      },
+      {
+        "project": "mobile-chromium",
+        "file": "wrapping.spec.ts",
+        "seconds": 45.4,
+        "test": "  ✓  129 [mobile-chromium] › apps/web/tests/browser/wrapping.spec.ts:4:2 › silent wrapping 390x844: fonts, sizes, ruby and real playback (45.4s)"
+      },
+      {
+        "project": "mobile-chromium",
+        "file": "wrapping.spec.ts",
+        "seconds": 45.3,
+        "test": "  ✓  127 [mobile-chromium] › apps/web/tests/browser/wrapping.spec.ts:4:2 › silent wrapping 320x740: fonts, sizes, ruby and real playback (45.3s)"
+      },
+      {
+        "project": "mobile-chromium",
+        "file": "wrapping.spec.ts",
+        "seconds": 33.7,
+        "test": "  ✓  132 [mobile-chromium] › apps/web/tests/browser/wrapping.spec.ts:12:2 › audio wrapping 844x390: fonts, ruby and media playback (33.7s)"
+      },
+      {
+        "project": "mobile-chromium",
+        "file": "wrapping.spec.ts",
+        "seconds": 33.5,
+        "test": "  ✓  130 [mobile-chromium] › apps/web/tests/browser/wrapping.spec.ts:12:2 › audio wrapping 390x844: fonts, ruby and media playback (33.5s)"
+      },
+      {
+        "project": "mobile-chromium",
+        "file": "wrapping.spec.ts",
+        "seconds": 32.7,
+        "test": "  ✓  128 [mobile-chromium] › apps/web/tests/browser/wrapping.spec.ts:12:2 › audio wrapping 320x740: fonts, ruby and media playback (32.7s)"
+      },
+      {
+        "project": "desktop-chromium",
+        "file": "audio-presentation.spec.ts",
+        "seconds": 28.8,
+        "test": "  ✓    9 [desktop-chromium] › apps/web/tests/browser/audio-presentation.spec.ts:31:1 › 新規保存を実local APIで再開・seek・有音再生し、AAC静的配布でも全区切りを検査する (28.8s)"
+      },
+      {
+        "project": "mobile-chromium",
+        "file": "audio-presentation.spec.ts",
+        "seconds": 26.7,
+        "test": "  ✓   79 [mobile-chromium] › apps/web/tests/browser/audio-presentation.spec.ts:31:1 › 新規保存を実local APIで再開・seek・有音再生し、AAC静的配布でも全区切りを検査する (26.7s)"
+      },
+      {
+        "project": "desktop-chromium",
+        "file": "aozora.spec.ts",
+        "seconds": 19.7,
+        "test": "  ✓    1 [desktop-chromium] › apps/web/tests/browser/aozora.spec.ts:3:1 › 青空文庫全文のルビ・仮想文一覧・章移動・保存設定 (19.7s)"
+      },
+      {
+        "project": "mobile-chromium",
+        "file": "aozora.spec.ts",
+        "seconds": 16.2,
+        "test": "  ✓   71 [mobile-chromium] › apps/web/tests/browser/aozora.spec.ts:3:1 › 青空文庫全文のルビ・仮想文一覧・章移動・保存設定 (16.2s)"
+      },
+      {
+        "project": "desktop-chromium",
+        "file": "reading-options.spec.ts",
+        "seconds": 14.0,
+        "test": "  ✓   49 [desktop-chromium] › apps/web/tests/browser/reading-options.spec.ts:18:1 › optional fonts load from the same origin only, keep anchor paused and fit ruby at both sizes (14.0s)"
+      },
+      {
+        "project": "mobile-chromium",
+        "file": "reading-options.spec.ts",
+        "seconds": 13.0,
+        "test": "  ✓  110 [mobile-chromium] › apps/web/tests/browser/reading-options.spec.ts:18:1 › optional fonts load from the same origin only, keep anchor paused and fit ruby at both sizes (13.0s)"
+      },
+      {
+        "project": "desktop-chromium",
+        "file": "creation-options.spec.ts",
+        "seconds": 12.3,
+        "test": "  ✓   29 [desktop-chromium] › apps/web/tests/browser/creation-options.spec.ts:67:1 › 音声サンプルはTab・Shift+TabとEnterで3種類を直接開ける (12.3s)"
+      },
+      {
+        "project": "mobile-chromium",
+        "file": "creation-options.spec.ts",
+        "seconds": 10.9,
+        "test": "  ✓   91 [mobile-chromium] › apps/web/tests/browser/creation-options.spec.ts:37:36 › 音声サンプル voicevox は1クリックで開き、戻る・連打でも生成しない (10.9s)"
+      },
+      {
+        "project": "mobile-chromium",
+        "file": "creation-options.spec.ts",
+        "seconds": 10.9,
+        "test": "  ✓  101 [mobile-chromium] › apps/web/tests/browser/creation-options.spec.ts:67:1 › 音声サンプルはTab・Shift+TabとEnterで3種類を直接開ける (10.9s)"
+      },
+      {
+        "project": "desktop-chromium",
+        "file": "audio-alignment.spec.ts",
+        "seconds": 10.5,
+        "test": "  ✓    2 [desktop-chromium] › apps/web/tests/browser/audio-alignment.spec.ts:61:1 › 同一音声内のフレーズ・ruby・seek・速度・chunk越え・背景停止・位置復元 (10.5s)"
+      }
+    ]
+  },
+  "additionalCiRunsForInvestigation": 0,
+  "ciConfigurationChanged": false
+}

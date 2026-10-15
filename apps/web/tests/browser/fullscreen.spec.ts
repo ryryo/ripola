@@ -35,8 +35,19 @@ async function viewportSurface(page: Page) {
       expect(play!.y + play!.height).toBeLessThanOrEqual(context!.y);
     }
   } else {
+    await expect.poll(() => full.locator('.phrase').evaluate(element => {
+      const bounds = element.getBoundingClientRect();
+      return Math.abs(bounds.y + bounds.height / 2 - innerHeight / 2);
+    })).toBeLessThan(.5);
     const phrase = await full.locator('.phrase-container').boundingBox();
     expect(play!.y + play!.height / 2).toBeCloseTo(phrase!.y + phrase!.height / 2, 0);
+    expect(phrase!.y + phrase!.height / 2).toBeCloseTo(bounds.viewportHeight / 2, 0);
+    const body = await full.locator('.phrase').boundingBox();
+    expect(body!.y + body!.height / 2).toBeCloseTo(bounds.viewportHeight / 2, 0);
+    const footer = await full.locator('.fullscreen-footer').boundingBox();
+    const context = await full.getByTestId('stopped-context').boundingBox();
+    if (context) expect(context.y + context.height).toBeLessThanOrEqual(body!.y);
+    expect(body!.y + body!.height).toBeLessThanOrEqual(footer!.y);
   }
   return full;
 }
@@ -135,7 +146,7 @@ test('screen wake lock is released at silent completion and respects an OS relea
   await expect.poll(() => page.evaluate(() => window.testWakeLock.held)).toBe(0);
 });
 
-test('fullscreen expands the text surface, isolates playback, reveals only seek on hover and restores focus', async ({ page }, info) => {
+test('fullscreen expands the text surface, isolates playback, keeps progress visible and restores focus', async ({ page }, info) => {
   await read(page);
   const centerPlay = page.getByRole('button', { name: '再生（画面中央）', exact: true });
   await expect(centerPlay).toHaveCount(0);
@@ -182,7 +193,7 @@ test('fullscreen expands the text surface, isolates playback, reveals only seek 
   await expect(full.locator('.guide-top')).not.toHaveCSS('opacity', '0');
   await expect(full.locator('.guide-bottom')).not.toHaveCSS('opacity', '0');
   await expect(full.getByTestId('stopped-context')).toBeHidden();
-  await expect(full.locator('.fullscreen-seek')).toHaveCSS('opacity', '0');
+  await expect(full.locator('.fullscreen-seek')).toBeVisible();
   await expect(full.locator('.fullscreen-actions')).toBeHidden();
   await expect(full.getByRole('button', { name: '全文表示', exact: true })).toHaveCount(0);
   await expect(page.getByRole('button', { name: '原文', exact: true })).toHaveCount(0);
@@ -194,7 +205,7 @@ test('fullscreen expands the text surface, isolates playback, reveals only seek 
     const after = await full.getByTestId('current-phrase').boundingBox();
     expect(after!.y).toBeCloseTo(before!.y, 0);
     await page.mouse.move(100, 100);
-    await expect(full.locator('.fullscreen-seek')).toHaveCSS('opacity', '0');
+    await expect(full.locator('.fullscreen-seek')).toBeVisible();
   }
   await full.getByTestId('current-phrase').click();
   await expect(full).toHaveAttribute('data-playing', 'false');
@@ -248,12 +259,21 @@ test('fullscreen falls back when denied, traps keyboard focus, supports Guide an
   await viewportSurface(page);
   await page.keyboard.press('Escape');
   await page.getByRole('button', { name: 'フレーズ表示', exact: true }).click();
-  await page.getByRole('button', { name: '全画面で読む', exact: true }).click();
-  await viewportSurface(page);
-  const body = await full.getByTestId('current-phrase').boundingBox();
-  const context = await full.getByTestId('stopped-context').boundingBox();
-  expect(body!.y + body!.height).toBeLessThan(context!.y);
-  await page.keyboard.press('Escape');
+  for (const size of [{ width: 568, height: 320 }, { width: 667, height: 375 }, { width: 844, height: 390 }, { width: 320, height: 568 }, { width: 390, height: 844 }]) {
+    await page.setViewportSize(size);
+    await page.getByRole('button', { name: '全画面で読む', exact: true }).click();
+    await viewportSurface(page);
+    const frame = await full.locator('.phrase-container').boundingBox();
+    await full.getByRole('button', { name: '再生', exact: true }).click();
+    await expect(full).toHaveAttribute('data-playing', 'true');
+    const playingFrame = await full.locator('.phrase-container').boundingBox();
+    expect(playingFrame!.y).toBeCloseTo(frame!.y, 0);
+    expect(playingFrame!.height).toBeCloseTo(frame!.height, 0);
+    await page.keyboard.press('Space');
+    await expect(full).toHaveAttribute('data-playing', 'false');
+    await viewportSurface(page);
+    await page.keyboard.press('Escape');
+  }
 });
 test('display and silent speed persist across reload; reset keeps speed and saved reading position', async ({ page }) => {
   await read(page);
@@ -262,9 +282,10 @@ test('display and silent speed persist across reload; reset keeps speed and save
   const phrase = await page.getByTestId('current-phrase').innerText();
   await page.getByRole('button', { name: '表示設定', exact: true }).click();
   await page.getByLabel('文字サイズ', { exact: true }).fill('72');
+  await page.getByLabel('ルビを表示', { exact: true }).uncheck();
+  await page.getByLabel('全画面で進行バーを表示', { exact: true }).uncheck();
   await page.getByRole('button', { name: '閉じる', exact: true }).click();
   await chooseTheme(page, 'ダーク');
-  await page.getByLabel('ルビを表示', { exact: true }).uncheck();
   await page.getByRole('button', { name: '表示設定', exact: true }).click();
   await page.getByLabel('まとめる', { exact: true }).selectOption('8');
   await page.getByRole('button', { name: '閉じる', exact: true }).click();
@@ -273,15 +294,22 @@ test('display and silent speed persist across reload; reset keeps speed and save
   await page.reload();
   await page.getByRole('button', { name: '続きから開く', exact: true }).click();
   await expect(page.getByLabel('読む速さ（字/分）', { exact: true })).toHaveValue('900');
+  await page.getByRole('button', { name: '全画面で読む', exact: true }).click();
+  await expect(page.locator('.fullscreen-seek')).toBeHidden();
+  await expect(page.locator('.fullscreen-seek')).toHaveAttribute('inert', '');
+  await page.keyboard.press('Escape');
   await page.getByRole('button', { name: '表示設定', exact: true }).click();
   await expect(page.getByLabel('文字サイズ', { exact: true })).toHaveValue('72');
   await expect(page.locator('html')).toHaveAttribute('data-mantine-color-scheme', 'dark');
   await expect(page.getByLabel('まとめる', { exact: true })).toHaveValue('8');
+  await expect(page.getByLabel('ルビを表示', { exact: true })).not.toBeChecked();
+  await expect(page.getByLabel('全画面で進行バーを表示', { exact: true })).not.toBeChecked();
   await page.getByRole('button', { name: '表示設定をリセット', exact: true }).click();
   await expect(page.getByLabel('文字サイズ', { exact: true })).toHaveValue('56');
   await expect(page.locator('html')).toHaveAttribute('data-mantine-color-scheme', 'dark');
-  await page.getByRole('button', { name: '閉じる', exact: true }).click();
   await expect(page.getByLabel('ルビを表示', { exact: true })).toBeChecked();
+  await expect(page.getByLabel('全画面で進行バーを表示', { exact: true })).toBeChecked();
+  await page.getByRole('button', { name: '閉じる', exact: true }).click();
   await expect(page.getByTestId('current-phrase')).toHaveText(phrase);
   await expect(page.getByLabel('読む速さ（字/分）', { exact: true })).toHaveValue('900');
   await page.reload(); await page.getByRole('button', { name: '続きから開く', exact: true }).click();

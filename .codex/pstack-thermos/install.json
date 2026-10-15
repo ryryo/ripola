@@ -1,0 +1,38 @@
+{
+  "schema": "pstack-thermos-install-v1",
+  "source": "/Users/ryryo/dev/dot-claude-dev/.codex/skills/dev/pstack-thermos",
+  "entries": {
+    "skills/pstack-thermos": {
+      "kind": "symlink",
+      "target": "/Users/ryryo/dev/dot-claude-dev/.codex/skills/dev/pstack-thermos"
+    },
+    "agents/poteto-agent.toml": {
+      "kind": "file",
+      "sha256": "0b9b597e03de1dde1049a8fbb137373233c6188b7c999404bdf5e76b2bec1860"
+    },
+    "agents/comment-sicko.toml": {
+      "kind": "file",
+      "sha256": "e2b1f18252e51dbfa42239318d1db3b27a0c1dec5efcf442a9dd014dc7218255"
+    },
+    "agents/pstack-skeptic.toml": {
+      "kind": "file",
+      "sha256": "3a9f5c08cbec70b9c91799924468e8cc0866c6ba664211360cff2bea9926ed20"
+    },
+    "agents/pstack-architect.toml": {
+      "kind": "file",
+      "sha256": "c12bd08a22739015e4401850909a8f1f46133483d89bfc2c70c3fd76c5f3b482"
+    },
+    "agents/pstack-minimalist.toml": {
+      "kind": "file",
+      "sha256": "5d4b038a405068ae2744398eec3698cae3f16662c50856aa7e8974c5f646a1d8"
+    },
+    "agents/thermos-correctness.toml": {
+      "kind": "file",
+      "sha256": "6c88debccbc3ccad26947fa536669c1796a302c432acb43b49ea143d866beb19"
+    },
+    "agents/thermos-quality.toml": {
+      "kind": "file",
+      "sha256": "e39d65a90b3fa451ebd1d5bd4029538bdcd524e772b04e9d1dd1fe21ddbbc30d"
+    }
+  }
+}

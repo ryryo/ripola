@@ -66,7 +66,7 @@ test('同一音声内のフレーズ・ruby・seek・速度・chunk越え・背�
   await expect(page.getByTestId('audio-phrase')).toHaveText('私は');
   await page.locator('audio').evaluate(element => { (element as HTMLAudioElement & { uiIdentity?: string }).uiIdentity = 'same-media-node'; });
   const source = await page.locator('audio').getAttribute('src');
-  await page.getByRole('button', { name: '一区切り進む', exact: true }).click();
+  await position.fill('2');
   await expect(page.getByTestId('audio-phrase')).toHaveAttribute('data-unit-id', 'u1');
   await expect(page.locator('[data-testid="audio-phrase"] rt')).toHaveText('としょかん');
   expect(await page.locator('audio').getAttribute('src')).toBe(source);
@@ -163,10 +163,10 @@ for (const reason of ['low-score', 'silence', 'reading-mismatch'] as const) {
     await expect(page.getByTestId('audio-phrase')).toHaveText('私は');
     await expect(page.getByTestId('audio-sentence')).toHaveAttribute('data-method', 'estimated');
     await expect(page.getByTestId('audio-sentence')).not.toHaveAttribute('data-score');
-    await page.getByRole('button', { name: '一区切り進む', exact: true }).click();
+    await page.getByRole('slider', { name: '音声の再生位置', exact: true }).fill('2');
     await expect(page.getByTestId('audio-phrase')).toHaveAttribute('data-unit-id', 'u1');
     await expect(page.locator('[data-testid="audio-phrase"] rt')).toHaveText('としょかん');
-    await page.getByRole('button', { name: '一区切り進む', exact: true }).click();
+    await page.getByRole('slider', { name: '音声の再生位置', exact: true }).fill('4.2');
     await expect(page.getByTestId('audio-phrase')).toHaveAttribute('data-unit-id', 'u2');
     await page.getByRole('slider', { name: '音声の再生位置', exact: true }).fill('8');
     await expect(page.getByTestId('audio-phrase')).toHaveAttribute('data-unit-id', 'u3');
@@ -208,13 +208,17 @@ test('音声の上下ガイドはrubyと大きな文字にも重ならず、音�
     await position.fill('2');
     await page.getByTestId('audio-sentence').evaluate((element, size) => { element.style.fontSize = `${size}px`; }, fontSize);
     for (const ruby of [true, false]) {
+      await page.getByRole('button', { name: '表示設定', exact: true }).click();
       await page.getByRole('switch', { name: 'ルビを表示', exact: true }).setChecked(ruby);
+      await page.getByRole('button', { name: '閉じる', exact: true }).click();
       const paused = await inspectGuides(page, '[data-testid="audio-stage"]');
       expect(paused.guides).toBe(2); expect(paused.overlap, JSON.stringify(paused)).toBe(false); expect(paused.minimumGap).toBeGreaterThan(2);
       expect(paused.ruby).toBe(ruby ? 1 : 0);
     }
   }
+  await page.getByRole('button', { name: '表示設定', exact: true }).click();
   await page.getByRole('switch', { name: 'ルビを表示', exact: true }).setChecked(true);
+  await page.getByRole('button', { name: '閉じる', exact: true }).click();
   await position.fill('3.4');
   await page.getByRole('button', { name: '再生', exact: true }).click();
   const playing = await inspectGuides(page, '[data-testid="audio-stage"]', 700);
@@ -223,9 +227,11 @@ test('音声の上下ガイドはrubyと大きな文字にも重ならず、音�
 });
 
 test('切替commit直後の古いframeも新しい音声の時計を使い、進捗が逆行しない', async ({ page }) => {
+  type ClockSample = { position: number; local: number; ready: number; generation: number };
+  type ClockState = Window & { clockSamples?: ClockSample[]; capturedFrames?: number; flushedFrames?: number };
   await page.addInitScript(() => {
-    const state = window as Window & { clockSamples?: Array<{ position: number; local: number; ready: number; source: string }>; flushedFrames?: number };
-    state.clockSamples = []; state.flushedFrames = 0;
+    const state = window as ClockState;
+    state.clockSamples = []; state.capturedFrames = 0; state.flushedFrames = 0;
     const nativeFrame = requestAnimationFrame.bind(window); const nativeCancel = cancelAnimationFrame.bind(window);
     const pending = new Map<number, FrameRequestCallback>();
     window.requestAnimationFrame = callback => {
@@ -233,34 +239,63 @@ test('切替commit直後の古いframeも新しい音声の時計を使い、進
     };
     window.cancelAnimationFrame = id => { pending.delete(id); nativeCancel(id); };
     let lastMedia: HTMLAudioElement | null = null;
-    // Reproduce a frame already queued when React swaps media, before passive
-    // effect cleanup. Media time remains real; no progress value is mocked.
+    const generations = new WeakMap<HTMLAudioElement, number>();
+    let nextGeneration = 0;
+    const generation = (media: HTMLAudioElement) => {
+      if (!generations.has(media)) generations.set(media, nextGeneration++);
+      return generations.get(media)!;
+    };
+    let queuedAtEnd: Array<[number, FrameRequestCallback]> = [];
+    // Hold frames before React handles ended, then inject their late delivery
+    // after the replacement commits. Cleanup cannot erase the captured race.
+    document.addEventListener('ended', event => {
+      const media = document.querySelector('audio');
+      if (!media || event.target !== media || generation(media) !== 0) return;
+      lastMedia = media;
+      queuedAtEnd = [...pending]; state.capturedFrames = queuedAtEnd.length;
+      for (const [id] of queuedAtEnd) { pending.delete(id); nativeCancel(id); }
+    }, true);
     document.addEventListener('DOMContentLoaded', () => {
       new MutationObserver(() => {
         const media = document.querySelector('audio');
-        if (media && lastMedia && media !== lastMedia && media.readyState === 0) {
-          for (const [id, callback] of [...pending]) { pending.delete(id); nativeCancel(id); state.flushedFrames!++; callback(performance.now()); }
+        if (media && lastMedia && media !== lastMedia) {
+          const queued = queuedAtEnd; queuedAtEnd = [];
+          for (const [, callback] of queued) { state.flushedFrames!++; callback(performance.now()); }
         }
-        if (media) lastMedia = media;
+        if (media) { generation(media); lastMedia = media; }
       }).observe(document.documentElement, { childList: true, subtree: true });
       const sample = () => {
         const media = document.querySelector('audio'); const slider = document.querySelector<HTMLInputElement>('#audio-position');
-        if (media && slider) state.clockSamples!.push({ position: Number(slider.value), local: media.currentTime, ready: media.readyState, source: media.src });
+        if (media && slider) state.clockSamples!.push({ position: Number(slider.value), local: media.currentTime, ready: media.readyState, generation: generation(media) });
         nativeFrame(sample);
       }; nativeFrame(sample);
     });
   });
   await installAudioFixture(page, 'low-score');
-  await page.getByRole('button', { name: '再生', exact: true }).click();
+  const firstSource = await page.locator('audio').evaluate((media: HTMLAudioElement) => media.src);
+  let releaseSecond!: () => void;
+  const secondGate = new Promise<void>(resolve => { releaseSecond = resolve; });
+  await page.route('**/media/*.mp3', async route => {
+    if (route.request().url() !== firstSource) await secondGate;
+    await route.fallback().catch(() => undefined);
+  });
+  try {
+    await page.getByRole('button', { name: '再生', exact: true }).click();
+    await expect.poll(() => page.evaluate(() => (window as ClockState).flushedFrames!)).toBeGreaterThan(0);
+    await expect.poll(() => page.evaluate(() => (window as ClockState).clockSamples!.filter(value => value.generation === 1 && value.ready === 0).length)).toBeGreaterThan(0);
+  } finally { releaseSecond(); }
   await expect(page.getByRole('button', { name: 'もう一度', exact: true })).toBeVisible();
   const observation = await page.evaluate(() => {
-    const state = window as Window & { clockSamples?: Array<{ position: number; local: number; ready: number; source: string }>; flushedFrames?: number };
-    return { samples: state.clockSamples!, flushed: state.flushedFrames! };
+    const state = window as ClockState;
+    return { samples: state.clockSamples!, captured: state.capturedFrames!, flushed: state.flushedFrames! };
   });
+  expect(observation.captured).toBeGreaterThan(0);
   expect(observation.flushed).toBeGreaterThan(0);
   expect(observation.samples.length).toBeGreaterThan(80);
   for (let i = 1; i < observation.samples.length; i++) expect(observation.samples[i].position, JSON.stringify(observation.samples.slice(i - 1, i + 1))).toBeGreaterThanOrEqual(observation.samples[i - 1].position);
-  for (const value of observation.samples.filter(value => value.source.includes('fixture-1') && value.ready === 0)) expect(value.position).toBe(4);
+  const pendingMetadata = observation.samples.filter(value => value.generation === 1 && value.ready === 0);
+  expect(pendingMetadata.length).toBeGreaterThan(0);
+  for (const value of pendingMetadata) expect(value.position).toBe(4);
   const position = page.getByRole('slider', { name: '音声の再生位置', exact: true });
   await position.fill('6'); await expect(page.getByTestId('audio-phrase')).toHaveText('読む。');
   await position.fill('1.2'); await expect(position).toHaveValue('1.2');
@@ -270,7 +305,7 @@ test('切替commit直後の古いframeも新しい音声の時計を使い、進
   await expect.poll(async () => Number(await position.inputValue())).toBeGreaterThan(1.3);
   await page.getByRole('button', { name: '一時停止', exact: true }).click();
   const stopped = Number(await position.inputValue());
-  await page.getByRole('button', { name: '一区切り戻る', exact: true }).click();
+  await position.fill('0.1');
   expect(Number(await position.inputValue())).toBeLessThan(stopped);
   await page.getByRole('button', { name: '再生', exact: true }).click();
   await expect.poll(async () => Number(await position.inputValue())).toBeGreaterThan(.2);

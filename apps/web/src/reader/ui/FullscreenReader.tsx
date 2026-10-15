@@ -114,16 +114,16 @@ export function ReaderPlayButton({ playing, disabled = false, label = '再生', 
   </button>;
 }
 
-export function FullscreenReader({ fullscreen, playing, children, context, seek, speed, modes, toggle, pause, disabled = false, playLabel = '再生' }: {
+export function FullscreenReader({ fullscreen, playing, children, context, seek, speed, modes, toggle, pause, disabled = false, playLabel = '再生', showProgress = true }: {
   fullscreen: ReturnType<typeof useFullscreenReader>; playing: boolean; children: ReactNode; context?: ReactNode; seek: ReactNode; speed: ReactNode; modes: ReactNode;
-  toggle: () => void; pause: () => void; disabled?: boolean; playLabel?: string;
+  toggle: () => void; pause: () => void; disabled?: boolean; playLabel?: string; showProgress?: boolean;
 }) {
   const footerRef = useRef<HTMLDivElement>(null);
   const hasContext = Boolean(context);
   useEffect(() => {
     const element = fullscreen.containerRef.current; const footer = footerRef.current;
     if (!fullscreen.active || !element || !footer) return;
-    // Wrapped controls must leave room for the stopped context on small screens.
+    // Equal insets keep the body centered between the top context and bottom controls.
     const preview = element.querySelector<HTMLElement>(':scope > .stopped-context');
     const selector = '.guide-viewport, .phrase-container';
     let surface = element.querySelector<HTMLElement>(selector);
@@ -158,7 +158,7 @@ export function FullscreenReader({ fullscreen, playing, children, context, seek,
     {children}
     {fullscreen.active && context}
     {fullscreen.active && <div ref={footerRef} className="fullscreen-footer">
-      <div className="fullscreen-seek">{seek}</div>
+      <div className="fullscreen-seek" hidden={!showProgress} inert={!showProgress}>{seek}</div>
       <div className="fullscreen-actions" hidden={playing}>
         <Button disabled={disabled} onClick={() => { toggle(); fullscreen.containerRef.current?.focus({ preventScroll: true }); }} aria-keyshortcuts="Space">{playLabel}</Button>
         {speed}

@@ -26,7 +26,7 @@ export function countCharacters(text: string): number {
   return count;
 }
 
-function protectedSpans(text: string, ruby: RubySpan[]): Array<[number, number]> {
+export function protectedSpans(text: string, ruby: RubySpan[]): Array<[number, number]> {
   const spans: Array<[number, number]> = ruby.map((span) => [span.start, span.end]);
   // URLs are ASCII-only by design: trailing Japanese particles are never swallowed.
   const patterns = [

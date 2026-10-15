@@ -15,7 +15,7 @@ function tone(seconds = 2, frequency = 440) {
   for (let i = 0; i < frames; i++) bytes.writeInt16LE(Math.round(Math.sin(i * Math.PI * frequency / 24000) * 500), 44 + i * 2);
   return bytes;
 }
-async function fixture(page: Page, slow = false) {
+async function fixture(page: Page, slow: boolean | 'all' = false) {
   let releaseSlow!: () => void;
   const slowGate = new Promise<void>(resolve => { releaseSlow = resolve; });
   let finishSlow!: () => void;
@@ -37,7 +37,7 @@ async function fixture(page: Page, slow = false) {
   await page.route('**/media/*.mp3', async route => {
     const hash = new URL(route.request().url()).pathname.split('/').at(-1)!.split('.')[0];
     const index = media.findIndex(audio => audio.sha256 === hash); requested.push(index);
-    const delayed = slow && index === 1 && route.request().resourceType() === 'fetch';
+    const delayed = slow && index === 1 && (slow === 'all' || route.request().resourceType() === 'fetch');
     if (delayed) await slowGate;
     const response = audioResponse(media[index].bytes, new Request(route.request().url(), { headers: route.request().headers() }), 'audio/mpeg');
     await route.fulfill({ body: Buffer.from(await response.arrayBuffer()), status: response.status, headers: Object.fromEntries(response.headers) }).catch(() => undefined);
@@ -83,6 +83,34 @@ test('次音声は切替前に取得し、source順とmedia時計を保って連
   expect(evidence.requestedAt[0].seconds).toBeLessThan(2);
   const offsets = evidence.clocks.map(clock => Math.max(0, Math.round((clock.absolute - clock.local) / 2) * 2));
   expect(offsets.filter((offset, i) => i === 0 || offset !== offsets[i - 1])).toEqual([0, 2, 4]);
+});
+
+for (const fullscreen of [false, true]) test(`次音声の読込待ちを表示し、停止・再開できる（${fullscreen ? '全画面' : '通常'}）`, async ({ page }, testInfo) => {
+  const { releaseSlow, successorHash } = await fixture(page, 'all');
+  if (fullscreen) {
+    await page.evaluate(() => { Element.prototype.requestFullscreen = () => Promise.reject(new Error('test denied')); });
+    await page.getByRole('button', { name: '全画面で読む', exact: true }).click();
+  }
+  const stage = page.getByTestId('audio-stage');
+  const status = stage.getByRole('status');
+  try {
+    await page.getByRole('button', { name: '再生', exact: true }).click();
+    await expect(page.locator('audio')).toHaveAttribute('src', new RegExp(`${successorHash}\\.mp3$`));
+    await expect(status).toContainText('音声を読み込み中');
+    await expect(status).toBeVisible();
+    await expect(status.locator('.mantine-Loader-root')).toBeVisible();
+    expect(await status.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true);
+    await testInfo.attach('音声の読込待ち', { body: await page.screenshot(), contentType: 'image/png' });
+    await page.keyboard.press('Space');
+    await expect(status).toHaveText('一時停止');
+    expect(await page.locator('audio').evaluate((media: HTMLAudioElement) => media.paused)).toBe(true);
+    await page.getByRole('button', { name: '再生', exact: true }).click();
+    await expect(status).toContainText('音声を読み込み中');
+    releaseSlow();
+    await expect.poll(() => page.locator('audio').evaluate((media: HTMLAudioElement) => media.currentTime)).toBeGreaterThan(.2);
+    await expect(status).not.toContainText('読み込み中');
+    await expect(stage).toHaveAttribute('data-buffering', 'false');
+  } finally { releaseSlow(); }
 });
 
 test('slow networkの先読みはseek・停止・book離脱で取消され、遅延音声を再生しない', async ({ page }) => {
@@ -184,7 +212,7 @@ test('旧AACの静的サンプルでmedia時計・倍速・明示seekを保つ',
   expect(clock.absolute).toBeCloseTo(clock.ended ? active.endSeconds : active.startSeconds + Math.min(active.chunk.durationSeconds, clock.local), 1);
   if (clock.ended) expect(clock.local).toBeCloseTo(clock.duration, 1);
   const previous = await page.getByTestId('audio-phrase').getAttribute('data-unit-id');
-  await page.getByRole('button', { name: '一区切り進む', exact: true }).click();
+  await page.getByRole('button', { name: '一文進む', exact: true }).click();
   await expect(page.getByTestId('audio-phrase')).not.toHaveAttribute('data-unit-id', previous!);
   expect(await page.locator('audio').evaluate((media: HTMLAudioElement) => media.paused)).toBe(true);
 });

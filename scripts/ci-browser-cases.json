@@ -1229,7 +1229,7 @@
   {
     "project": "desktop-chromium",
     "file": "fullscreen.spec.ts",
-    "title": "fullscreen expands the text surface, isolates playback, reveals only seek on hover and restores focus",
+    "title": "fullscreen expands the text surface, isolates playback, keeps progress visible and restores focus",
     "lane": "related",
     "domains": [
       "layout",
@@ -1261,7 +1261,7 @@
   {
     "project": "mobile-chromium",
     "file": "fullscreen.spec.ts",
-    "title": "fullscreen expands the text surface, isolates playback, reveals only seek on hover and restores focus",
+    "title": "fullscreen expands the text surface, isolates playback, keeps progress visible and restores focus",
     "lane": "related",
     "domains": [
       "layout",
@@ -2419,6 +2419,86 @@
     "lane": "related",
     "domains": [
       "audio"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "reading-options.spec.ts",
+    "title": "single-line phrases shrink before wrapping and subdivide long natural units on mobile",
+    "lane": "related",
+    "domains": [
+      "layout",
+      "audio"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "reading-options.spec.ts",
+    "title": "single-line audio subdivisions follow media seek and rate without changing cue or file identity",
+    "lane": "related",
+    "domains": [
+      "layout",
+      "audio"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "reading-options.spec.ts",
+    "title": "single-line phrases shrink before wrapping and subdivide long natural units on mobile",
+    "lane": "related",
+    "domains": [
+      "layout",
+      "audio"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "reading-options.spec.ts",
+    "title": "single-line audio subdivisions follow media seek and rate without changing cue or file identity",
+    "lane": "related",
+    "domains": [
+      "layout",
+      "audio"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "audio-prefetch.spec.ts",
+    "title": "次音声の読込待ちを表示し、停止・再開できる（通常）",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "audio-prefetch.spec.ts",
+    "title": "次音声の読込待ちを表示し、停止・再開できる（全画面）",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "audio-prefetch.spec.ts",
+    "title": "次音声の読込待ちを表示し、停止・再開できる（通常）",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "audio-prefetch.spec.ts",
+    "title": "次音声の読込待ちを表示し、停止・再開できる（全画面）",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
     ]
   }
 ]

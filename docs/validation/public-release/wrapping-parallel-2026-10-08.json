@@ -1,0 +1,336 @@
+{
+  "baseline": {
+    "url": "https://github.com/ryryo/ripola/actions/runs/37726821897",
+    "commit": "5fc862132ae3a32dbf7d13e9e6856e9be81a054a",
+    "browserStepSeconds": 556.0,
+    "beforeFirstRunningLogSeconds": 3.871,
+    "runningToSummarySeconds": 552.185,
+    "checkJobSeconds": 658.0,
+    "beforeBrowserStepSeconds": 97.0,
+    "wrappingIndividualSumSeconds": 235.9,
+    "wrappingWallSecondsEstimatedFromRoundedLogs": 235.96,
+    "tailAfterOtherFilesSeconds": 233.9,
+    "wrappingOverlapSecondsEstimatedFromRoundedLogs": [],
+    "retryMarkersFound": false,
+    "passed": 128,
+    "skipped": 4,
+    "workers": 2,
+    "wrappingCases": [
+      {
+        "project": "mobile-chromium",
+        "file": "wrapping.spec.ts",
+        "durationSeconds": 43.9,
+        "end": "2026-10-08T04:26:04.429506+00:00",
+        "estimatedStart": "2026-10-08T04:25:20.529506+00:00"
+      },
+      {
+        "project": "mobile-chromium",
+        "file": "wrapping.spec.ts",
+        "durationSeconds": 32.2,
+        "end": "2026-10-08T04:26:36.629752+00:00",
+        "estimatedStart": "2026-10-08T04:26:04.429752+00:00"
+      },
+      {
+        "project": "mobile-chromium",
+        "file": "wrapping.spec.ts",
+        "durationSeconds": 43.8,
+        "end": "2026-10-08T04:27:20.468967+00:00",
+        "estimatedStart": "2026-10-08T04:26:36.668967+00:00"
+      },
+      {
+        "project": "mobile-chromium",
+        "file": "wrapping.spec.ts",
+        "durationSeconds": 31.6,
+        "end": "2026-10-08T04:27:52.079023+00:00",
+        "estimatedStart": "2026-10-08T04:27:20.479023+00:00"
+      },
+      {
+        "project": "mobile-chromium",
+        "file": "wrapping.spec.ts",
+        "durationSeconds": 52.0,
+        "end": "2026-10-08T04:28:44.073636+00:00",
+        "estimatedStart": "2026-10-08T04:27:52.073636+00:00"
+      },
+      {
+        "project": "mobile-chromium",
+        "file": "wrapping.spec.ts",
+        "durationSeconds": 32.4,
+        "end": "2026-10-08T04:29:16.490598+00:00",
+        "estimatedStart": "2026-10-08T04:28:44.090598+00:00"
+      }
+    ]
+  },
+  "immediatePrevious": {
+    "url": "https://github.com/ryryo/ripola/actions/runs/37740367548",
+    "commit": "e78ceb8fd6a6ffa2ccd77edf7a05c1fa9366bafe",
+    "browserStepSeconds": 622.0,
+    "beforeFirstRunningLogSeconds": 4.534,
+    "runningToSummarySeconds": 617.962,
+    "checkJobSeconds": 728.0,
+    "beforeBrowserStepSeconds": 99.0,
+    "wrappingIndividualSumSeconds": 243.7,
+    "wrappingWallSecondsEstimatedFromRoundedLogs": 243.77,
+    "tailAfterOtherFilesSeconds": 240.16,
+    "wrappingOverlapSecondsEstimatedFromRoundedLogs": [],
+    "retryMarkersFound": false,
+    "passed": 128,
+    "skipped": 4,
+    "workers": 2,
+    "wrappingCases": [
+      {
+        "project": "mobile-chromium",
+        "file": "wrapping.spec.ts",
+        "durationSeconds": 45.3,
+        "end": "2026-10-08T07:04:33.701388+00:00",
+        "estimatedStart": "2026-10-08T07:03:48.401388+00:00"
+      },
+      {
+        "project": "mobile-chromium",
+        "file": "wrapping.spec.ts",
+        "durationSeconds": 32.7,
+        "end": "2026-10-08T07:05:06.448217+00:00",
+        "estimatedStart": "2026-10-08T07:04:33.748217+00:00"
+      },
+      {
+        "project": "mobile-chromium",
+        "file": "wrapping.spec.ts",
+        "durationSeconds": 45.4,
+        "end": "2026-10-08T07:05:51.841366+00:00",
+        "estimatedStart": "2026-10-08T07:05:06.441366+00:00"
+      },
+      {
+        "project": "mobile-chromium",
+        "file": "wrapping.spec.ts",
+        "durationSeconds": 33.5,
+        "end": "2026-10-08T07:06:25.358595+00:00",
+        "estimatedStart": "2026-10-08T07:05:51.858595+00:00"
+      },
+      {
+        "project": "mobile-chromium",
+        "file": "wrapping.spec.ts",
+        "durationSeconds": 53.1,
+        "end": "2026-10-08T07:07:18.494906+00:00",
+        "estimatedStart": "2026-10-08T07:06:25.394906+00:00"
+      },
+      {
+        "project": "mobile-chromium",
+        "file": "wrapping.spec.ts",
+        "durationSeconds": 33.7,
+        "end": "2026-10-08T07:07:52.166581+00:00",
+        "estimatedStart": "2026-10-08T07:07:18.466581+00:00"
+      }
+    ]
+  },
+  "after": {
+    "url": "https://github.com/ryryo/ripola/actions/runs/37744337416",
+    "commit": "28ddb922854b6adb2399ab10c26ef475d2d03406",
+    "browserStepSeconds": 451.0,
+    "beforeFirstRunningLogSeconds": 4.754,
+    "runningToSummarySeconds": 446.882,
+    "checkJobSeconds": 587.0,
+    "beforeBrowserStepSeconds": 131.0,
+    "wrappingIndividualSumSeconds": 241.4,
+    "wrappingWallSecondsEstimatedFromRoundedLogs": 131.08,
+    "tailAfterOtherFilesSeconds": 129.66,
+    "wrappingOverlapSecondsEstimatedFromRoundedLogs": [
+      32.4,
+      11.78,
+      32.8,
+      32.5
+    ],
+    "retryMarkersFound": false,
+    "passed": 128,
+    "skipped": 4,
+    "workers": 2,
+    "wrappingCases": [
+      {
+        "project": "mobile-chromium",
+        "file": "wrapping.spec.ts",
+        "durationSeconds": 32.4,
+        "end": "2026-10-08T07:43:13.944028+00:00",
+        "estimatedStart": "2026-10-08T07:42:41.544028+00:00"
+      },
+      {
+        "project": "mobile-chromium",
+        "file": "wrapping.spec.ts",
+        "durationSeconds": 45.6,
+        "end": "2026-10-08T07:43:25.727110+00:00",
+        "estimatedStart": "2026-10-08T07:42:40.127110+00:00"
+      },
+      {
+        "project": "mobile-chromium",
+        "file": "wrapping.spec.ts",
+        "durationSeconds": 32.8,
+        "end": "2026-10-08T07:43:58.529530+00:00",
+        "estimatedStart": "2026-10-08T07:43:25.729530+00:00"
+      },
+      {
+        "project": "mobile-chromium",
+        "file": "wrapping.spec.ts",
+        "durationSeconds": 45.4,
+        "end": "2026-10-08T07:43:59.347262+00:00",
+        "estimatedStart": "2026-10-08T07:43:13.947262+00:00"
+      },
+      {
+        "project": "mobile-chromium",
+        "file": "wrapping.spec.ts",
+        "durationSeconds": 32.5,
+        "end": "2026-10-08T07:44:31.842396+00:00",
+        "estimatedStart": "2026-10-08T07:43:59.342396+00:00"
+      },
+      {
+        "project": "mobile-chromium",
+        "file": "wrapping.spec.ts",
+        "durationSeconds": 52.7,
+        "end": "2026-10-08T07:44:51.207880+00:00",
+        "estimatedStart": "2026-10-08T07:43:58.507880+00:00"
+      }
+    ]
+  },
+  "local": {
+    "passed": 6,
+    "workers": 2,
+    "uniqueOutputDirectories": 6,
+    "combinations": 72,
+    "preparationMs": 2967,
+    "testCommandMs": 134592,
+    "tests": [
+      {
+        "title": "silent wrapping 320x740: fonts, sizes, ruby and real playback",
+        "worker": 0,
+        "startTime": "2026-10-08T07:31:18.475Z",
+        "durationMs": 55110
+      },
+      {
+        "title": "audio wrapping 320x740: fonts, ruby and media playback",
+        "worker": 1,
+        "startTime": "2026-10-08T07:31:18.481Z",
+        "durationMs": 33206
+      },
+      {
+        "title": "silent wrapping 390x844: fonts, sizes, ruby and real playback",
+        "worker": 1,
+        "startTime": "2026-10-08T07:31:52.772Z",
+        "durationMs": 45357
+      },
+      {
+        "title": "audio wrapping 390x844: fonts, ruby and media playback",
+        "worker": 0,
+        "startTime": "2026-10-08T07:32:14.676Z",
+        "durationMs": 32059
+      },
+      {
+        "title": "silent wrapping 844x390: fonts, sizes, ruby and real playback",
+        "worker": 1,
+        "startTime": "2026-10-08T07:32:38.162Z",
+        "durationMs": 53167
+      },
+      {
+        "title": "audio wrapping 844x390: fonts, ruby and media playback",
+        "worker": 0,
+        "startTime": "2026-10-08T07:32:46.757Z",
+        "durationMs": 33136
+      }
+    ],
+    "reports": [
+      {
+        "type": "audio",
+        "width": 320,
+        "height": 740,
+        "combinations": 8,
+        "relativeArtifact": "wrapping-audio-wrapping-32-7d3cf-nts-ruby-and-media-playback-mobile-chromium/wrapping/audio-320.json"
+      },
+      {
+        "type": "audio",
+        "width": 390,
+        "height": 844,
+        "combinations": 8,
+        "relativeArtifact": "wrapping-audio-wrapping-39-0b32c-nts-ruby-and-media-playback-mobile-chromium/wrapping/audio-390.json"
+      },
+      {
+        "type": "audio",
+        "width": 844,
+        "height": 390,
+        "combinations": 8,
+        "relativeArtifact": "wrapping-audio-wrapping-84-1d982-nts-ruby-and-media-playback-mobile-chromium/wrapping/audio-844.json"
+      },
+      {
+        "type": "silent",
+        "width": 320,
+        "height": 740,
+        "combinations": 16,
+        "relativeArtifact": "wrapping-silent-wrapping-3-05877-izes-ruby-and-real-playback-mobile-chromium/wrapping/silent-320.json"
+      },
+      {
+        "type": "silent",
+        "width": 390,
+        "height": 844,
+        "combinations": 16,
+        "relativeArtifact": "wrapping-silent-wrapping-3-4b908-izes-ruby-and-real-playback-mobile-chromium/wrapping/silent-390.json"
+      },
+      {
+        "type": "silent",
+        "width": 844,
+        "height": 390,
+        "combinations": 16,
+        "relativeArtifact": "wrapping-silent-wrapping-8-d8e8d-izes-ruby-and-real-playback-mobile-chromium/wrapping/silent-844.json"
+      }
+    ],
+    "privateInputsUsed": false,
+    "paidGeneration": false
+  },
+  "observationWindowsAndAssertionsUnchanged": true,
+  "combinations": 72,
+  "distinctOutputDirectories": 6,
+  "productCodeChanged": false,
+  "workersChanged": false,
+  "additionalMeasurementOnlyCiRuns": 0,
+  "baselineComparison": {
+    "savedSeconds": 105.0,
+    "reductionPercent": 18.9
+  },
+  "immediatePreviousComparison": {
+    "savedSeconds": 171.0,
+    "reductionPercent": 27.5
+  },
+  "date": "2026-10-08",
+  "timezone": "Asia/Tokyo",
+  "repository": "https://github.com/ryryo/ripola",
+  "branch": "main",
+  "commit": "28ddb922854b6adb2399ab10c26ef475d2d03406",
+  "changedFiles": [
+    "apps/web/tests/browser/wrapping.spec.ts"
+  ],
+  "ciJobs": [
+    {
+      "name": "check",
+      "conclusion": "success",
+      "startedAt": "2026-10-08T07:35:09Z",
+      "completedAt": "2026-10-08T07:44:56Z"
+    },
+    {
+      "name": "deploy-pages",
+      "conclusion": "success",
+      "startedAt": "2026-10-08T07:44:59Z",
+      "completedAt": "2026-10-08T07:45:08Z"
+    }
+  ],
+  "live": {
+    "site": "https://ryryo.github.io/ripola/",
+    "status": "passed",
+    "homepage": 200,
+    "profile": "pages",
+    "audience": "demo",
+    "localGenerationApi": false,
+    "samples": 3,
+    "generationApi": 404
+  },
+  "typecheck": "passed",
+  "lint": "passed",
+  "unitPassed": 238,
+  "pythonCalculationPassed": 6,
+  "pythonRuntimeContractsPassed": 4,
+  "protectedUserChangesUnchanged": true,
+  "budgetSettingsChanged": false,
+  "measurementLimit": "Single-run comparison; unrelated preparation and runner speed vary."
+}

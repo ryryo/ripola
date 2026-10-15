@@ -95,24 +95,37 @@ test('default fetch uses the global receiver and publishes a playable prefetch U
   assert.deepEqual(revoked, ['blob:default-fetch']);
 });
 
+test('short files at the default playback rate provide about twenty seconds of runway', async t => {
+  const h = harness(); const source = chunks(100, 2);
+  t.after(() => h.owner.dispose());
+  h.owner.update(source, 0, 0, 2.5, true);
+  for (let i = 0; i < h.requests.length; i++) await h.complete(i);
+  const bufferedSeconds = (h.requests.length + 1) * 2 / 2.5;
+  assert.ok(bufferedSeconds >= 20, `Only ${bufferedSeconds} seconds buffered`);
+  assert.ok(h.requests.length < source.length - 1, 'Do not fetch the entire book');
+});
+
 test('prefetch starts successors before switching, bounds concurrency and source order', async () => {
-  const { owner, requests, complete } = harness(); const source = chunks(20);
+  const { owner, requests, complete } = harness(); const source = chunks(100, .5);
   owner.update(source, 0, 0, 1, true);
   assert.deepEqual(requests.map(value => value.url), ['/c1.mp3', '/c2.mp3']);
   await complete(1); assert.equal(requests[2].url, '/c3.mp3');
   assert.equal(owner.source(source[1]), '/c1.mp3');
   await complete(0); assert.match(owner.source(source[1]), /^blob:/);
-  for (let i = 2; i < 6; i++) await complete(i);
-  assert.equal(requests.length, 6); // Short chunks reach the count cap.
+  for (let i = 2; i < requests.length; i++) await complete(i);
+  assert.equal(requests.length, 32); // Very short chunks reach the count cap.
   owner.dispose();
 });
 
 test('seconds and rate determine the window; save-data limits speculative transfer', async () => {
-  const source = chunks(20, 4); const normal = harness();
-  normal.owner.update(source, 0, 0, 1, true); await normal.complete(0);
-  assert.equal(normal.requests.length, 1);
+  const source = chunks(40, 4); const normal = harness();
+  normal.owner.update(source, 0, 0, 1, true);
+  for (let i = 0; i < normal.requests.length; i++) await normal.complete(i);
+  assert.equal(normal.requests.length, 4);
   const fast = harness(); fast.owner.update(source, 0, 0, 5, true);
-  await fast.complete(0); await fast.complete(1); assert.equal(fast.requests.length, 4);
+  for (let i = 0; i < fast.requests.length; i++) await fast.complete(i);
+  assert.ok(fast.requests.length > normal.requests.length);
+  assert.ok((fast.requests.length + 1) * 4 / 5 >= 20);
   const constrained = harness({ saveData: true }); constrained.owner.update(source, 0, 0, 5, true);
   assert.equal(constrained.requests.length, 1);
   normal.owner.dispose(); fast.owner.dispose(); constrained.owner.dispose();
@@ -204,10 +217,11 @@ test('observed transfer/processing time expands the seconds window within count 
   let clock = 0; const requests: string[] = [];
   const owner = new AudioPrefetch({}, { now: () => clock, createURL: () => 'blob:latency', revokeURL: () => undefined,
     fetch: (async (url: string) => { requests.push(url); clock += 20000; return new Response(new Uint8Array(10)); }) as typeof fetch });
-  const source = chunks(20, 4);
+  const source = chunks(40, 4);
   owner.update(source, 0, 0, 1, true); await delay(0);
-  assert.equal(requests.length, 1);
+  assert.equal(requests.length, 4);
   owner.update(source, 0, 0, 1, true); await delay(0);
-  assert.equal(requests.length, 6);
+  assert.ok(requests.length > 4);
+  assert.ok(requests.length <= 32);
   owner.dispose();
 });

@@ -48,10 +48,10 @@ export class AudioPrefetch {
     const wanted = new Map<string, PlayableAudioChunk>();
     if (enabled && chunks[current]) {
       const speed = Number.isFinite(rate) && rate > 0 ? rate : 1;
-      const horizon = this.environment.saveData ? 0 : Math.min(40, Math.max(8, 2 * this.latency + (this.environment.rtt ?? 0) / 1000 + 4));
+      const horizon = this.environment.saveData ? 0 : Math.min(60, Math.max(20, 2 * this.latency + (this.environment.rtt ?? 0) / 1000 + 4));
       let seconds = Math.max(0, chunks[current].durationSeconds - localSeconds) / speed;
       let bytes = this.entries.get(this.activeKey)?.bytes ?? 0;
-      const maxAhead = this.environment.saveData ? 1 : 6;
+      const maxAhead = this.environment.saveData ? 1 : 32;
       for (let i = current + 1; i < chunks.length && wanted.size < maxAhead; i++) {
         // Always try the immediate successor, even when this file is long.
         if (wanted.size && seconds >= horizon) break;

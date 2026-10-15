@@ -66,7 +66,11 @@ test('実保存ずんだもん冒頭3文は9フレーズ・ルビ・2.5倍で読
   const phrases: string[] = [];
   const expected = ['吾輩', '猫である', '名前は', 'まだ', '無い', 'どこで', '生れたかとんと', '見当', 'つかぬ'];
   for (let index = 0; index < 9; index++) {
-    if (index > 0) await page.getByRole('button', { name: '一区切り進む', exact: true }).click();
+    if (index > 0) {
+      await page.getByRole('button', { name: '全文表示', exact: true }).click();
+      await page.locator('.guide-unit').nth(index).click();
+      await page.getByRole('button', { name: 'フレーズ表示', exact: true }).click();
+    }
     await expect(page.getByTestId('audio-phrase')).toBeVisible();
     await expect(page.getByTestId('audio-phrase')).toContainText(expected[index]);
     phrases.push(await page.getByTestId('audio-phrase').evaluate(element => [...element.childNodes].map(node => node.textContent).join('')));
@@ -86,7 +90,7 @@ test('実保存ずんだもん冒頭3文は9フレーズ・ルビ・2.5倍で読
     await toggle.click();
   } else {
     await expect(page.getByRole('button', { name: '文一覧を閉じる', exact: true })).toHaveAttribute('aria-expanded', 'true');
-    await page.getByRole('button', { name: '一区切り進む', exact: true }).click();
+    await position.fill('1');
     await expect(page.getByTestId('sentence-list')).toBeVisible();
   }
   await page.getByRole('button', { name: '文一覧を閉じる', exact: true }).click();

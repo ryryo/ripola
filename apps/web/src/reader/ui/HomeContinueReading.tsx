@@ -50,11 +50,10 @@ export default function HomeContinueReading() {
     {!loading && !error && !books.length && <p className="home-continue-note">保存音声はまだありません。下の入力欄から読みはじめられます。</p>}
     {books.length > 0 && <ul className="home-continue-books">{books.map(book => {
       const saved = book.savedPosition !== undefined;
-      const position = saved ? '保存した位置から再開' : '保存済みの音声から読む';
       const heading = `continue-${book.id}-${book.revision}`;
       return <li key={`${book.id}:${book.revision}`}><article aria-labelledby={heading}>
-        <div className="home-continue-copy"><h3 id={heading}>{book.title}</h3><p className="home-continue-position">{position}</p><p className="home-continue-meta"><span>保存音声 {bookDurationLabel(book.durationSeconds)}</span><span>保存済み音声 {book.completedChunks} / {book.totalChunks} 区間</span></p></div>
-        <Button component="a" variant="light" href={`${import.meta.env.BASE_URL}library?${new URLSearchParams({ book: book.id, revision: book.revision })}`} aria-label={saved ? `${book.title}の続きを読む` : `${book.title}を読む`}>{saved ? '続きを読む' : '音声から読む'}</Button>
+        <div className="home-continue-copy"><h3 id={heading} title={book.title}>{book.title}</h3><p className="home-continue-meta"><span>{bookDurationLabel(book.durationSeconds)}</span>{book.completedChunks < book.totalChunks && <span>生成途中</span>}{book.savedPosition !== undefined && <span>{bookDurationLabel(Math.min(book.savedPosition, book.durationSeconds))}から再開</span>}</p></div>
+        <Button component="a" variant="subtle" href={`${import.meta.env.BASE_URL}library?${new URLSearchParams({ book: book.id, revision: book.revision })}`} aria-label={saved ? `${book.title}の続きを読む` : `${book.title}を読む`}>{saved ? '続きを読む' : '読む'}</Button>
       </article></li>;
     })}</ul>}
   </section>;

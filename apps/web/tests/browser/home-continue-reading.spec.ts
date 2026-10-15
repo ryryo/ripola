@@ -80,9 +80,11 @@ test('トップは保存音声と途中本を3冊まで表示し、1クリック
   await expect(section.locator('article')).toHaveCount(3);
   await expect(section.getByRole('heading', { level: 3 })).toHaveText([full.title, '保存音声 4', '保存音声 3']);
   const partialCard = section.getByRole('article').filter({ hasText: full.title });
-  await expect(partialCard).toContainText('保存済み音声 2 / 3 区間');
-  await expect(partialCard).toContainText('保存音声 0分14秒');
-  await expect(partialCard).toContainText('保存した位置から再開');
+  await expect(partialCard).not.toContainText('区間');
+  await expect(partialCard).toContainText('生成途中');
+  await expect(partialCard).toContainText('0分14秒');
+  await expect(partialCard).toContainText('0分05秒から再開');
+  expect((await partialCard.boundingBox())!.height).toBeLessThanOrEqual(70);
   await expect(section).not.toContainText('音声がまだない本');
   await expect(section).not.toContainText('除外されるデモ');
   await expect(section.getByRole('link', { name: '本棚ですべて見る' })).toHaveAttribute('href', '/library');
@@ -118,7 +120,8 @@ test('トップの保存一覧は再確認で回復し、保存位置が使え�
   await section.getByRole('button', { name: '保存音声を再確認', exact: true }).click();
   await expect(section.locator('article')).toHaveCount(3);
   await expect(page.getByLabel('読む文章', { exact: true })).toHaveValue('入力中の文章を残します。');
-  await expect(section.getByRole('article').filter({ hasText: full.title })).toContainText('保存済みの音声から読む');
+  await expect(section.getByRole('article').filter({ hasText: full.title })).toContainText('0分14秒');
+  await expect(section.getByRole('article').filter({ hasText: full.title })).not.toContainText('から再開');
   await page.setViewportSize({ width: 320, height: 844 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
   await section.getByRole('link', { name: `${full.title}を読む`, exact: true }).click();
@@ -162,16 +165,34 @@ test('本棚の読書位置はバーで表示し、途中生成・再開・別�
   const card = (title: string) => page.getByRole('article').filter({ has: page.getByRole('heading', { name: title, exact: true }) });
   const partial = card(full.title);
   await expect(partial.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '35');
-  await expect(partial).toContainText('保存済み音声内の位置');
+  await expect(partial.getByRole('progressbar')).toHaveAttribute('aria-valuetext', /生成途中の保存済み音声内の位置/);
   await expect(partial).toContainText('生成途中');
   await expect(card('保存音声 1').getByRole('progressbar')).toHaveAttribute('aria-valuenow', '0');
-  await expect(card('保存音声 1')).toContainText('保存位置なし');
+  await expect(card('保存音声 1')).not.toContainText('保存位置なし');
+  await expect(card('保存音声 1')).toContainText('0%');
   await expect(card('保存音声 2').getByRole('progressbar')).toHaveAttribute('aria-valuenow', '50');
   await expect(card('保存音声 3').getByRole('progressbar')).toHaveAttribute('aria-valuenow', '100');
   await expect(card('保存音声 4')).toContainText('保存位置を取得できません');
   await expect(card('保存音声 4').getByRole('progressbar')).not.toHaveAttribute('aria-valuenow');
   await expect(card('音声がまだない本')).toContainText('音声を準備中');
   expect(mediaRequests).toEqual([]);
+  await expect(partial).not.toContainText('更新：');
+  await expect(partial).not.toContainText('2 / 3');
+  for (const width of [320, 390, 1280]) {
+    await page.setViewportSize({ width, height: 844 });
+    const rows = await page.locator('.bookshelf-book').evaluateAll(elements => elements.map(element => {
+      const title = element.querySelector('h2')!, metadata = element.querySelector('.bookshelf-progress')!, track = metadata.querySelector('.bookshelf-progress-track')!, style = getComputedStyle(metadata);
+      const percent = track.getAttribute('aria-valuenow');
+      return { height: element.getBoundingClientRect().height, titleLines: title.getBoundingClientRect().height / parseFloat(getComputedStyle(title).lineHeight), metadataLines: (metadata.getBoundingClientRect().height - parseFloat(style.paddingTop) - parseFloat(style.paddingBottom)) / parseFloat(style.lineHeight), trackWidth: track.getBoundingClientRect().width, metadataWidth: metadata.getBoundingClientRect().width, fillFraction: track.firstElementChild!.getBoundingClientRect().width / track.getBoundingClientRect().width, percent: percent === null ? undefined : Number(percent) };
+    }));
+    for (const row of rows) { expect(row.height).toBeLessThanOrEqual(94); expect(row.titleLines).toBeLessThan(1.1); expect(row.metadataLines).toBeLessThan(1.1); expect(row.trackWidth).toBeCloseTo(row.metadataWidth, 0); if (row.percent !== undefined) expect(row.fillFraction).toBeCloseTo(row.percent / 100, 2); }
+  }
+  await card('保存音声 1').getByRole('button', { name: '名前を変更', exact: true }).click();
+  await page.getByLabel('タイトルを変更', { exact: true }).fill('一覧から変更した名前');
+  await page.locator('.title-editor').getByRole('button', { name: '名前を変更', exact: true }).click();
+  await expect(page.getByRole('heading', { name: '一覧から変更した名前', exact: true })).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog')).toHaveCount(0);
   await page.screenshot({ path: resolve(evidence, `${testInfo.project.name}-bookshelf-light.png`), fullPage: true });
   let releaseBook!: () => void;
   const pendingBook = new Promise<void>(resolve => { releaseBook = resolve; });
@@ -207,7 +228,8 @@ test('本棚の読書位置はバーで表示し、途中生成・再開・別�
   await otherTab.close();
   await expect(partial.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '50');
   await expect(partial).not.toContainText('生成途中');
-  await expect(partial).toContainText('0分13秒 / 0分26秒');
+  await expect(partial).toContainText('0分13秒から再開');
+  await expect(partial).toContainText('0分26秒');
   await expect(page.getByRole('button', { name: 'グリッド', exact: true })).toHaveAttribute('aria-pressed', 'true');
   await page.getByRole('button', { name: '配色を変更', exact: true }).click();
   await page.getByRole('menuitem', { name: /^ダーク/ }).click();
@@ -222,4 +244,12 @@ test('本棚の読書位置はバーで表示し、途中生成・再開・別�
   });
   await expect(partial).toContainText('保存位置を取得できません');
   await expect(partial.getByRole('progressbar')).not.toHaveAttribute('aria-valuenow');
+  await page.route('**/library/index.json', route => route.fulfill({ json: { schemaVersion: 1, target: 'worker', audience: 'personal', createdAt: '2026-10-15T00:00:00Z', books: [{ id: full.id, revision: full.revision, title: full.title, manifestUrl: `library/books/${full.id}/${full.revision}/manifest.json`, manifestSha256: 'a'.repeat(64), manifestBytes: 1, durationSeconds: 26, precision: 'sentence', attribution: '著者：検証用・音声：合成音', publicDemo: false }] } }));
+  await page.goto(`${origin}/books`);
+  await expect(page.getByRole('heading', { name: full.title, exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: '音声付きで読む', exact: true })).toBeEnabled();
+  await page.getByRole('button', { name: '著者・音声', exact: true }).click();
+  await expect(page.getByRole('dialog', { name: '著者・音声', exact: true })).toContainText('著者：検証用・音声：合成音');
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog')).toHaveCount(0);
 });
