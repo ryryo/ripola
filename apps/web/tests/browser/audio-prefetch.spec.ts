@@ -113,6 +113,61 @@ for (const fullscreen of [false, true]) test(`次音声の読込待ちを表示�
   } finally { releaseSlow(); }
 });
 
+for (const fullscreen of [false, true]) test(`短い音声待ちは表示せず、継続した待機だけ表示する（${fullscreen ? '全画面' : '通常'}）`, async ({ page }) => {
+  const clockStart = new Date('2026-10-15T00:00:00Z');
+  await page.clock.install({ time: clockStart });
+  const { releaseSlow, successorHash } = await fixture(page, 'all');
+  try {
+    if (fullscreen) {
+      await page.evaluate(() => { Element.prototype.requestFullscreen = () => Promise.reject(new Error('test denied')); });
+      await page.getByRole('button', { name: '全画面で読む', exact: true }).click();
+    }
+    await page.getByRole('button', { name: '再生', exact: true }).click();
+    await expect(page.locator('audio')).toHaveAttribute('src', new RegExp(`${successorHash}\\.mp3$`));
+    await page.keyboard.press('Space');
+    await page.clock.pauseAt(new Date(clockStart.getTime() + 60_000));
+    await page.getByRole('button', { name: '再生', exact: true }).click();
+    const media = page.locator('audio');
+    const stage = page.getByTestId('audio-stage');
+    const status = stage.getByRole('status', { includeHidden: true });
+    const waiting = () => media.evaluate(element => element.dispatchEvent(new Event('waiting')));
+    const playing = () => media.evaluate(element => element.dispatchEvent(new Event('playing')));
+    const hidden = async () => {
+      expect(await status.textContent()).not.toContain('読み込み中');
+      expect(await status.locator('.mantine-Loader-root').count()).toBe(0);
+      expect(await stage.getAttribute('data-buffering')).toBe('false');
+    };
+
+    await playing();
+    // Separate short waits must not accumulate into a visible loading message.
+    for (let i = 0; i < 3; i++) {
+      await waiting();
+      await page.clock.runFor(150);
+      await hidden();
+      await playing();
+      await page.clock.runFor(400);
+      await hidden();
+    }
+    await waiting();
+    await page.clock.runFor(299);
+    await hidden();
+    await page.clock.runFor(1);
+    await expect(status).toContainText('音声を読み込み中');
+    await expect(status.locator('.mantine-Loader-root')).toBeVisible();
+    await expect(stage).toHaveAttribute('data-buffering', 'true');
+    await playing();
+    await hidden();
+
+    await waiting();
+    await page.clock.runFor(100);
+    await page.keyboard.press('Space');
+    await page.clock.runFor(400);
+    await expect(status).toHaveText('一時停止');
+    await hidden();
+    expect(await media.evaluate((element: HTMLAudioElement) => element.paused)).toBe(true);
+  } finally { releaseSlow(); }
+});
+
 test('slow networkの先読みはseek・停止・book離脱で取消され、遅延音声を再生しない', async ({ page }) => {
   const { releaseSlow } = await fixture(page, true);
   await page.getByRole('button', { name: '再生', exact: true }).click();

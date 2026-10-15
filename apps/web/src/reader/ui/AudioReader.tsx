@@ -51,6 +51,7 @@ export function AudioReader({ book, onClose, attribution, localTools, demo = fal
   const [position, setPosition] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [buffering, setBuffering] = useState(false);
+  const [loadingVisible, setLoadingVisible] = useState(false);
   const { settings: options, setSettings: setOptions, rate, setRate } = useReaderPreferences();
   const guide = options.guide;
   const ruby = options.ruby;
@@ -81,6 +82,13 @@ export function AudioReader({ book, onClose, attribution, localTools, demo = fal
   const display = audioDisplayAt(segment, position - (segment?.startSeconds ?? 0));
   const reading = playing || intent.current;
   const loading = reading && buffering;
+  const showLoading = loading && loadingVisible;
+  useEffect(() => {
+    setLoadingVisible(false);
+    if (!loading) return;
+    const timer = window.setTimeout(() => setLoadingVisible(true), 300);
+    return () => window.clearTimeout(timer);
+  }, [loading]);
   const playableUnits = useMemo(() => phraseTargets.flatMap(target => target.cue.units), [phraseTargets]);
   const unitPositions = useMemo(() => new Map(playableUnits.map((unit, index) => [unit.id, index])), [playableUnits]);
   const unitTimes = useMemo(() => new Map(phraseTargets.flatMap(target => target.cue.units.map(unit => [unit.id, target.seconds] as const))), [phraseTargets]);
@@ -341,8 +349,8 @@ export function AudioReader({ book, onClose, attribution, localTools, demo = fal
         seek={<label><span>音声の再生位置</span><input aria-label="音声の再生位置" type="range" min="0" max={total} step="0.01" value={Math.min(position, total)} onChange={event => seek(Number(event.target.value))} /></label>}
         modes={<ReadingModeControls mode={options.mode} onChange={mode => updateOptions({ mode })} />}
         speed={<label>音声の速さ<select aria-label="音声の速さ" value={rate} onChange={event => setRate(event.target.value)}>{Array.from({ length: 19 }, (_, i) => String(.5 + i * .25)).map(value => <option key={value} value={value}>{value}倍</option>)}</select></label>}>
-      <section className={`audio-stage ${options.mode === 'guide' ? 'guide-mode' : ''} ${guide ? 'with-guide' : ''}`} aria-label="音声同期表示" data-testid="audio-stage" data-buffering={loading} style={{ '--reader-font-size': `${options.fontSize}px` } as CSSProperties}>
-        <div className="stage-topline"><span role="status" className="audio-playback-status">{loading && <Loader size={16} aria-hidden="true" />}{waitingFor ? '次の音声の生成を待っています' : loading ? '音声を読み込み中…' : reading ? '音声再生中' : position >= total ? '再生終了' : '一時停止'}</span><span className="playback-position-label">{reading ? '\u00a0' : <>{sentenceIndex + 1} / {sentenceEntries.length} 文{display.unitIndices.length > 0 && <> · フレーズ {display.unitIndices[0] + 1}{display.unitIndices.length > 1 ? `–${display.unitIndices.at(-1)! + 1}` : ''}</>}</>}</span></div>
+      <section className={`audio-stage ${options.mode === 'guide' ? 'guide-mode' : ''} ${guide ? 'with-guide' : ''}`} aria-label="音声同期表示" data-testid="audio-stage" data-buffering={showLoading} style={{ '--reader-font-size': `${options.fontSize}px` } as CSSProperties}>
+        <div className="stage-topline"><span role="status" className="audio-playback-status">{showLoading && <Loader size={16} aria-hidden="true" />}{waitingFor ? '次の音声の生成を待っています' : showLoading ? '音声を読み込み中…' : reading ? '音声再生中' : position >= total ? '再生終了' : '一時停止'}</span><span className="playback-position-label">{reading ? '\u00a0' : <>{sentenceIndex + 1} / {sentenceEntries.length} 文{display.unitIndices.length > 0 && <> · フレーズ {display.unitIndices[0] + 1}{display.unitIndices.length > 1 ? `–${display.unitIndices.at(-1)! + 1}` : ''}</>}</>}</span></div>
         {options.mode === 'guide' ? <GuideReader key={options.writingMode} writingMode={options.writingMode} blocks={book.document.blocks} units={playableUnits} currentIndices={displayGroup ? Array.from({ length: displayGroup.endIndex - displayGroup.startIndex + 1 }, (_, i) => displayGroup.startIndex + i) : [displayIndex]} playing={reading} ruby={ruby} family={READING_FONTS[font.applied].family} onJump={target => seek(unitTimes.get(playableUnits[target]?.id) ?? 0, false)} onPause={pause} /> : <PhraseDisplay writingMode={options.writingMode} unit={displayGroup?.unit ?? display.units[0]} sourceUnits={displayGroup?.units} activeUnit={display.units[0]} playing={reading} getProgress={() => display.cue && segment ? (positionRef.current - segment.startSeconds - display.cue.startSeconds) / (display.cue.endSeconds - display.cue.startSeconds) : 0} fontSize={options.fontSize} ruby={ruby} family={READING_FONTS[font.applied].family} audio precision={display.precision} timingMethod={display.method} timingScore={display.score} unitIds={displayGroup?.units.map(unit => unit.id).join(' ') ?? display.units.map(unit => unit.id).join(' ')} />}
       {fullscreen.active && options.mode !== 'guide' && <ReaderPlayButton playing={reading} disabled={font.busy} label={position >= total && book.completedChunks >= book.totalChunks ? 'もう一度' : '再生'}
         onPlay={() => { void play(); fullscreen.containerRef.current?.focus({ preventScroll: true }); }} />}
