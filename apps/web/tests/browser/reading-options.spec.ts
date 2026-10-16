@@ -1298,3 +1298,97 @@ test('five-times multiline markers track dense speech cues independently of tran
     expect(Number(await page.getByRole('slider', { name: '音声の再生位置', exact: true }).inputValue())).toBeCloseTo(media, 2);
   }
 });
+
+test('multiline previous and next arrows navigate adjacent source sets with up and down keys in both writing modes', async ({ page }) => {
+  test.setTimeout(90000);
+  await read(page, ('朝の静かな図書館で、新しい本を開いて読み始めます。窓から青空を眺め、言葉を確かめます。'.repeat(4) + '\n\n').repeat(4));
+  await page.getByRole('slider', { name: '表示量', exact: true }).fill('2');
+  const text = page.getByTestId('display-set-text');
+  const previous = page.getByRole('button', { name: '前へ', exact: true });
+  const next = page.getByRole('button', { name: '次へ', exact: true });
+  for (const mode of ['horizontal-tb', 'vertical-rl']) {
+    await page.getByLabel('本文の向き', { exact: true }).selectOption(mode);
+    await page.locator('.document-heading h1').click(); await page.keyboard.press('Home');
+    await expect(previous).toBeDisabled();
+    await expect(next).toHaveAttribute('aria-keyshortcuts', 'ArrowDown');
+    await expect(previous).toHaveAttribute('aria-keyshortcuts', 'ArrowUp');
+    const speed = await page.getByLabel('読む速さ（字/分）').inputValue();
+    await page.keyboard.press('ArrowUp'); await expect(previous).toBeDisabled();
+    const initial = await text.getAttribute('data-set-id');
+    await page.keyboard.press('ArrowDown'); await expect(text).not.toHaveAttribute('data-set-id', initial!);
+    const secondStart = Number(await text.getAttribute('data-source-start'));
+    if (test.info().project.use.hasTouch) await previous.tap(); else await previous.click();
+    await expect(text).toHaveAttribute('data-source-end', String(secondStart));
+    await previous.focus(); await page.keyboard.press('ArrowDown'); await expect(text).toHaveAttribute('data-source-start', String(secondStart));
+    await page.locator('.document-heading h1').click(); await page.keyboard.press('ArrowUp');
+    await expect(text).toHaveAttribute('data-source-end', String(secondStart));
+    await expect(page.getByLabel('読む速さ（字/分）')).toHaveValue(speed);
+    const before = (await previous.boundingBox())!; const after = (await next.boundingBox())!; const body = (await text.boundingBox())!;
+    if (mode === 'horizontal-tb') { expect(before.y + before.height).toBeLessThanOrEqual(body.y); expect(after.y).toBeGreaterThanOrEqual(body.y + body.height); }
+    else { expect(before.x).toBeGreaterThanOrEqual(body.x + body.width); expect(after.x + after.width).toBeLessThanOrEqual(body.x); }
+    await page.getByRole('button', { name: '全画面で読む', exact: true }).click();
+    const full = page.locator('.fullscreen-reader[data-fullscreen=true]');
+    const id = await text.getAttribute('data-set-id');
+    await page.keyboard.press('ArrowDown'); await expect(text).not.toHaveAttribute('data-set-id', id!);
+    await page.keyboard.press('ArrowUp'); await expect(full).toHaveAttribute('data-playing', 'false');
+    await page.screenshot({ path: test.info().outputPath(`set-navigation-${mode}.png`) });
+    await page.keyboard.press('Escape');
+    await page.locator('.document-heading h1').click(); await page.keyboard.press('End');
+    const restoredStart = Number(await text.getAttribute('data-source-start'));
+    await page.keyboard.press('ArrowUp'); await expect(text).toHaveAttribute('data-source-end', String(restoredStart));
+  }
+  await page.getByRole('slider', { name: '表示量', exact: true }).fill('1');
+  await expect(previous).toHaveCount(0); await expect(next).toHaveCount(0);
+  const cpm = page.getByLabel('読む速さ（字/分）'); const value = Number(await cpm.inputValue());
+  await page.locator('.document-heading h1').click(); await page.keyboard.press('ArrowUp');
+  await expect(cpm).toHaveValue(String(value + 100));
+});
+
+test('multiline audio previous returns across chunk boundaries and keyboard navigation preserves native play intent and speed', async ({ page }) => {
+  test.setTimeout(60000);
+  await page.setViewportSize({ width: 320, height: 740 }); await audioFixture(page, 12, true);
+  await page.locator('audio').evaluate((media: HTMLAudioElement) => { media.muted = true; });
+  await page.getByRole('slider', { name: '表示量', exact: true }).fill('2');
+  const text = page.getByTestId('display-set-text'); const audio = page.locator('audio');
+  const firstSource = await audio.getAttribute('src');
+  await page.getByRole('button', { name: '全画面で読む', exact: true }).click();
+  const full = page.locator('.fullscreen-reader[data-fullscreen=true]');
+  await page.keyboard.press('ArrowDown');
+  const start = Number(await text.getAttribute('data-source-start'));
+  await page.keyboard.press('ArrowUp'); await expect(text).toHaveAttribute('data-source-end', String(start));
+  await expect(full).toHaveAttribute('data-playing', 'false');
+  await full.getByRole('button', { name: '再生', exact: true }).click();
+  await full.focus();
+  for (let i = 0; i < 20 && await audio.getAttribute('src') === firstSource; i++) await page.keyboard.press('ArrowDown');
+  await expect(audio).not.toHaveAttribute('src', firstSource!);
+  await expect(full).toHaveAttribute('data-playing', 'true');
+  for (let i = 0; i < 20 && await audio.getAttribute('src') !== firstSource; i++) await page.keyboard.press('ArrowUp');
+  await expect(audio).toHaveAttribute('src', firstSource!);
+  await expect(full).toHaveAttribute('data-playing', 'true');
+  expect(await audio.evaluate((media: HTMLAudioElement) => media.playbackRate)).toBe(2.5);
+  await expect(text.getByTestId('reading-marker').first()).toBeVisible();
+  await full.getByRole('button', { name: '一時停止', exact: true }).click();
+});
+
+
+test('multiline navigation keeps the accepted page while destination audio metadata is pending', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 740 }); await audioFixture(page, 12, true);
+  await page.getByRole('slider', { name: '表示量', exact: true }).fill('2');
+  const text = page.getByTestId('display-set-text'); const audio = page.locator('audio');
+  const source = await audio.getAttribute('src');
+  let release!: () => void; let held = false;
+  const pending = new Promise<void>(resolve => { release = resolve; });
+  await page.route('**/media/*.mp3', async route => { held = true; await pending; await route.fallback(); });
+  try {
+    await page.locator('.generation-title h1').click();
+    for (let i = 0; i < 20 && await audio.getAttribute('src') === source; i++) await page.keyboard.press('ArrowDown');
+    await expect.poll(() => held).toBe(true);
+    await expect(audio).not.toHaveAttribute('src', source!);
+    const id = await text.getAttribute('data-set-id');
+    await page.keyboard.press('ArrowUp'); await expect(text).toHaveAttribute('data-set-id', id!);
+    await page.keyboard.press('ArrowDown'); await expect(text).toHaveAttribute('data-set-id', id!);
+  } finally { release(); }
+  await expect.poll(() => audio.evaluate((media: HTMLAudioElement) => media.readyState >= 2 && !media.seeking)).toBe(true);
+  const end = Number(await text.getAttribute('data-source-start'));
+  await page.keyboard.press('ArrowUp'); await expect(text).toHaveAttribute('data-source-end', String(end));
+});

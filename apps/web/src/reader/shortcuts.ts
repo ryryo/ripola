@@ -1,7 +1,7 @@
-export function shortcutBlocked(event: KeyboardEvent): boolean {
+export function shortcutBlocked(event: KeyboardEvent, allowedTarget?: HTMLElement): boolean {
   if (event.defaultPrevented || event.isComposing || event.keyCode === 229 || event.altKey || event.ctrlKey || event.metaKey) return true;
   const target = event.target;
-  if (target instanceof HTMLElement && target.closest('input, textarea, select, button, a, summary, [contenteditable]:not([contenteditable="false"]), [role="slider"], [role="combobox"], [role="dialog"], [data-reader-shortcuts="off"]')) return true;
+  if (target instanceof HTMLElement && target !== allowedTarget && target.closest('input, textarea, select, button, a, summary, [contenteditable]:not([contenteditable="false"]), [role="slider"], [role="combobox"], [role="dialog"], [data-reader-shortcuts="off"]')) return true;
   return Boolean(document.querySelector('[role="dialog"]'));
 }
 

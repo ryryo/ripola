@@ -42,6 +42,23 @@ export function flowOffset(flow: DisplayFlow, position: SourceAnchor): number | 
   return span && span.from + position.offset - span.start;
 }
 
+/** An oversized atomic ruby may consume a whole window before the preceding page is reached. */
+export function previousDisplayFlow(sourceAt: (position: SourceAnchor) => SetSource | undefined, position: SourceAnchor, end: SourceAnchor): DisplayFlow | undefined {
+  let start = position;
+  for (let count = 0; count < 64; count++) {
+    const flow = displayFlow(anchor => {
+      const source = sourceAt(anchor);
+      return source && anchor.blockId === start.blockId ? { ...source, start: Math.max(source.start, start.offset) } : source;
+    }, start);
+    if (!flow) return undefined;
+    if (flowOffset(flow, end) !== undefined || (flow.next?.blockId === end.blockId && flow.next.offset === end.offset)) return flow;
+    const next = flow.next;
+    if (!next || next.blockId === start.blockId && next.offset === start.offset) return undefined;
+    start = next;
+  }
+  return undefined;
+}
+
 export function sourceSlices(flow: DisplayFlow, page: Pick<TextPage, 'start' | 'end'>) {
   return flow.spans.filter(span => span.to > page.start && span.from < page.end).map(span => {
     const start = span.start + Math.max(page.start, span.from) - span.from;
