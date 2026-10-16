@@ -141,3 +141,91 @@ test('audio marker holds the reading position across cue gaps and at boundaries 
   assert.deepEqual(audioReadingMarker(segment, .45), { blockId: 'p', start: 0, end: 4, precision: 'position' });
   assert.equal(audioReadingMarker(segment, .5)?.start, 4); assert.equal(a.endSeconds, .4); assert.equal(b.startSeconds, .5);
 });
+
+test('multiline page cursor stays inside the spoken marker when the visual clock estimates a different interval', () => {
+  const cue = (start: number, end: number, startSeconds: number, endSeconds: number) => ({ blockId: 'p', start, end, startSeconds, endSeconds, unitId: 'u', unitIds: ['u'], units: [], unitIndices: [] });
+  // Short accepted intervals may be replaced only in the phrase display clock.
+  const spoken = [cue(0, 4, 0, .4), cue(4, 8, .4, .48), cue(8, 12, .48, 1)];
+  const segment: AudioSegment = { chunk: { id: 'a', audioUrl: '/a', durationSeconds: 1, timeline: [] }, startSeconds: 0, endSeconds: 1, text: 'abcdefghijkl', cues: spoken,
+    displayCues: [cue(0, 4, 0, .42), cue(4, 8, .42, .54), cue(8, 12, .54, 1)] };
+  const before = JSON.stringify(segment);
+  for (let milliseconds = 0; milliseconds < 1000; milliseconds++) {
+    const time = milliseconds / 1000;
+    const position = audioDisplayPosition(segment, time)!; const marker = audioReadingMarker(segment, time)!;
+    assert.equal(position.blockId, marker.blockId);
+    assert.ok(position.offset >= marker.start && position.offset < marker.end, `cursor ${position.offset} must overlap marker ${marker.start}..${marker.end} at ${time}`);
+  }
+  assert.equal(JSON.stringify(segment), before);
+});
+
+test('multiline source seeks round trip through short and shared spoken cues', () => {
+  const cue = (start: number, end: number, startSeconds: number, endSeconds: number) => ({ blockId: 'p', start, end, startSeconds, endSeconds, unitId: 'u', unitIds: ['u'], units: [], unitIndices: [] });
+  const segment: AudioSegment = { chunk: { id: 'a', audioUrl: '/a', durationSeconds: 1, timeline: [] }, startSeconds: 0, endSeconds: 1, text: 'abcdefghijkl',
+    cues: [cue(0, 4, 0, .4), cue(4, 8, .4, .48), cue(8, 12, .48, 1)],
+    displayCues: [cue(0, 4, 0, .42), cue(4, 8, .42, .54), cue(8, 12, .54, 1)] };
+  const shared = { ...segment, cues: [cue(0, 8, 0, .8), cue(8, 12, .8, 1)] };
+  for (const clock of [segment, shared]) {
+    const targets = audioSourceTargets([clock]);
+    for (let offset = 0; offset < 12; offset++) {
+      const time = audioSetSeek(targets, { blockId: 'p', offset })!.seconds;
+      const position = audioDisplayPosition(clock, Math.floor(time * 1e6) / 1e6)!;
+      assert.equal(position.blockId, 'p');
+      assert.ok(position.offset >= offset && position.offset - offset < .001, `offset ${offset} returned as ${position.offset}`);
+    }
+  }
+});
+
+test('multiline audio holds the end of a short spoken cue through silence without replaying its page', () => {
+  const cue = (start: number, end: number, startSeconds: number, endSeconds: number) => ({ blockId: 'p', start, end, startSeconds, endSeconds, unitId: 'u', unitIds: ['u'], units: [], unitIndices: [] });
+  const segment: AudioSegment = { chunk: { id: 'a', audioUrl: '/a', durationSeconds: 1, timeline: [] }, startSeconds: 0, endSeconds: 1, text: 'abcdefghijklmnopqrstuvwxyz12345',
+    cues: [cue(0, 4, .1, .4), cue(4, 27, .4, .48), cue(27, 31, .7, .95)],
+    displayCues: [cue(0, 4, 0, .4), cue(4, 27, .4, .7), cue(27, 31, .7, 1)] };
+  let previous = 0;
+  for (let milliseconds = 0; milliseconds <= 1000; milliseconds++) {
+    const time = milliseconds / 1000;
+    const position = audioDisplayPosition(segment, time)!; const marker = audioReadingMarker(segment, time)!;
+    assert.ok(position.offset >= previous, `cursor went backwards at ${time}: ${previous} -> ${position.offset}`);
+    assert.ok(position.offset >= marker.start && position.offset < marker.end);
+    previous = position.offset;
+  }
+  assert.equal(audioReadingMarker(segment, .6)?.precision, 'position');
+  assert.ok(audioDisplayPosition(segment, .6)!.offset > 26.99);
+});
+
+test('uncovered source estimates fit between speech cues without reordering text or retiming evidence', () => {
+  const cue = (start: number, end: number, startSeconds: number, endSeconds: number) => ({ blockId: 'p', start, end, startSeconds, endSeconds, unitId: 'u', unitIds: ['u'], units: [], unitIndices: [] });
+  const spoken = [cue(0, 2, .5, .52), cue(5, 8, .9, .98)];
+  const segment: AudioSegment = { chunk: { id: 'a', audioUrl: '/a', durationSeconds: 1, timeline: [] }, startSeconds: 0, endSeconds: 1, text: 'abcdefgh', cues: spoken,
+    displayCues: [cue(0, 2, 0, .433), cue(2, 5, .433, .95), cue(5, 8, .95, 1)] };
+  const before = JSON.stringify(segment);
+  const targets = audioSourceTargets([segment]);
+  assert.deepEqual(targets.map(cue => [cue.start, cue.end]), [[0, 2], [2, 5], [5, 8]]);
+  assert.equal(targets[1].seconds, .52); assert.equal(targets[1].endSeconds, .9);
+  let previous = 0;
+  for (let milliseconds = 0; milliseconds <= 1000; milliseconds++) {
+    const position = audioDisplayPosition(segment, milliseconds / 1000)!; const marker = audioReadingMarker(segment, milliseconds / 1000)!;
+    assert.ok(position.offset >= previous); previous = position.offset;
+    assert.ok(position.offset >= marker.start && position.offset < marker.end);
+  }
+  for (let offset = 0; offset < 8; offset++) {
+    const seconds = audioSetSeek(targets, { blockId: 'p', offset })!.seconds;
+    const actual = audioDisplayPosition(segment, Math.floor(seconds * 1e6) / 1e6)!;
+    assert.ok(actual.offset >= offset && actual.offset - offset < .001);
+  }
+  assert.equal(JSON.stringify(segment), before);
+});
+
+test('uncovered text with no audio gap uses one estimated source clock instead of zero-duration pages', () => {
+  const cue = (start: number, end: number, startSeconds: number, endSeconds: number) => ({ blockId: 'p', start, end, startSeconds, endSeconds, unitId: 'u', unitIds: ['u'], units: [], unitIndices: [] });
+  const segment: AudioSegment = { chunk: { id: 'a', audioUrl: '/a', durationSeconds: 1, timeline: [] }, startSeconds: 0, endSeconds: 1, text: 'abcdefgh',
+    cues: [cue(0, 2, 0, .4), cue(5, 8, .4, 1)], displayCues: [cue(0, 2, 0, .3), cue(2, 5, .3, .6), cue(5, 8, .6, 1)] };
+  const before = JSON.stringify(segment); const targets = audioSourceTargets([segment]);
+  assert.ok(targets.every(target => target.endSeconds > target.seconds));
+  assert.equal(audioReadingMarker(segment, .5)?.precision, 'estimated');
+  for (let offset = 0; offset < 8; offset++) {
+    const seconds = audioSetSeek(targets, { blockId: 'p', offset })!.seconds;
+    const actual = audioDisplayPosition(segment, Math.floor(seconds * 1e6) / 1e6)!;
+    assert.ok(actual.offset >= offset && actual.offset - offset < .001);
+  }
+  assert.equal(JSON.stringify(segment), before);
+});

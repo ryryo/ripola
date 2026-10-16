@@ -227,9 +227,9 @@ function tone(seconds: number, frequency = 220) {
   for (let i = 0; i < samples; i++) output.writeInt16LE(Math.round(Math.sin(i * 2 * Math.PI * frequency / 8000) * 500), 44 + i * 2);
   return output;
 }
-async function audioFixture(page: Page, seconds: 12 | 60 = 12, long = false, fractional = false, gaps = false) {
+async function audioFixture(page: Page, seconds: 12 | 60 = 12, long: boolean | string = false, fractional: boolean | number = false, gaps = false) {
   const revision = 'c'.repeat(64); const id = 'reading-options-fixture';
-  const pieces = [long ? '国際情報通信技術研究開発機構の' : '私は', '図書館へ。', '今日は', '静かに', '読む。'];
+  const pieces = [typeof long === 'string' ? long : long ? '国際情報通信技術研究開発機構の' : '私は', '図書館へ。', '今日は', '静かに', '読む。'];
   let offset = 0;
   const units = pieces.map((text, index) => { const start = offset; offset += text.length; return { id: `u${index}`, blockId: 'b', kind: 'text', text, start, end: offset, ruby: index === 1 ? [{ start: 0, end: 3, reading: 'としょかん' }] : [], sources: [{ kind: 'text', start, end: offset }], mapping: 'exact', characters: text.length, cumulativeCharacters: start, pause: text.endsWith('。') ? 'sentence' : 'none' }; });
   const text = pieces.join('');
@@ -237,7 +237,7 @@ async function audioFixture(page: Page, seconds: 12 | 60 = 12, long = false, fra
   // The last cue absorbs extra time; existing seek targets stay at 6/12 seconds.
   const chunks = [[0, 2], [2, 5]].map(([from, to], index) => ({ id: `c${index}`, audioUrl: `library/books/${id}/${revision}/media/${media[index].sha256}.mp3`, mimeType: 'audio/mpeg', sha256: media[index].sha256, bytes: media[index].bytes.length, durationSeconds: seconds, timing: { verification: 'pcm-correlated' },
     timeline: [{ blockId: 'b', start: units[from].start, end: units[to - 1].end, unitIds: units.slice(from, to).map(unit => unit.id) }],
-    alignment: { precision: 'phrase', method: 'forced-alignment', status: 'aligned', score: .95, alignerVersion: 'ui-fixture-only', cues: units.slice(from, to).map((unit, i) => ({ unitId: unit.id, unitIds: [unit.id], blockId: 'b', start: unit.start, end: unit.end, startSeconds: fractional && index === 0 ? i / 3 : i * 12 / (to - from), endSeconds: (i === to - from - 1 ? seconds : fractional && index === 0 ? (i + 1) / 3 : (i + 1) * 12 / (to - from)) - (gaps ? .08 : 0), score: .95 })) } }));
+    alignment: { precision: 'phrase', method: 'forced-alignment', status: 'aligned', score: .95, alignerVersion: 'ui-fixture-only', cues: units.slice(from, to).map((unit, i) => ({ unitId: unit.id, unitIds: [unit.id], blockId: 'b', start: unit.start, end: unit.end, startSeconds: fractional && index === 0 ? i * (typeof fractional === 'number' ? fractional : 1 / 3) : i * 12 / (to - from), endSeconds: (i === to - from - 1 ? seconds : fractional && index === 0 ? (i + 1) * (typeof fractional === 'number' ? fractional : 1 / 3) : (i + 1) * 12 / (to - from)) - (gaps ? .08 : 0), score: .95 })) } }));
   const manifest = JSON.stringify({ schemaVersion: 1, id, revision, title: '自作・読書設定検証', document: { blocks: [{ id: 'b', kind: 'paragraph', text, ruby: [{ start: units[1].start, end: units[1].start + 3, reading: 'としょかん' }], runs: [] }], units, versions: { parser: 'fixture', model: 'fixture', rules: 'fixture' } }, chunks, warnings: [], totalChunks: 2, completedChunks: 2, durationSeconds: seconds * 2, precision: 'sentence', attribution: 'Self-authored text and synthetic tone. Not an acoustic accuracy test.' });
   await page.route('**/library/index.json', route => route.fulfill({ json: { schemaVersion: 1, target: 'worker', createdAt: '2026-10-06T00:00:00Z', books: [{ id, revision, title: '自作・読書設定検証', manifestUrl: `library/books/${id}/${revision}/manifest.json`, manifestSha256: createHash('sha256').update(manifest).digest('hex'), manifestBytes: Buffer.byteLength(manifest), durationSeconds: seconds * 2, precision: 'sentence', attribution: 'Self-authored UI fixture', publicDemo: true }] } }));
   await page.route(`**/library/books/${id}/${revision}/manifest.json`, route => route.fulfill({ body: manifest, contentType: 'application/json' }));
@@ -1203,4 +1203,56 @@ for (const kind of ['silent', 'audio'] as const) test(`${kind} reader uses displ
   await size.fill('72');
   await expect(page.getByRole('button', { name: '再生', exact: true })).toBeVisible();
   if (kind === 'audio') expect(await page.locator('audio').evaluate((audio: HTMLAudioElement) => audio.paused)).toBe(true);
+});
+
+test('multiline audio can seek backwards inside a long cue without losing its current page or marker', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 740 }); await audioFixture(page, 12, '国際情報通信技術研究開発機構の'.repeat(40));
+  await page.getByRole('slider', { name: '表示量', exact: true }).fill('2');
+  await page.getByRole('slider', { name: 'フォントサイズ', exact: true }).fill('96');
+  const text = page.getByTestId('display-set-text');
+  const slider = page.getByRole('slider', { name: '音声の再生位置', exact: true });
+  const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
+  for (const mode of ['horizontal-tb', 'vertical-rl']) {
+    await page.getByLabel('本文の向き', { exact: true }).selectOption(mode);
+    await slider.fill('3');
+    await expect.poll(async () => Number(await text.getAttribute('data-source-start'))).toBeGreaterThan(0);
+    await slider.fill('0');
+    await expect(text).toHaveAttribute('data-source-start', '0');
+    await expect(page.getByTestId('reading-marker')).toBeVisible();
+  }
+  expect(errors).toEqual([]);
+});
+
+test('multiline audio keeps the spoken marker on screen when short cues use estimated phrase timing', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await audioFixture(page, 12, '国際情報通信技術研究開発機構の'.repeat(4), .08);
+  await page.getByRole('slider', { name: '表示量', exact: true }).fill('2');
+  await page.getByRole('slider', { name: 'フォントサイズ', exact: true }).fill('96');
+  const slider = page.getByRole('slider', { name: '音声の再生位置', exact: true });
+  for (const mode of ['horizontal-tb', 'vertical-rl']) {
+    await page.getByLabel('本文の向き', { exact: true }).selectOption(mode);
+    for (const fullscreen of [false, true]) {
+      if (fullscreen) {
+        await page.evaluate(() => { Element.prototype.requestFullscreen = () => Promise.reject(new Error('test denied')); });
+        await page.getByRole('button', { name: '全画面で読む', exact: true }).click();
+      }
+      await slider.fill('0');
+      const text = page.getByTestId('display-set-text');
+      const next = await text.getAttribute('data-source-end');
+      await page.getByRole('button', { name: '次へ', exact: true }).click();
+      await expect(text).toHaveAttribute('data-source-start', next!);
+      expect(await page.locator('audio').evaluate((audio: HTMLAudioElement) => audio.currentTime)).toBeLessThan(.08);
+      await slider.fill('0.2');
+      const marker = page.getByTestId('reading-marker');
+      await expect(marker).toHaveAttribute('data-precision', 'spoken');
+      expect(await marker.evaluate(element => {
+        const slot = element.closest('.display-set-viewport')!.getBoundingClientRect();
+        return [...element.querySelectorAll('.reading-marker-layer>span')].some(box => {
+          const rect = box.getBoundingClientRect();
+          return rect.width > 0 && rect.height > 0 && rect.right > slot.left && rect.left < slot.right && rect.bottom > slot.top && rect.top < slot.bottom;
+        });
+      })).toBe(true);
+      if (fullscreen) await page.keyboard.press('Escape');
+    }
+  }
 });

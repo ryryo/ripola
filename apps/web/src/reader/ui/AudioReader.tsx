@@ -14,7 +14,7 @@ import { AozoraInfo } from './AozoraInfo';
 import { PhraseDisplay } from './PhraseDisplay';
 import { ShortcutHelp, useReadingFont } from './ReadingOptions';
 import { READING_FONTS } from '../reading-fonts';
-import { audioDisplayPosition, audioReadingMarker, audioSetSeek, audioSetSource, audioSourceTargets, audioVisualTargets } from '../audio-display-session';
+import { audioDisplayPosition, audioReadingMarker, audioSetSeek, audioSetSource, audioSourceTargets } from '../audio-display-session';
 import { DisplaySetReader, type DisplaySetSession } from './DisplaySetReader';
 import { RubyText } from './ReadingText';
 import { shortcutBlocked, repeatedArrowAllowed } from '../shortcuts';
@@ -104,7 +104,6 @@ export function AudioReader({ book, onClose, attribution, localTools, demo = fal
   const unitTimes = useMemo(() => new Map(phraseTargets.flatMap(target => target.cue.units.map(unit => [unit.id, target.seconds] as const))), [phraseTargets]);
   const displayIndex = unitPositions.get(display.units[0]?.id) ?? 0;
   const multiline = options.mode !== 'guide' && options.focusedDisplay?.kind === 'multiline';
-  const visualTargets = useMemo(() => audioVisualTargets(segments), [segments]);
   const setTargets = useMemo(() => audioSourceTargets(segments), [segments]);
   const availableIds = useMemo(() => new Set(audioChunks.map(chunk => chunk.id)), [audioChunks]);
   const seekPending = useRef(false);
@@ -212,7 +211,7 @@ export function AudioReader({ book, onClose, attribution, localTools, demo = fal
     source: position => audioSetSource(book.document.blocks, setTargets, availableIds, position),
     seek: position => {
       if (seekPending.current) return;
-      const target = audioSetSeek(setTargets, position, visualTargets);
+      const target = audioSetSeek(setTargets, position);
       if (target && availableIds.has(target.segmentId)) seek(target.seconds);
     },
     marker: () => audioReadingMarker(segment, positionRef.current),

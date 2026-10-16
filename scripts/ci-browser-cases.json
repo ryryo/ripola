@@ -2858,5 +2858,45 @@
       "audio",
       "layout"
     ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "reading-options.spec.ts",
+    "title": "multiline audio can seek backwards inside a long cue without losing its current page or marker",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "reading-options.spec.ts",
+    "title": "multiline audio keeps the spoken marker on screen when short cues use estimated phrase timing",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "reading-options.spec.ts",
+    "title": "multiline audio can seek backwards inside a long cue without losing its current page or marker",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "reading-options.spec.ts",
+    "title": "multiline audio keeps the spoken marker on screen when short cues use estimated phrase timing",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
   }
 ]

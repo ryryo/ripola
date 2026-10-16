@@ -53,14 +53,16 @@ export function DisplaySetReader({ session, lines, fontSize, family, ruby, writi
       let flow = displayFlow(clock.current.source, position);
       if (!flow) return;
       const next = previous?.revision === revision ? previous.set.next : undefined;
+      let start = 0;
       if (next) {
         const continuation = displayFlow(clock.current.source, next);
-        if (continuation && flowOffset(continuation, position) !== undefined) {
-          // Drivers return whole cue/unit ranges: trim only layout, never timed units.
-          flow = continuation;
+        const from = continuation && flowOffset(continuation, next);
+        const cursor = continuation && flowOffset(continuation, position);
+        if (continuation && from !== undefined && cursor !== undefined && cursor >= from) {
+          // Whole cue/unit ranges can also contain a backward seek before this continuation.
+          flow = continuation; start = from;
         }
       }
-      let start = next && flowOffset(flow, next) !== undefined && flowOffset(flow, position) !== undefined ? flowOffset(flow, next)! : 0;
       probe.style.width = vertical ? 'max-content' : `${slot.clientWidth}px`;
       probe.style.height = vertical ? `${slot.clientHeight}px` : 'max-content';
       const extent = vertical ? slot.clientWidth : slot.clientHeight;
