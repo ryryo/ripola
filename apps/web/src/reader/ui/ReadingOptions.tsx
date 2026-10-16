@@ -1,3 +1,4 @@
+import { NativeSelect } from '@mantine/core';
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
 import type { ReaderSettings, TextBlock } from '../model';
 import { isReadingFont, loadReadingFont, READING_FONTS, type ReadingFontId } from '../reading-fonts';
@@ -37,11 +38,24 @@ export function useReadingFont(blocks: TextBlock[] | undefined, requested: Readi
 }
 
 export function FontSelect({ value, onChange, phase, error }: { value: ReadingFontId; onChange: (id: ReadingFontId) => void; phase: string; error: string }) {
-  return <div className="reading-font-setting"><label>本文の書体<select aria-label="本文の書体" value={value} onChange={event => { if (isReadingFont(event.target.value)) onChange(event.target.value); }}>{Object.entries(READING_FONTS).map(([id, font]) => <option key={id} value={id}>{font.label}</option>)}</select></label><p role="status" className="font-status" data-state={phase}>{phase === 'loading' ? '書体を読み込んでいます…' : phase === 'measuring' ? '文字の配置を確認しています…' : error || ''}</p><a href={`${import.meta.env.BASE_URL}fonts/NOTICE.md`} target="_blank" rel="noreferrer">書体とライセンス</a></div>;
+  return <div className="reading-font-setting"><label>本文の書体<NativeSelect aria-label="本文の書体" value={value} onChange={event => { if (isReadingFont(event.target.value)) onChange(event.target.value); }}>{Object.entries(READING_FONTS).map(([id, font]) => <option key={id} value={id}>{font.label}</option>)}</NativeSelect></label><p role="status" className="font-status" data-state={phase}>{phase === 'loading' ? '書体を読み込んでいます…' : phase === 'measuring' ? '文字の配置を確認しています…' : error || ''}</p><a href={`${import.meta.env.BASE_URL}fonts/NOTICE.md`} target="_blank" rel="noreferrer">書体とライセンス</a></div>;
 }
 
-export function GroupSettings({ settings, onChange }: { settings: ReaderSettings; onChange: (patch: Partial<ReaderSettings>) => void }) {
-  return <div className="group-settings"><label>まとめる<select aria-label="まとめる" value={settings.groupTarget ?? 0} onChange={event => onChange({ groupTarget: Number(event.target.value) })}><option value="0">1区切りずつ</option>{[6, 8, 12, 16, 24].map(value => <option key={value} value={value}>約{value}字ずつ</option>)}</select></label><label>最小字数<select aria-label="最小字数" value={settings.groupMinimum ?? 0} onChange={event => onChange({ groupMinimum: Number(event.target.value) })}><option value="0">指定なし</option>{[2, 3, 4, 6, 8, 12].map(value => <option key={value} value={value}>{value}字以上</option>)}</select></label><p className="input-note">一度に表示する文字量を調整します。</p></div>;
+export function DisplayAmount({ settings, onChange, label = '一度に表示する量', compact = false }: { settings: ReaderSettings; onChange: (patch: Partial<ReaderSettings>) => void; label?: string; compact?: boolean }) {
+  const display = settings.focusedDisplay;
+  const value = display?.kind === 'multiline' ? display.maxLines : 1;
+  const amount = settings.mode === 'guide' ? '全文' : value === 1 ? '1文' : `${value}${settings.writingMode === 'vertical-rl' ? '列' : '行'}`;
+  return <label className="reader-setting-slider display-amount"><span>{label}<strong>{amount}</strong></span>
+    <input aria-label={label} aria-valuetext={amount} type="range" min="1" max="10" step="1" value={value} disabled={settings.mode === 'guide'} onChange={event => onChange({ focusedDisplay: Number(event.target.value) === 1 ? { kind: 'phrase' } : { kind: 'multiline', maxLines: Number(event.target.value) } })} />
+    {!compact && <span className="input-note">縦書きでは列数です。指定行数を優先し、文字サイズを画面に合わせて自動調整します。</span>}
+  </label>;
+}
+
+export function FontSize({ settings, onChange, label = '文字サイズ' }: { settings: ReaderSettings; onChange: (patch: Partial<ReaderSettings>) => void; label?: string }) {
+  const full = settings.mode === 'guide';
+  const value = full ? settings.documentFontSize ?? 20 : settings.fontSize;
+  const maximum = !full && settings.focusedDisplay?.kind === 'multiline';
+  return <label className="reader-setting-slider font-size-setting"><span>{label}<strong>{maximum ? '上限 ' : ''}{value} px</strong></span><input aria-label={label} aria-valuetext={`${maximum ? '上限 ' : ''}${value}ピクセル`} type="range" min={full ? 14 : 24} max={full ? 48 : 96} step="2" value={value} onChange={event => onChange(full ? { documentFontSize: Number(event.target.value) } : { fontSize: Number(event.target.value) })} /></label>;
 }
 
 export function ShortcutHelp({ audio = false }: { audio?: boolean }) {

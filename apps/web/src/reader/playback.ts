@@ -1,5 +1,5 @@
 import { DEFAULT_SETTINGS, type ReaderSettings, type ReadingDocument, type ReadingUnit, type SourceAnchor } from './model.ts';
-import { buildPaceTimeline, type PaceTimeline } from './pace.ts';
+import { buildPaceTimeline, punctuationPauses, type PaceTimeline } from './pace.ts';
 export { durationMs } from './pace.ts';
 
 export interface PlaybackSnapshot {
@@ -43,6 +43,7 @@ export class PlaybackController {
   private prefix: number[] = [0];
   private timeline: PaceTimeline = buildPaceTimeline([], DEFAULT_SETTINGS);
   private unitDuration = 0;
+  private unitPause = 0;
   private unitElapsed = 0;
   private startedAt: number | undefined;
   // An epoch anchors the visible percentage when future timings change. This
@@ -121,6 +122,30 @@ export class PlaybackController {
     this.publish(next, 'paused', this.units.length > 0);
   }
 
+  /** Display subdivision samples body time; punctuation holds at the final source character. */
+  getSourcePosition = (): SourceAnchor | undefined => {
+    const unit = this.units[this.snapshot.index];
+    if (!unit) return undefined;
+    const pause = this.unitPause;
+    const body = Math.max(1, this.unitDuration - pause);
+    const progress = Math.min(1, this.elapsed() / body);
+    return { blockId: unit.blockId, offset: Math.min(unit.end - 1e-6, unit.start + (unit.end - unit.start) * progress) };
+  };
+
+  seekSource(position: SourceAnchor): void {
+    const index = this.units.findIndex(unit => unit.blockId === position.blockId && unit.end > position.offset);
+    if (index < 0) return;
+    const resume = this.snapshot.status === 'playing';
+    this.seek(index);
+    const unit = this.units[index];
+    const pause = this.unitPause;
+    const fraction = Math.max(0, Math.min(1, (position.offset - unit.start) / (unit.end - unit.start)));
+    this.unitElapsed = fraction * Math.max(0, this.unitDuration - pause);
+    this.epochCompleted = 0;
+    if (resume) this.play();
+    else this.publish(index, 'paused', true);
+  }
+
   step(delta: number): void {
     if (Number.isFinite(delta)) this.seek(this.snapshot.index + Math.trunc(delta));
   }
@@ -133,7 +158,11 @@ export class PlaybackController {
     this.settings = { ...settings };
     this.rebuildTimeline();
     // Already exposed text retains its scheduled duration, including while paused.
-    if (this.snapshot.status !== 'playing' && progress.unitElapsedMs === 0) this.unitDuration = this.timeline.durations[this.snapshot.index] ?? 0;
+    if (this.snapshot.status !== 'playing' && progress.unitElapsedMs === 0) {
+      this.unitDuration = this.timeline.durations[this.snapshot.index] ?? 0;
+      const unit = this.units[this.snapshot.index];
+      this.unitPause = unit?.kind === 'text' && this.settings.punctuationPause ? punctuationPauses[unit.pause] : 0;
+    }
     this.epochFraction = progress.fraction;
     this.epochCompleted = -progress.unitElapsedMs;
     this.epochDuration = this.remaining(progress.unitElapsedMs);
@@ -164,6 +193,8 @@ export class PlaybackController {
 
   private enter(index: number): void {
     this.unitDuration = this.timeline.durations[index] ?? 0;
+    const unit = this.units[index];
+    this.unitPause = unit?.kind === 'text' && this.settings.punctuationPause ? punctuationPauses[unit.pause] : 0;
     this.unitElapsed = 0;
     this.startedAt = undefined;
   }

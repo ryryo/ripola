@@ -73,7 +73,7 @@ test('同一音声内のフレーズ・ruby・seek・速度・chunk越え・背�
   expect(await page.locator('audio').evaluate(element => (element as HTMLAudioElement & { uiIdentity?: string }).uiIdentity)).toBe('same-media-node');
   await expect(page.getByTestId('audio-sentence')).toHaveAttribute('data-precision', 'phrase');
   await expect(page.getByTestId('audio-sentence')).toHaveAttribute('data-method', 'forced-alignment');
-  await page.getByRole('button', { name: '原文', exact: true }).click();
+  await page.getByRole('button', { name: '本の操作', exact: true }).click(); await page.getByRole('button', { name: '原文', exact: true }).click(); await expect(page.getByRole('dialog', { name: '本の操作', exact: true })).toHaveCount(0);
   await expect(page.getByRole('dialog').locator('mark')).toHaveText('図書館へ。');
   await page.getByRole('button', { name: '閉じる', exact: true }).click();
   await page.getByRole('combobox', { name: '音声の速さ', exact: true }).click();
@@ -96,6 +96,7 @@ test('同一音声内のフレーズ・ruby・seek・速度・chunk越え・背�
   await position.fill('4.4');
   await expect(page.getByTestId('audio-phrase')).toHaveText('今日は');
   expect(await page.locator('audio').getAttribute('src')).not.toBe(source);
+  await expect.poll(() => page.locator('audio').evaluate((media: HTMLAudioElement) => media.seeking ? -1 : media.currentTime)).toBeCloseTo(.4, 2);
   await page.reload();
   await expect(page.getByTestId('audio-phrase')).toHaveText('今日は');
   await expect(page.getByRole('button', { name: '再生', exact: true })).toBeVisible();
@@ -177,7 +178,7 @@ for (const reason of ['low-score', 'silence', 'reading-mismatch'] as const) {
 test('音声の自然終了で次の文へ連続再生し、最後まで完了する', async ({ page }) => {
   await installAudioFixture(page);
   await page.getByRole('button', { name: '再生', exact: true }).click();
-  await expect(page.getByTestId('audio-stage')).toContainText('2 / 2 文');
+  await expect(page.getByTestId('audio-stage')).toHaveAttribute('data-sentence-index', '1');
   await expect(page.getByRole('button', { name: 'もう一度', exact: true })).toBeVisible();
   await expect(page.getByRole('slider', { name: '音声の再生位置', exact: true })).toHaveValue('8');
   await expect.poll(() => page.locator('audio').evaluate((element: HTMLAudioElement) => element.ended)).toBe(true);
@@ -194,7 +195,7 @@ test('音声再生中は本文だけが切り替わり、番号・説明・時�
   expect(observed.changedOutsideBody).toBe(false); expect(observed.bodyChanges).toBeGreaterThanOrEqual(2);
   expect(observed.progressIncreases).toBeGreaterThan(20); expect(observed.maxLayoutShift).toBeLessThan(1);
   await page.getByRole('button', { name: '一時停止', exact: true }).click();
-  await expect(page.getByTestId('audio-stage')).toContainText('2 / 2 文');
+  await expect(page.getByTestId('audio-stage')).toHaveAttribute('data-sentence-index', '1');
   // Stopping can land in a legitimate timing gap; select a known accepted cue
   // to verify that paused details refresh without depending on wall-clock scheduling.
   await page.getByRole('slider', { name: '音声の再生位置', exact: true }).fill('4.4');

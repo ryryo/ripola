@@ -2128,7 +2128,7 @@
   {
     "project": "desktop-chromium",
     "file": "audio-sentences.spec.ts",
-    "title": "三文が一音声でも前後ボタン・Shift矢印・文一覧は原文の文単位で移動する",
+    "title": "三文が一音声でもShift矢印・文一覧は原文の文単位で移動する",
     "lane": "related",
     "domains": [
       "audio",
@@ -2158,7 +2158,7 @@
   {
     "project": "mobile-chromium",
     "file": "audio-sentences.spec.ts",
-    "title": "三文が一音声でも前後ボタン・Shift矢印・文一覧は原文の文単位で移動する",
+    "title": "三文が一音声でもShift矢印・文一覧は原文の文単位で移動する",
     "lane": "related",
     "domains": [
       "audio",
@@ -2519,6 +2519,404 @@
     "domains": [
       "layout",
       "audio"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "reading-options.spec.ts",
+    "title": "multiline sets cover paragraph remainders and fill every requested amount from two to ten",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "reading-options.spec.ts",
+    "title": "multiline sets cover paragraph remainders and fill every requested amount from two to ten",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "reading-options.spec.ts",
+    "title": "multiline mobile portrait and landscape keep ruby, text selection and fullscreen pause controls separate from advance",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "reading-options.spec.ts",
+    "title": "multiline mobile portrait and landscape keep ruby, text selection and fullscreen pause controls separate from advance",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "reading-options.spec.ts",
+    "title": "multiline audio markers follow original cues and advance seeks media while preserving play intent and rate",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "reading-options.spec.ts",
+    "title": "multiline audio markers follow original cues and advance seeks media while preserving play intent and rate",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "reading-options.spec.ts",
+    "title": "multiline long words advance automatically with no scrolling and tapping retains the same source remainder",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "reading-options.spec.ts",
+    "title": "multiline long words advance automatically with no scrolling and tapping retains the same source remainder",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "reading-options.spec.ts",
+    "title": "multiline reduced ruby still respects two actual lines and full text remembers a separate font size",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "reading-options.spec.ts",
+    "title": "multiline reduced ruby still respects two actual lines and full text remembers a separate font size",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "reading-options.spec.ts",
+    "title": "multiline paused audio advances across fractional cue and internal subdivision boundaries",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "reading-options.spec.ts",
+    "title": "multiline paused audio advances across fractional cue and internal subdivision boundaries",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "audio-progressive.spec.ts",
+    "title": "複数行は追加chunkで本文を組み替えず次セットだけを有効にする",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "audio-progressive.spec.ts",
+    "title": "複数行は追加chunkで本文を組み替えず次セットだけを有効にする",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "reading-options.spec.ts",
+    "title": "multiline requested rows determine normal and fullscreen layout instead of being a loose upper bound",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "reading-options.spec.ts",
+    "title": "multiline requested rows determine normal and fullscreen layout instead of being a loose upper bound",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "reading-options.spec.ts",
+    "title": "audio highlight changes keep glyph positions fixed and remain visible between speech cues",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "audio-prefetch.spec.ts",
+    "title": "音声が長く止まったときだけ読み込み表示し短い待機を隠す（通常）",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "audio-prefetch.spec.ts",
+    "title": "音声が長く止まったときだけ読み込み表示し短い待機を隠す（全画面）",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "reading-options.spec.ts",
+    "title": "audio highlight changes keep glyph positions fixed and remain visible between speech cues",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "audio-prefetch.spec.ts",
+    "title": "音声が長く止まったときだけ読み込み表示し短い待機を隠す（通常）",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "audio-prefetch.spec.ts",
+    "title": "音声が長く止まったときだけ読み込み表示し短い待機を隠す（全画面）",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "reading-options.spec.ts",
+    "title": "five-times audio retains a painted highlight through cue gaps and display page changes",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "reading-options.spec.ts",
+    "title": "five-times audio retains a painted highlight through cue gaps and display page changes",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "pages-chromium",
+    "file": "pages-smoke.spec.ts",
+    "title": "配布版の続きを読むは保存位置と全幅バーを表示し音声を停止して再開する",
+    "lane": "related",
+    "domains": [
+      "distribution"
+    ]
+  },
+  {
+    "project": "pages-chromium",
+    "file": "pages-smoke.spec.ts",
+    "title": "配布版の続きを読むは一覧取得の再試行と別タブの保存位置変更に対応する",
+    "lane": "related",
+    "domains": [
+      "distribution"
+    ]
+  },
+  {
+    "project": "pages-chromium",
+    "file": "pages-smoke.spec.ts",
+    "title": "配布本棚の続きを読むは保存済みの本を優先しサンプル障害時も再開できる",
+    "lane": "related",
+    "domains": [
+      "distribution"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "home-continue-reading.spec.ts",
+    "title": "本棚は進捗で並べ替えと絞り込みを行い途中生成を読了扱いしない",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "import",
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "home-continue-reading.spec.ts",
+    "title": "本棚は進捗で並べ替えと絞り込みを行い途中生成を読了扱いしない",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "import",
+      "layout"
+    ]
+  },
+  {
+    "project": "pages-chromium",
+    "file": "pages-smoke.spec.ts",
+    "title": "配布本棚は読了を絞り込みタイトルから保存位置を開く",
+    "lane": "related",
+    "domains": [
+      "distribution"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "reading-options.spec.ts",
+    "title": "silent reader uses display sliders below playback and centers the unframed mode switch",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "reading-options.spec.ts",
+    "title": "audio reader uses display sliders below playback and centers the unframed mode switch",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "reading-options.spec.ts",
+    "title": "silent reader uses display sliders below playback and centers the unframed mode switch",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "reading-options.spec.ts",
+    "title": "audio reader uses display sliders below playback and centers the unframed mode switch",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "reading-options.spec.ts",
+    "title": "multiline audio can seek backwards inside a long cue without losing its current page or marker",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "reading-options.spec.ts",
+    "title": "multiline audio keeps the spoken marker on screen when short cues use estimated phrase timing",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "reading-options.spec.ts",
+    "title": "multiline audio can seek backwards inside a long cue without losing its current page or marker",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "reading-options.spec.ts",
+    "title": "multiline audio keeps the spoken marker on screen when short cues use estimated phrase timing",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "reading-options.spec.ts",
+    "title": "five-times multiline markers track dense speech cues independently of transport repaint",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "reading-options.spec.ts",
+    "title": "five-times multiline markers track dense speech cues independently of transport repaint",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
     ]
   }
 ]

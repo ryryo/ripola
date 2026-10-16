@@ -15,7 +15,7 @@ for (const [width, height] of [[320, 740], [375, 812], [390, 844], [430, 932], [
     await page.getByRole('button', { name: '再生', exact: true }).click();
     await page.getByRole('button', { name: '一時停止', exact: true }).click();
     if (width === 390 || width === 844) await page.screenshot({ path: `docs/validation/screenshots/reader-${width === 390 ? 'mobile' : 'landscape'}.png`, fullPage: true });
-    await page.getByRole('button', { name: '原文', exact: true }).click();
+    await page.getByRole('button', { name: '本の操作', exact: true }).click(); await page.getByRole('button', { name: '原文', exact: true }).click(); await expect(page.getByRole('dialog', { name: '本の操作', exact: true })).toHaveCount(0);
     await expect(page.getByLabel('抽出した全文')).toBeVisible();
   });
 }

@@ -48,7 +48,7 @@ test('無料生成の確認・停止再開・保存再利用と音声時計に�
   await expect(page.locator('.generation-job-heading')).toContainText(`${plannedCount} / ${plannedCount}文`);
   await page.getByRole('link', { name: '保存音声を読む', exact: true }).click();
   await expect(page.getByTestId('audio-stage')).toBeVisible();
-  await expect(page.getByTestId('audio-stage')).toContainText(`1 / ${plannedCount} 文`);
+  await expect(page.getByTestId('audio-stage')).toHaveAttribute('data-sentence-index', '0');
   await expect(page.getByText('文内のフレーズ時刻は未検証です。', { exact: false })).toBeVisible();
   await expect(page.getByTestId('audio-phrase')).toBeVisible();
   await expect(page.getByTestId('audio-sentence')).not.toHaveText(manuscript.split('。')[0] + '。');
@@ -60,9 +60,9 @@ test('無料生成の確認・停止再開・保存再利用と音声時計に�
   const paused = await page.locator('audio').evaluate((element: HTMLAudioElement) => element.currentTime);
   await page.waitForTimeout(300);
   expect(await page.locator('audio').evaluate((element: HTMLAudioElement) => element.currentTime)).toBeCloseTo(paused, 1);
-  if (plannedCount > 1) await page.getByRole('button', { name: '一文進む', exact: true }).click();
+  if (plannedCount > 1) { await page.locator('.generation-title h1').click(); await page.keyboard.press('Shift+ArrowRight'); }
   await expect(page.getByTestId('audio-phrase')).toBeVisible();
-  await expect(page.getByTestId('audio-stage')).toContainText(`${plannedCount > 1 ? 2 : 1} / ${plannedCount} 文`);
+  await expect(page.getByTestId('audio-stage')).toHaveAttribute('data-sentence-index', String(plannedCount > 1 ? 1 : 0));
   await page.getByRole('combobox', { name: '音声の速さ', exact: true }).click();
   await page.getByRole('option', { name: '1.5倍', exact: true }).click();
   await expect.poll(() => page.locator('audio').evaluate((element: HTMLAudioElement) => element.playbackRate)).toBe(1.5);
@@ -76,7 +76,7 @@ test('無料生成の確認・停止再開・保存再利用と音声時計に�
   await page.reload();
   await expect(page.getByTestId('audio-sentence')).toHaveText(source);
   await expect(page.getByRole('button', { name: '再生', exact: true })).toBeVisible();
-  await page.getByRole('button', { name: '原文', exact: true }).click();
+  await page.getByRole('button', { name: '本の操作', exact: true }).click(); await page.getByRole('button', { name: '原文', exact: true }).click(); await expect(page.getByRole('dialog', { name: '本の操作', exact: true })).toHaveCount(0);
   await expect(page.getByRole('dialog')).toContainText(manuscript);
   await page.getByRole('button', { name: '閉じる', exact: true }).click();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);

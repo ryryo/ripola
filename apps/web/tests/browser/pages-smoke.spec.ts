@@ -8,7 +8,7 @@ test('完成Pagesの初期本文・読書・明示保存前の再読み込み', 
   context.on('request', request => { if (/^https?:/.test(request.url()) && new URL(request.url()).origin !== new URL(baseURL!).origin) external.push(request.url()); });
   await page.emulateMedia({ colorScheme: 'dark' });
   await page.goto('./');
-  await expect(page.getByRole('region', { name: '続きを読む', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('region', { name: '続きを読む', exact: true })).toBeVisible();
   await expect(page.locator('html')).toHaveAttribute('data-mantine-color-scheme', 'dark');
   await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(20, 33, 44)');
   await chooseTheme(page, 'ライト');
@@ -24,6 +24,109 @@ test('完成Pagesの初期本文・読書・明示保存前の再読み込み', 
   await expect(page.getByRole('button', { name: '続きから開く', exact: true })).toHaveCount(0);
   await expect(page.locator('html')).toHaveAttribute('data-mantine-color-scheme', 'light');
   expect(errors).toEqual([]); expect(external).toEqual([]);
+});
+
+test('配布版の続きを読むは保存位置と全幅バーを表示し音声を停止して再開する', async ({ page, request }) => {
+  const catalog = await (await request.get('samples/audio/library/index.json')).json();
+  const entry = catalog.books.find((book: { id: string }) => book.id === AUDIO_DEMOS[0].id);
+  const metadata = await (await request.get('distribution.json')).json();
+  const route = metadata.profile === 'pages' ? 'demo/' : 'books/';
+  await page.addInitScript(entry => localStorage.setItem(`rsvp-audio-position:${entry.id}:${entry.revision}`, '12'), entry);
+  const unexpected: string[] = [];
+  page.on('request', request => { if (/\/_serverFn\/|\/api\/local-|\/media\//.test(request.url())) unexpected.push(request.url()); });
+  await page.goto('./');
+  const section = page.getByRole('region', { name: '続きを読む', exact: true });
+  await expect(section.getByRole('article')).toHaveCount(1);
+  await expect(section.getByRole('progressbar')).toHaveAttribute('aria-valuenow', String(Math.floor(12 / entry.durationSeconds * 100)));
+  await expect(section).toContainText('0分12秒から再開');
+  await expect(section).not.toContainText('保存位置なし');
+  const card = await section.getByRole('article').boundingBox(), track = await section.locator('.bookshelf-progress-track').boundingBox();
+  expect(track!.width).toBeCloseTo(card!.width, 0);
+  expect(card!.height).toBeLessThanOrEqual(94);
+  await expect(section.getByRole('link', { name: '本棚ですべて見る' })).toHaveAttribute('href', new RegExp(`/${route}$`));
+  expect(unexpected).toEqual([]);
+  const open = section.getByRole('link', { name: `${entry.title}の続きを読む`, exact: true });
+  await expect(open).toHaveAttribute('href', new RegExp(`/${route}\\?sample=voicevox&`));
+  await open.click();
+  await expect(page.getByTestId('audio-stage')).toBeVisible();
+  await expect(page.getByRole('slider', { name: '音声の再生位置', exact: true })).toHaveValue('12');
+  await expect.poll(() => page.locator('audio').evaluate((media: HTMLAudioElement) => media.readyState)).toBeGreaterThan(0);
+  expect(await page.locator('audio').evaluate((media: HTMLAudioElement) => media.paused)).toBe(true);
+});
+
+test('配布版の続きを読むは一覧取得の再試行と別タブの保存位置変更に対応する', async ({ page, request }) => {
+  const catalog = await (await request.get('samples/audio/library/index.json')).json();
+  const entry = catalog.books.find((book: { id: string }) => book.id === AUDIO_DEMOS[0].id);
+  const key = `rsvp-audio-position:${entry.id}:${entry.revision}`;
+  await page.addInitScript(key => localStorage.setItem(key, '12'), key);
+  await page.route(/\/library\/index\.json$/, route => route.request().url().includes('/samples/audio/') ? route.continue() : route.fulfill({ status: 503, body: 'unavailable' }));
+  await page.goto('./');
+  const section = page.getByRole('region', { name: '続きを読む', exact: true });
+  await expect(section.getByRole('alert')).toBeVisible();
+  await page.getByLabel('読む文章', { exact: true }).fill('書きかけの文章を保ちます。');
+  await page.unroute(/\/library\/index\.json$/);
+  await section.getByRole('button', { name: '保存音声を再確認' }).click();
+  await expect(section.getByRole('article')).toHaveCount(1);
+  await expect(page.getByLabel('読む文章', { exact: true })).toHaveValue('書きかけの文章を保ちます。');
+  await page.evaluate(key => { localStorage.removeItem(key); window.dispatchEvent(new StorageEvent('storage', { key })); }, key);
+  await expect(section.getByRole('article')).toHaveCount(0);
+});
+
+test('配布本棚の続きを読むは保存済みの本を優先しサンプル障害時も再開できる', async ({ page, request }) => {
+  const catalog = await (await request.get('samples/audio/library/index.json')).json();
+  const metadata = await (await request.get('distribution.json')).json();
+  const entry = catalog.books[2];
+  await page.addInitScript(entry => localStorage.setItem(`rsvp-audio-position:${entry.id}:${entry.revision}`, '12'), entry);
+  await page.route(/\/library\/index\.json$/, route => route.request().url().includes('/samples/audio/') ? route.fulfill({ status: 503 })
+    : route.fulfill({ json: { ...catalog, target: metadata.profile, audience: 'demo' } }));
+  await page.route(/\/library\/books\//, async route => {
+    if (route.request().url().includes('/samples/audio/')) return route.continue();
+    await route.fulfill({ response: await route.fetch({ url: route.request().url().replace('/library/books/', '/samples/audio/library/books/') }) });
+  });
+  await page.goto('./');
+  const section = page.getByRole('region', { name: '続きを読む', exact: true });
+  await expect(section.getByRole('article')).toHaveCount(3);
+  await expect(section.getByRole('heading', { level: 3 }).first()).toHaveText(entry.title);
+  await expect(section.getByRole('progressbar').first()).toHaveAttribute('aria-valuenow', String(Math.floor(12 / entry.durationSeconds * 100)));
+  await expect(section.getByRole('progressbar').nth(1)).toHaveAttribute('aria-valuenow', '0');
+  const open = section.getByRole('link', { name: `${entry.title}の続きを読む`, exact: true });
+  await expect(open).toHaveAttribute('href', new RegExp(`/${metadata.profile === 'pages' ? 'demo/' : 'books/'}\\?book=`));
+  await open.click();
+  await expect(page.getByTestId('audio-stage')).toBeVisible();
+  await expect(page.getByRole('slider', { name: '音声の再生位置', exact: true })).toHaveValue('12');
+  await expect.poll(() => page.locator('audio').evaluate((media: HTMLAudioElement) => media.readyState)).toBeGreaterThan(0);
+  expect(await page.locator('audio').evaluate((media: HTMLAudioElement) => media.paused)).toBe(true);
+});
+
+test('配布本棚は読了を絞り込みタイトルから保存位置を開く', async ({ page, request }) => {
+  const catalog = await (await request.get('samples/audio/library/index.json')).json();
+  const metadata = await (await request.get('distribution.json')).json();
+  const entry = catalog.books[1];
+  await page.addInitScript(({ completed, reading }) => {
+    localStorage.setItem(`rsvp-audio-position:${completed.id}:${completed.revision}`, String(completed.durationSeconds));
+    localStorage.setItem(`rsvp-audio-position:${reading.id}:${reading.revision}`, '12');
+  }, { completed: catalog.books[0], reading: entry });
+  await page.route(/\/library\/index\.json$/, route => route.request().url().includes('/samples/audio/') ? route.continue()
+    : route.fulfill({ json: { ...catalog, target: metadata.profile, audience: 'demo' } }));
+  await page.route(/\/library\/books\//, async route => {
+    if (route.request().url().includes('/samples/audio/')) return route.continue();
+    await route.fulfill({ response: await route.fetch({ url: route.request().url().replace('/library/books/', '/samples/audio/library/books/') }) });
+  });
+  await page.goto(metadata.profile === 'pages' ? 'demo/' : 'books/');
+  const titles = page.locator('.bookshelf-book h2');
+  await expect(titles).toHaveCount(5);
+  await expect(page.getByRole('button', { name: '著者・音声', exact: true })).toHaveCount(0);
+  await page.getByLabel('絞り込み', { exact: true }).selectOption('unfinished');
+  await expect(titles).toHaveCount(4);
+  await page.getByLabel('絞り込み', { exact: true }).selectOption('completed');
+  await expect(titles).toHaveText([catalog.books[0].title]);
+  await page.getByLabel('絞り込み', { exact: true }).selectOption('reading');
+  await expect(titles).toHaveText([entry.title]);
+  await page.getByRole('link', { name: entry.title, exact: true }).click();
+  await expect(page.getByTestId('audio-stage')).toBeVisible();
+  await expect(page.getByRole('slider', { name: '音声の再生位置', exact: true })).toHaveValue('12');
+  await page.getByRole('button', { name: '本の操作', exact: true }).click();
+  await expect(page.getByRole('dialog')).toContainText('作品情報');
 });
 
 test('完成Pagesの全音声サンプル・直リンク・seek・公開API境界', async ({ page, request }) => {

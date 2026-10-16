@@ -1,21 +1,10 @@
-import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
 import type { ReadingUnit, WritingMode } from '../model';
 import { phrasePageAt, planPhrasePages, type PhrasePage } from '../phrase-layout';
 import { PhraseFrame } from './PhraseFrame';
 
-export function RubyText({ unit, show }: { unit?: Pick<ReadingUnit, 'text' | 'ruby'>; show: boolean }) {
-  if (!unit) return null;
-  if (!show || !unit.ruby.length) return <>{unit.text}</>;
-  let offset = 0;
-  const pieces: ReactNode[] = [];
-  for (const span of unit.ruby) {
-    if (span.start > offset) pieces.push(unit.text.slice(offset, span.start));
-    pieces.push(<ruby key={`${span.start}-${span.end}`}>{unit.text.slice(span.start, span.end)}<rt>{span.reading}</rt></ruby>);
-    offset = span.end;
-  }
-  pieces.push(unit.text.slice(offset));
-  return <>{pieces}</>;
-}
+import { RubyText } from './ReadingText';
+export { RubyText } from './ReadingText';
 
 /** Measure the actual whole phrase and ruby. This does not choose a fixation character. */
 export function PhraseDisplay({ unit, sourceUnits, activeUnit, getProgress, playing = false, fontSize, ruby, family, audio = false, precision = 'phrase', unitIds, timingMethod, timingScore, writingMode = 'horizontal-tb' }: {

@@ -1,0 +1,23 @@
+.display-set-reader{display:flex;flex:1 1 0;flex-direction:column;min-height:0;min-width:0;gap:12px;padding:12px 24px 16px;overflow:hidden}
+.display-set-viewport{display:flex;align-items:center;justify-content:center;flex:1 1 0;min-height:0;min-width:0;overflow:hidden;overflow-anchor:none}
+.display-set-text{white-space:pre-wrap;overflow-wrap:anywhere;word-break:normal;line-height:1.6;letter-spacing:.04em;font-weight:400;text-align:start;flex:none;max-width:100%}
+.display-set-text rt{font-size:.38em}
+.display-set-reader[data-writing-mode=vertical-rl] .display-set-text{max-width:none;max-height:100%;height:100%}
+.display-set-next{display:inline-flex;align-items:center;justify-content:center;flex:none;align-self:center;width:48px;min-width:48px;height:48px;min-height:48px;border:0;border-radius:0;padding:12px;background:transparent;color:var(--muted);cursor:pointer;touch-action:manipulation}
+.display-set-next:hover:not(:disabled){color:var(--accent-ink)}
+.display-set-next:disabled{opacity:.4;cursor:default}
+.display-set-next:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+.display-set-reader[data-writing-mode=vertical-rl]{flex-direction:row-reverse}
+.fullscreen-reader[data-fullscreen=false] .display-set-reader[data-writing-mode=vertical-rl]{padding-bottom:64px}
+.display-set-text{position:relative;isolation:isolate}
+.reading-marker-layer{position:absolute;inset:0;z-index:-1;pointer-events:none;writing-mode:horizontal-tb}
+.reading-marker-layer>span{position:absolute;border-radius:3px;background:color-mix(in srgb,var(--mantine-primary-color-filled,#d09b46) 28%,transparent)}
+.fullscreen-reader[data-fullscreen=false] > .reader-stage.multiline-mode,.fullscreen-reader[data-fullscreen=false] > .audio-stage.multiline-mode{height:clamp(320px,calc(var(--display-lines,2) * var(--reader-font-size,56px) * 1.6 + 140px),min(90dvh,1000px));min-height:320px;padding-top:56px;overflow:hidden}
+.fullscreen-reader[data-fullscreen=false] > .multiline-mode:has(.display-set-reader[data-writing-mode=vertical-rl]){min-height:clamp(460px,74dvh,840px)}
+.fullscreen-reader[data-fullscreen=true] .multiline-mode{height:100%;min-height:0;overflow:hidden}
+@media(max-width:600px){.display-set-reader{padding:8px 12px 12px;gap:8px}.reader-display-toolbar{flex-wrap:wrap}}
+.guide-row{font-size:var(--document-font-size,20px)!important}
+
+.fullscreen-reader[data-fullscreen=false] > .multiline-mode > .stage-topline{position:absolute;inset:0 0 auto}
+@media(max-height:520px){.display-set-reader{padding-block:8px;gap:8px}}
+@media(max-height:520px){.fullscreen-reader[data-fullscreen=true] .display-set-reader{padding-top:0}}
