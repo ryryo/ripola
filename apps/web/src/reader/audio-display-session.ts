@@ -4,6 +4,7 @@ import type { SourceAnchor, TextBlock } from './model';
 
 export interface AudioSourceTarget { blockId: string; start: number; end: number; seconds: number; endSeconds: number; segmentId: string }
 
+const spokenCues = new WeakMap<AudioSegment, ReadonlySet<PlayablePhraseCue>>();
 const sourceClocks = new WeakMap<AudioSegment, AudioSegment>();
 
 /** One source clock for page position, markers and seeks, without the phrase view's minimum dwell. */
@@ -11,7 +12,20 @@ function sourceClock(segment: AudioSegment): AudioSegment {
   const stored = sourceClocks.get(segment);
   if (stored) return stored;
   const accepted = segment.cues ?? [];
-  const values = [...accepted, ...segment.displayCues.filter(cue => !accepted.some(value => value.blockId === cue.blockId && value.start <= cue.start && value.end >= cue.end))];
+  const acceptedSet = new Set(accepted);
+  const coverage = new Map<string, Array<{ start: number; end: number }>>();
+  for (const cue of accepted) { const values = coverage.get(cue.blockId) ?? []; values.push(cue); coverage.set(cue.blockId, values); }
+  for (const [id, values] of coverage) {
+    const sorted = [...values].sort((a, b) => a.start - b.start); let end = 0;
+    coverage.set(id, sorted.map(cue => ({ start: cue.start, end: end = Math.max(end, cue.end) })));
+  }
+  const covered = (cue: PlayablePhraseCue) => {
+    const values = coverage.get(cue.blockId) ?? [];
+    let low = 0, high = values.length;
+    while (low < high) { const mid = (low + high) >>> 1; if (values[mid].start <= cue.start) low = mid + 1; else high = mid; }
+    return low > 0 && values[low - 1].end >= cue.end;
+  };
+  const values = [...accepted, ...segment.displayCues.filter(cue => !covered(cue))];
   values.sort((a, b) => a.blockId === b.blockId ? a.start - b.start
     : (a.unitIndices[0] ?? segment.chunk.timeline.findIndex(mark => mark.blockId === a.blockId)) - (b.unitIndices[0] ?? segment.chunk.timeline.findIndex(mark => mark.blockId === b.blockId)));
   const cues: PlayablePhraseCue[] = [];
@@ -30,7 +44,7 @@ function sourceClock(segment: AudioSegment): AudioSegment {
     pending = [];
   };
   for (const cue of values) {
-    if (accepted.includes(cue)) { appendEstimates(cue.startSeconds); cues.push(cue); previousEnd = cue.endSeconds; }
+    if (acceptedSet.has(cue)) { appendEstimates(cue.startSeconds); cues.push(cue); previousEnd = cue.endSeconds; }
     else if (cue.estimatedReason !== 'silence-hold') pending.push(cue);
   }
   appendEstimates(segment.chunk.durationSeconds);
@@ -38,6 +52,7 @@ function sourceClock(segment: AudioSegment): AudioSegment {
   const clock = untimedSource ? { ...segment, cues: [], displayCues: segment.displayCues.filter(cue => cue.estimatedReason !== 'silence-hold') }
     : { ...segment, displayCues: cues };
   sourceClocks.set(segment, clock);
+  spokenCues.set(clock, untimedSource ? new Set() : acceptedSet);
   return clock;
 }
 
@@ -56,7 +71,7 @@ export function audioReadingMarker(segment: AudioSegment | undefined, seconds: n
   const cue = display.cue;
   if (!cue) return undefined;
   const precision = display.reason === 'silence-hold' || cue.estimatedReason === 'silence-hold' ? 'position'
-    : clock.cues?.includes(cue) ? 'spoken' : 'estimated';
+    : spokenCues.get(clock)?.has(cue) ? 'spoken' : 'estimated';
   return { blockId: cue.blockId, start: cue.start, end: cue.end, precision };
 }
 

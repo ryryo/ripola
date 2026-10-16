@@ -11,8 +11,6 @@ export const getJobPlan = createServerFn({ method: 'GET' }).validator((data: { j
 export const cancelJob = createServerFn({ method: 'POST' }).validator((data: { jobId: string }) => data).handler(async ({ data }) => (await getLocalGenerationService()).cancelJob(data.jobId));
 export const prioritizeJobChunks = createServerFn({ method: 'POST' }).validator((data: PrioritizeGenerationInput) => data).handler(async ({ data }) => (await getLocalGenerationService()).prioritizeJobChunks(data.jobId, data.chunkIds));
 export const resumeJob = createServerFn({ method: 'POST' }).validator((data: ResumeGenerationInput) => data).handler(async ({ data }) => (await getLocalGenerationService()).resumeJob(data.jobId, data.paidConfirmed));
-export const listLibrary = createServerFn({ method: 'GET' }).handler(async () => (await getLocalGenerationService()).listLibrary());
-export const getBook = createServerFn({ method: 'GET' }).validator((data: { bookId: string; revision?: string }) => data).handler(async ({ data }) => (await getLocalGenerationService()).getBook(data.bookId, data.revision));
 
 export const getAlignmentCapabilities = createServerFn({ method: 'GET' }).handler(async () => (await getLocalGenerationService()).getAlignmentCapabilities());
 export const startAlignment = createServerFn({ method: 'POST' }).validator((data: StartAlignmentInput) => data).handler(async ({ data }) => (await getLocalGenerationService()).startAlignment(data));
@@ -22,3 +20,5 @@ export const cancelAlignmentJob = createServerFn({ method: 'POST' }).validator((
 export const resumeAlignmentJob = createServerFn({ method: 'POST' }).validator((data: { jobId: string }) => data).handler(async ({ data }) => (await getLocalGenerationService()).resumeAlignmentJob(data.jobId));
 
 export const renameBook = createServerFn({ method: 'POST' }).validator((data: { bookId: string; revision: string; title: string }) => data).handler(async ({ data }) => (await getLocalGenerationService()).renameBook(data.bookId, data.revision, data.title));
+
+export { listLibrary, getBook } from './functions.reading';

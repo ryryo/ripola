@@ -31,7 +31,7 @@ async function publish(indices = [0, 2]) {
 }
 test.beforeAll(async () => {
   const assets = resolve('apps/web/dist/server/assets');
-  const functions = (await readdir(assets)).filter(name => /^functions-.*\.js$/.test(name));
+  const functions = (await readdir(assets)).filter(name => /\.js$/.test(name));
   const metadata = (await Promise.all(functions.map(name => readFile(resolve(assets, name), 'utf8')))).join('\n');
   rpcIds = Object.fromEntries([...metadata.matchAll(/createServerRpc\(\{\s*id:\s*"([^"]+)",\s*name:\s*"([^"]+)"/g)].map(match => [match[2], match[1]]));
   expect(rpcIds.getBook).toBeTruthy();

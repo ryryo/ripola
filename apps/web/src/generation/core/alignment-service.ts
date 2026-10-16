@@ -114,6 +114,7 @@ export class AlignmentService {
       if (initial.alignerVersion !== this.adapter.version) throw new Error('alignment runtimeのversionが変わりました。新しい計画で開始してください。');
       const book = await this.host.getBook(initial.bookId, initial.revision);
       const plan = await this.sourcePlan(book);
+      let savedPresentationChecked = false;
       await this.update(jobId, (job) => { if (['queued', 'running'].includes(job.status)) job.status = 'running'; delete job.error; });
       for (const state of initial.chunks) {
         const current = await this.get(jobId);
@@ -153,7 +154,7 @@ export class AlignmentService {
               await this.update(jobId, job => { const target = job.chunks.find(c => c.id === state.id)!; target.status = 'completed'; target.alignmentKey = key; target.result = projected.status; target.reused = true; delete target.error; });
               continue;
             }
-            requireAudioPresentation(book);
+            if (!savedPresentationChecked) { requireAudioPresentation(book); savedPresentationChecked = true; }
             await this.update(jobId, job => { const target = job.chunks.find(c => c.id === state.id)!; target.status = 'completed'; target.alignmentKey = saved.key; target.result = saved.status; target.reused = true; delete target.error; });
             continue;
           }

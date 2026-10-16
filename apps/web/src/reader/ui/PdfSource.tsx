@@ -1,12 +1,15 @@
 import { Alert, Button } from '@mantine/core';
 import { useEffect, useRef, useState } from 'react';
 import type { ReadingDocument, ReadingUnit } from '../model';
+import type { PdfSession } from '../pdf-import';
 export function PdfSource({ data, document, unit }: { data: ArrayBuffer; document: ReadingDocument; unit?: ReadingUnit }) {
   const sourcePage = unit?.sources.find(source => source.kind === 'pdf')?.page ?? 1;
   const [page, setPage] = useState(sourcePage);
   const [width, setWidth] = useState(600);
   const [error, setError] = useState('');
   const [rendering, setRendering] = useState(false);
+  const [session, setSession] = useState<{ data: ArrayBuffer; value: PdfSession }>();
+  const renderQueue = useRef<Promise<unknown>>(Promise.resolve());
   const canvas = useRef<HTMLCanvasElement>(null);
   const container = useRef<HTMLDivElement>(null);
   const info = document.pages?.find(value => value.number === page);
@@ -18,16 +21,27 @@ export function PdfSource({ data, document, unit }: { data: ArrayBuffer; documen
     return () => observer.disconnect();
   }, []);
   useEffect(() => {
+    const task = new AbortController(); let opened: PdfSession | undefined;
+    setSession(undefined); setError(''); setRendering(true);
+    void import('../pdf-import').then(({ openPdfDocument }) => openPdfDocument(data, task.signal)).then(value => {
+      opened = value;
+      if (task.signal.aborted) void value.close(); else setSession({ data, value });
+    }).catch(error => { if (!task.signal.aborted) { setError(error instanceof Error ? error.message : 'PDFを開けませんでした。'); setRendering(false); } });
+    return () => { task.abort(); void opened?.close(); };
+  }, [data]);
+  useEffect(() => {
+    if (!session || session.data !== data) return;
     const task = new AbortController();
     setError(''); setRendering(true);
-    void import('../pdf-view').then(({ renderPdfPage }) => {
+    renderQueue.current = renderQueue.current.catch(() => {}).then(async () => {
+      const { renderPdfDocumentPage } = await import('../pdf-view');
       if (!canvas.current || task.signal.aborted) return;
-      return renderPdfPage(data, page, canvas.current, { signal: task.signal, scale: Math.min(2, window.devicePixelRatio || 1) * width / (info?.width ?? 600) });
+      await renderPdfDocumentPage(session.value.document, page, canvas.current, { signal: task.signal, scale: Math.min(2, window.devicePixelRatio || 1) * width / (info?.width ?? 600) });
     }).catch(error => {
       if (!task.signal.aborted) setError(error instanceof Error ? error.message : 'ページを表示できませんでした。');
     }).finally(() => { if (!task.signal.aborted) setRendering(false); });
     return () => task.abort();
-  }, [data, page, width, info?.width]);
+  }, [data, session, page, width, info?.width]);
   return <section className="pdf-source" aria-label="PDFの元ページ"><div className="pdf-pagination"><Button variant="light" size="xs" disabled={page <= 1} onClick={() => setPage(page - 1)}>前のページ</Button><span>{page} / {document.pages?.length ?? 1} ページ</span><Button variant="light" size="xs" disabled={page >= (document.pages?.length ?? 1)} onClick={() => setPage(page + 1)}>次のページ</Button></div>
     {error && <Alert color="red" role="alert">{error}</Alert>}
     {rendering && <p role="status" className="muted">元ページを表示しています…</p>}

@@ -1,3 +1,4 @@
+import { HomeTextComposer } from '../../generation-ui/HomeComposer';
 import { Alert, Button, Drawer, Progress, Switch, Textarea, TextInput } from '@mantine/core';
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, useLayoutEffect, lazy, Suspense, type CSSProperties } from 'react';
 import { DEFAULT_SETTINGS, MULTILINE_SPACING, MAX_INPUT_BYTES, MAX_TEXT_LENGTH, type ReadingDocument, type ReaderSettings, type ReadingUnit, type SourceAnchor } from '../model';
@@ -70,12 +71,27 @@ function ReadingSessionApp() {
   const [cpmInput, setCpmInput] = useState(String(DEFAULT_SETTINGS.cpm));
   const [title, setTitle] = useState(() => initialDraft.title);
   const [audioEnabled, setAudioEnabled] = useState(initialDraft.audioEnabled);
+  const [audioSettingsLoaded, setAudioSettingsLoaded] = useState(initialDraft.audioEnabled);
+  const focusAudioToggle = useRef(false);
+  const toggleAudio = (enabled: boolean) => {
+    if (enabled && !audioSettingsLoaded) {
+      focusAudioToggle.current = Boolean(globalThis.document.activeElement?.closest('.audio-disclosure'));
+      setAudioSettingsLoaded(true);
+    }
+    setAudioEnabled(enabled);
+  };
+  const generationReady = useCallback(() => {
+    if (!focusAudioToggle.current) return;
+    focusAudioToggle.current = false;
+    if (globalThis.document.activeElement === globalThis.document.body) globalThis.document.querySelector<HTMLInputElement>('.audio-disclosure input[role="switch"]')?.focus({ preventScroll: true });
+  }, []);
   const [audioBusy, setAudioBusy] = useState(false);
   const [draftRevision, setDraftRevision] = useState(0);
   const [generationDocument, setGenerationDocument] = useState<ReadingDocument | undefined>(initialDraft.document);
   const [draftPdfData, setDraftPdfData] = useState<ArrayBuffer | undefined>(initialDraft.pdfData);
   const [input, setInput] = useState(() => initialDraft.text);
   const [format, setFormat] = useState<InputFormat>(() => initialDraft.format);
+  const [inputFormatExpanded, setInputFormatExpanded] = useState(false);
   const draftEdited = useRef(Boolean(initialSession || navigation.store.draft));
   const historyDraft = useRef({ title, text: input, format });
   historyDraft.current = { title, text: input, format };
@@ -340,7 +356,7 @@ function ReadingSessionApp() {
     <input id="reading-file" aria-label="読み込むファイル" type="file" accept=".md,.markdown,.txt,.pdf,.html,.htm" className="visually-hidden" disabled={draftDisabled} onChange={e => { const file = e.target.files?.[0]; if (file) { draftEdited.current = true; setDraftRevision(value => value + 1); void importInput(file, undefined, false, true); } e.target.value = ''; }} />
     <div className="divider"><span>または、文章を貼り付け</span></div>
     <div className="manuscript-heading"><label htmlFor="home-manuscript">読む文章</label></div>
-    <InputFormatControl text={input} value={format} sourceFormat={generationDocument?.format} disabled={draftDisabled} onChange={value => { setFormat(value); changeDraft(); }} />
+    <InputFormatControl text={input} value={format} sourceFormat={generationDocument?.format} expanded={inputFormatExpanded} onExpandedChange={setInputFormatExpanded} disabled={draftDisabled} onChange={value => { setFormat(value); changeDraft(); }} />
     <Textarea id="home-manuscript" aria-label="読む文章" placeholder="ここに文章を貼り付けてください…" value={input} disabled={draftDisabled} onChange={e => { setInput(e.target.value); changeDraft(); }} rows={3} resize="vertical" maxLength={MAX_TEXT_LENGTH + 1} spellCheck={false} />
     {import.meta.env.VITE_RSVP_PROFILE === 'pages' && input === PAGES_DEMO.text && <p className="input-note">デモ文：夏目漱石『吾輩は猫である』冒頭（<a href={PAGES_DEMO.sourceUrl} target="_blank" rel="noreferrer">青空文庫</a>）。そのまま読み始めるか、自分の文章に書き換えられます。</p>}
     {generationDocument && <details className="home-manuscript-preview"><summary>取り込んだ本文を確認 · {generationDocument.title} · {generationDocument.totalCharacters.toLocaleString()}字</summary><pre>{generationDocument.blocks.map(block => block.text).join('\n\n')}</pre>{generationDocument.warnings.map((warning, i) => <p className="muted" key={i}>{warning}</p>)}</details>}
@@ -351,7 +367,7 @@ function ReadingSessionApp() {
     <article className="home-sample-item" aria-label="全文の黙読サンプル"><span className="sample-glyph" aria-hidden="true">▤</span><div className="sample-copy"><h3>全文を読む</h3><p>吾輩は猫である</p><p className="sample-meta">全11章 · ルビ付き · 音声なし</p></div><Button variant="light" disabled={draftDisabled} onClick={() => void importInput(undefined, undefined, true)}>全文で読む</Button></article>
   </section>;
   const importPanel = <>
-    {LocalGeneration ? <Suspense fallback={<div className="loading-card">入力フォームを準備しています…</div>}><LocalGeneration home={{ input: manuscriptFields, rawText: input, inputFormat: format, document: generationDocument, revision: draftRevision, enabled: audioEnabled, onToggle: setAudioEnabled, prepareDocument: () => importInput(undefined, undefined, false, true), onRead: () => { void importInput(); }, textBusy: loading, onBusyChange: onGenerationBusy }} /></Suspense> : <div className="home-composer">{manuscriptFields}<EnvironmentAvailability /><div className="home-generation-actions"><Button disabled={draftDisabled} onClick={() => void importInput()}>テキストのみ生成して読む</Button></div><p className="home-action-note">本文を外へ送りません。</p></div>}
+    {LocalGeneration ? audioSettingsLoaded || audioEnabled ? <Suspense fallback={<div className="loading-card">入力フォームを準備しています…</div>}><LocalGeneration home={{ input: manuscriptFields, rawText: input, inputFormat: format, document: generationDocument, revision: draftRevision, enabled: audioEnabled, onToggle: toggleAudio, prepareDocument: () => importInput(undefined, undefined, false, true), onRead: () => { void importInput(); }, textBusy: loading, onBusyChange: onGenerationBusy, onReady: generationReady }} /></Suspense> : <HomeTextComposer input={manuscriptFields} disabled={draftDisabled} onToggle={toggleAudio} onRead={() => void importInput()} /> : <div className="home-composer">{manuscriptFields}<EnvironmentAvailability /><div className="home-generation-actions"><Button disabled={draftDisabled} onClick={() => void importInput()}>テキストのみ生成して読む</Button></div><p className="home-action-note">本文を外へ送りません。</p></div>}
     {sampleActions}
     <p className="input-note import-scope">横書き1段のテキスト層付きPDF・青空文庫HTMLに対応。OCR・縦書き・段組PDFの自動復元には対応していません。</p>
   </>;

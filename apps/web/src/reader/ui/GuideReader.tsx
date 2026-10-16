@@ -48,8 +48,8 @@ export function GuideReader({ blocks, units, currentIndices, playing, ruby, fami
     while (low < high) { const middle = (low + high) >>> 1; if (rows[middle].units.at(-1)!.index < current) low = middle + 1; else high = middle; }
     return Math.min(low, Math.max(0, rows.length - 1));
   }, [rows, current]);
-  let first = 0;
-  while (first < rows.length - 1 && prefix[first + 1] < scroll - 350) first++;
+  let first = 0, high = Math.max(0, rows.length - 1);
+  while (first < high) { const middle = (first + high) >>> 1; if (prefix[middle + 1] < scroll - 350) first = middle + 1; else high = middle; }
   let end = first;
   while (end < rows.length && (prefix[end] < scroll + extent + 350 || end < first + 3)) end++;
   // A far seek must render its anchor before measuring or scrolling. Near the

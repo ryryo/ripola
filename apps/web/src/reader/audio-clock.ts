@@ -152,10 +152,9 @@ function displayCues(chunk: PlayableAudioChunk, source: ReadingUnit[], indices: 
 
 
 /** Keep audio-file segments separate from the original document's display units. */
-export function audioSegments(book: PlayableAudioBook): AudioSegment[] {
+export function audioSegments(book: PlayableAudioBook, source = audioSourceUnits(book).units): AudioSegment[] {
   const segments: AudioSegment[] = [];
   const blocks = new Map(book.document.blocks.map(block => [block.id, block]));
-  const source = audioSourceUnits(book).units;
   const units = new Map(source.map(unit => [unit.id, unit]));
   const indices = new Map(source.map((unit, index) => [unit.id, index]));
   const byBlock = new Map<string, ReadingUnit[]>();

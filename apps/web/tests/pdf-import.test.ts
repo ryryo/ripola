@@ -3,9 +3,21 @@ import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { test } from 'node:test';
 import type { TextContent, TextItem } from 'pdfjs-dist/types/src/display/api';
-import { importPdf, layoutPdfPage, PdfImportError, validatePdfInput } from '../src/reader/pdf-import';
+import { importPdf, layoutPdfPage, PdfImportError, validatePdfInput, hasRepeatedColumnGaps } from '../src/reader/pdf-import';
 
 const viewport = { width: 600, height: 800, transform: [1, 0, 0, -1, 0, 800] };
+test('column gap indexing preserves strict overlap and alignment decisions against the original predicate', () => {
+  let seed = 12345;
+  const random = () => { seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; return seed / 2 ** 32; };
+  for (let trial = 0; trial < 1000; trial++) {
+    const width = trial % 3 ? 600 : 1000.1;
+    const gaps = Array.from({ length: 3 + trial % 70 }, () => { const left = random() * width; return { left, right: left + random() * width * .2 }; });
+    if (trial % 4 === 0) gaps.push(...Array.from({ length: 20 }, () => ({ left: 120.1, right: 240.1 + (trial % 8 ? width * .05 : 0) })));
+    const count = gaps.length + trial % 5;
+    const original = gaps.some(gap => gaps.filter(other => Math.abs(gap.right - other.right) < width * .05 && Math.min(gap.right, other.right) - Math.max(gap.left, other.left) > width * .04).length >= Math.max(3, Math.ceil(count * .35)));
+    assert.equal(hasRepeatedColumnGaps(gaps, count, width), original);
+  }
+});
 const style = { ascent: 0.8, descent: -0.2, vertical: false, fontFamily: 'sans-serif' };
 function item(str: string, x: number, y: number, width = 60, height = 12): TextItem {
   return { str, dir: 'ltr', transform: [height, 0, 0, height, x, y], width, height, fontName: 'f', hasEOL: false };

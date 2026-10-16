@@ -38,6 +38,10 @@ export interface AudioPresentationReport {
 }
 
 export function inspectAudioPresentation(book: PlayableAudioBook, suppliedSegments?: AudioSegment[]): AudioPresentationReport {
+  return inspect(book, suppliedSegments);
+}
+
+function inspect(book: PlayableAudioBook, suppliedSegments?: AudioSegment[], prepared?: { segments: AudioSegment[] }): AudioPresentationReport {
   const report: AudioPresentationReport = { schemaVersion: 1, policy: 'all-source-phrases-v1', status: 'invalid', sourceBoundaryCheck: 'stored-positions', splitSourceUnits: 0, expectedUnits: 0,
     displayedUnits: 0, forcedAlignmentUnits: 0, voicevoxUnits: 0, estimatedUnits: 0, missingUnitIds: [], duplicateUnitIds: [], chunks: [], issues: [] };
   const issue = (code: string) => report.issues.push({ code });
@@ -127,7 +131,8 @@ export function inspectAudioPresentation(book: PlayableAudioBook, suppliedSegmen
   if (report.issues.length || report.chunks.some(chunk => chunk.issues.length)) {
     report.expectedUnits = allExpected.length; report.issues.push(...report.chunks.flatMap(chunk => chunk.issues)); return report;
   }
-  const segments = suppliedSegments ?? audioSegments(book);
+  const segments = suppliedSegments ?? audioSegments(book, derived.units);
+  if (prepared) prepared.segments = segments;
   const mapped = new Map(segments.map(segment => [segment.chunk.id, segment]));
   const derivedById = new Map(derived.units.map(unit => [unit.id, unit]));
   if (segments.length !== book.chunks.length || mapped.size !== book.chunks.length) issue('segment-count-or-duplicate');
@@ -177,9 +182,25 @@ export function inspectAudioPresentation(book: PlayableAudioBook, suppliedSegmen
 /** New artifacts require a report; old artifacts are independently inspected without rewriting them. */
 export function requireAudioPresentation(book: PlayableAudioBook & { presentation?: AudioPresentationReport }, requireStored = false): AudioPresentationReport {
   const report = inspectAudioPresentation(book);
+  return requireReport(book, report, requireStored);
+}
+
+function requireReport(book: PlayableAudioBook & { presentation?: AudioPresentationReport }, report: AudioPresentationReport, requireStored = false) {
   if (report.status !== 'valid') throw new Error(`区切り表示の検査に失敗しました（${[...new Set(report.issues.map(issue => issue.code))].slice(0, 8).join(', ')}）。保存音声は再生成しません。`);
   if ((requireStored && !book.presentation) || (book.presentation && JSON.stringify(book.presentation) !== JSON.stringify(report))) {
     throw new Error('区切り表示の検査記録がないか、現在の原稿・音声・表示計画と一致しません。保存音声から再stageしてください。');
   }
   return report;
+}
+
+/** One independently inspected plan per immutable React book snapshot. */
+export function prepareAudioPresentation(book: PlayableAudioBook & { presentation?: AudioPresentationReport }) {
+  const plan = { segments: [] as AudioSegment[] };
+  const report = inspect(book, undefined, plan);
+  try {
+    requireReport(book, report);
+    return { report, valid: true, segments: plan.segments };
+  } catch {
+    return { report, valid: false, segments: [] as AudioSegment[] };
+  }
 }

@@ -129,14 +129,35 @@ test('日本語PDFの文字層とページ表示', async ({ page }) => {
 });
 test('横書きテキストPDFの抽出プレビューと元ページ、保存したPDF再開', async ({ page }) => {
   const errors: string[] = []; page.on('pageerror', e => errors.push(e.message));
+  await page.addInitScript(() => {
+    const metrics = { created: 0, terminated: 0 }; Object.assign(window, { pdfWorkers: metrics });
+    const NativeWorker = window.Worker;
+    window.Worker = class extends NativeWorker {
+      private pdf = false;
+      constructor(url: string | URL, options?: WorkerOptions) { super(url, options); this.pdf = String(url).includes('pdf.worker'); if (this.pdf) metrics.created++; }
+      terminate() { if (this.pdf) { metrics.terminated++; this.pdf = false; } super.terminate(); }
+    };
+  });
   await page.goto('/'); await page.getByLabel('読み込むファイル').setInputFiles(fixture('text-layer.pdf'));
   await expect(page.getByText(/取り込んだ本文を確認/)).toBeVisible();
   await page.getByRole('button', {name:'テキストのみ生成して読む',exact:true}).click();
   await expect(page.getByLabel('抽出した全文')).toHaveValue(/Morning reading/);
   await expect(page.locator('.pdf-canvas canvas')).toBeVisible();
   await expect.poll(() => page.locator('.pdf-canvas canvas').evaluate((canvas: HTMLCanvasElement) => canvas.width)).toBeGreaterThan(100);
+  await expect(page.getByText('元ページを表示しています…', { exact: true })).toHaveCount(0);
+  const pdfWorkers = () => page.evaluate(() => (window as unknown as { pdfWorkers: { created: number; terminated: number } }).pdfWorkers);
+  const loadedWorkers = await pdfWorkers(); expect(loadedWorkers.created).toBeGreaterThan(0);
+  for (let index = 0; index < 3; index++) {
+    await page.getByRole('button', { name: '次のページ', exact: true }).click();
+    await expect(page.getByRole('button', { name: '次のページ', exact: true })).toBeDisabled();
+    await expect(page.getByText('元ページを表示しています…', { exact: true })).toHaveCount(0);
+    await page.getByRole('button', { name: '前のページ', exact: true }).click();
+    await expect(page.getByText('元ページを表示しています…', { exact: true })).toHaveCount(0);
+  }
+  expect((await pdfWorkers()).created).toBe(loadedWorkers.created);
   await page.screenshot({ path: 'docs/validation/screenshots/pdf-preview-desktop.png', fullPage: true });
   await page.getByRole('button', { name: '閉じる', exact: true }).click();
+  await expect.poll(async () => { const metrics = await pdfWorkers(); return metrics.created - metrics.terminated; }).toBe(0);
   await page.getByRole('button', { name: '端末に保存', exact: true }).click();
   await expect(page.getByRole('status')).toContainText('保存しました');
   await page.reload(); await page.getByRole('button', { name: '続きから開く', exact: true }).click();

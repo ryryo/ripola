@@ -1,5 +1,5 @@
 import { resolveDocumentTitle } from '../../reader/document-title';
-import { LibraryCatalog } from './library-catalog';
+import { ReadingLibrary } from './reading-library';
 import { setTimeout as pause } from 'node:timers/promises';
 import { inspectAudioPresentation, requireAudioPresentation } from '../../reader/audio-presentation';
 import { DEFAULT_SETTINGS, type ReadingDocument } from '../../reader/model';
@@ -13,7 +13,7 @@ import { AlignmentService } from './alignment-service';
 import type { CapturedVoicevoxQuery } from './voicevox-timing';
 import type { AlignmentAdapter } from './alignment-adapter';
 import { BOOK_REFERENCES_LOCK, digest, LibraryDisk, processAlive, requireId, requireKey } from './disk';
-import { compressedAudioRecord, readReadyAudio, type AudioCacheRecord as CacheRecord } from './audio-cache';
+import { readReadyAudio, type AudioCacheRecord as CacheRecord } from './audio-cache';
 import { audioCompressionAvailable, encodeVerifiedMp3 } from './audio-compression';
 import { BookPublisher } from './book-publisher';
 import { GEMINI_ENDPOINT, GEMINI_VOICES, geminiAdapter, gatewayEndpoint, gatewayRouteIdentity, SpeechRequestError, VOICEVOX_CAPABILITIES, GEMINI_CAPABILITIES, IRODORI_CAPABILITIES, VOICEVOX_ENDPOINT, voicevoxAdapter, wavDuration, type SpeechAdapter } from './providers';
@@ -138,7 +138,7 @@ function executionOrder(chunks: Array<{ id: string }>, priority: unknown): strin
 export class GenerationService {
   private readonly interruptedCompressionJobs: string[] = [];
   private readonly disk: LibraryDisk;
-  private readonly catalog: LibraryCatalog;
+  private readonly library: ReadingLibrary;
   private readonly adapters: Partial<Record<SpeechProvider, SpeechAdapter>> & Record<'voicevox' | 'gemini', SpeechAdapter>;
   private readonly activeRequests = new Map<string, AbortController>();
   private readonly running = new Map<string, Promise<void>>();
@@ -146,7 +146,7 @@ export class GenerationService {
   private readonly alignment: AlignmentService;
   constructor(readonly config: GenerationServerConfig, private readonly dependencies: ServiceDependencies = {}) {
     this.disk = new LibraryDisk(config.libraryDir);
-    this.catalog = new LibraryCatalog(this.disk);
+    this.library = new ReadingLibrary(this.disk);
     this.adapters = { voicevox: dependencies.voicevox ?? voicevoxAdapter(), gemini: dependencies.gemini ?? geminiAdapter(config.geminiApiKey, config.gateway), ...dependencies.providers };
     this.alignment = new AlignmentService(this.disk, config, { getBook: (bookId, revision) => this.getBook(bookId, revision), getAudio: (key, requested) => this.getAudio(key, requested) }, dependencies.alignment);
     this.initialized = Promise.all([this.recoverInterruptedJobs(), this.alignment.ready]).then(() => {
@@ -668,36 +668,14 @@ export class GenerationService {
     });
     return this.getBook(bookId, revision);
   }
-  private async displayName(book: AudioBookManifest): Promise<string> {
-    const value = await this.disk.read<{ schemaVersion: number; title: string }>(['book-names', `${book.id}_${book.revision}.json`]);
-    return value?.schemaVersion === 1 && typeof value.title === 'string' ? resolveDocumentTitle(value.title) : book.title;
-  }
   async listLibrary(): Promise<AudioBookSummary[]> {
-    await this.ready();
-    return this.catalog.list();
+    await this.ready(); return this.library.listLibrary();
   }
   async getBook(bookId: string, revision?: string): Promise<AudioBookManifest> {
-    await this.ready(); requireId(bookId);
-    const selected = revision ?? (await this.listLibrary()).find((book) => book.id === bookId)?.revision;
-    requireKey(selected);
-    const book = await this.disk.read<AudioBookManifest>(['books', `${bookId}_${selected}.json`]);
-    if (!book) throw new Error('保存済み音声が見つかりません。');
-    // Old valid records get a fresh in-memory report; reading never rewrites the saved manuscript/audio.
-    const title = await this.displayName(book);
-    const chunks = await Promise.all(book.chunks.map(async chunk => {
-      const media = await compressedAudioRecord(this.disk, chunk.speechKey);
-      if (!media) return chunk;
-      if (Math.abs(media.durationSeconds - chunk.durationSeconds) > 1e-6) throw new Error('MP3と保存済み文の時計が一致しません。');
-      return { ...chunk, audioUrl: `/api/local-audio/${chunk.speechKey}.mp3`, mimeType: 'audio/mpeg' as const };
-    }));
-    const view = { ...book, chunks, title, document: { ...book.document, title } };
-    return { ...view, presentation: requireAudioPresentation(view) };
+    await this.ready(); return this.library.getBook(bookId, revision);
   }
   async getAudio(speechKey: string, requested?: 'wav' | 'mp3') {
-    await this.ready(); requireKey(speechKey);
-    const audio = await readReadyAudio(this.disk, speechKey, requested);
-    if (!audio) throw new Error('検証済み音声がありません。');
-    return audio;
+    await this.ready(); return this.library.getAudio(speechKey, requested);
   }
   async getAlignmentCapabilities() { await this.ready(); return this.alignment.capabilities(); }
   async startAlignment(input: StartAlignmentInput): Promise<AlignmentJob> { await this.ready(); return this.alignment.start(input); }

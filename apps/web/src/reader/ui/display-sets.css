@@ -20,6 +20,13 @@
 .fullscreen-reader[data-fullscreen=true] .multiline-mode{height:100%;min-height:0;overflow:hidden}
 @media(max-width:600px){.display-set-reader{padding:8px 12px 12px;gap:8px}.reader-display-toolbar{flex-wrap:wrap}}
 .guide-row{font-size:var(--document-font-size,20px)!important}
+@media(max-height:520px) and (min-width:540px){
+  .fullscreen-reader[data-fullscreen=true] .display-set-reader[data-writing-mode=horizontal-tb]{position:relative;flex-direction:row;padding:8px 60px}
+  .fullscreen-reader[data-fullscreen=true] .display-set-reader[data-writing-mode=horizontal-tb] .display-set-nav{position:absolute;top:50%;transform:translateY(-50%)}
+  .fullscreen-reader[data-fullscreen=true] .display-set-reader[data-writing-mode=horizontal-tb] .display-set-previous{left:0}
+  .fullscreen-reader[data-fullscreen=true] .display-set-reader[data-writing-mode=horizontal-tb] .display-set-next{right:0}
+  .fullscreen-reader[data-fullscreen=true] .display-set-reader[data-writing-mode=horizontal-tb] .display-set-nav svg{transform:rotate(-90deg)}
+}
 
 .fullscreen-reader[data-fullscreen=false] > .multiline-mode > .stage-topline{position:absolute;inset:0 0 auto}
 @media(max-height:520px){.display-set-reader{padding-block:8px;gap:8px}}
