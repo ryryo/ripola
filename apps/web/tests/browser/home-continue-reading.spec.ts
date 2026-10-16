@@ -316,7 +316,7 @@ test('本棚は新しい順と古い順で並べ替えと絞り込みを行い�
   await expect(oldest).toHaveAttribute('aria-pressed', 'false');
   await expect(page.getByRole('button', { name: 'グリッド', exact: true })).toHaveAttribute('aria-pressed', 'true');
   await expect(titles).toHaveText([full.title, '保存音声 2']);
-  for (const width of [320, 390, 768, 1280]) {
+  for (const width of [320, 390, 701, 768, 780, 1024, 1280]) {
     await page.setViewportSize({ width, height: 844 });
     const toolbar = page.locator('.bookshelf-toolbar');
     for (const control of [newest, oldest, filter, page.getByRole('button', { name: 'グリッド', exact: true })]) {
@@ -325,6 +325,8 @@ test('本棚は新しい順と古い順で並べ替えと絞り込みを行い�
       expect(box!.x + box!.width).toBeLessThanOrEqual(frame!.x + frame!.width + 1);
       expect(box!.height).toBeGreaterThanOrEqual(44);
     }
+    const clippedLabels = await toolbar.locator('.bookshelf-toggle .mantine-Button-label').evaluateAll(labels => labels.filter(label => label.scrollWidth > label.clientWidth + 1).map(label => label.textContent));
+    expect(clippedLabels).toEqual([]);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
   }
 });

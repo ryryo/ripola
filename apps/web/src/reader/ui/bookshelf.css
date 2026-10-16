@@ -16,7 +16,7 @@
 .bookshelf-progress-track > span { display: block; height: 100%; background: var(--accent); border-radius: inherit; }
 .bookshelf-progress-note { min-width: 0; margin: 0; overflow: hidden; text-overflow: ellipsis; font-size: inherit; line-height: inherit; }
 .bookshelf-toggle { display: flex; gap: 2px; padding: 3px; border: 1px solid var(--line); border-radius: var(--radius-control); background: var(--panel); }
-.bookshelf-toggle > button { flex: 1; min-width: 0; min-height: 44px; padding-inline: 12px; font-size: 13px; }
+.bookshelf-toggle > button { flex: 1 0 auto; min-width: max-content; min-height: 44px; padding-inline: 12px; font-size: 13px; }
 .bookshelf .bookshelf-items { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0; margin: 0; padding: 0; list-style: none; border-top: 1px solid var(--line); }
 .bookshelf-items > li { min-width: 0; }
 .bookshelf-items[data-view='list'] > li { border-bottom: 1px solid var(--line); }
