@@ -104,6 +104,13 @@ export function AudioReader({ book, onClose, attribution, localTools, demo = fal
   const unitTimes = useMemo(() => new Map(phraseTargets.flatMap(target => target.cue.units.map(unit => [unit.id, target.seconds] as const))), [phraseTargets]);
   const displayIndex = unitPositions.get(display.units[0]?.id) ?? 0;
   const multiline = options.mode !== 'guide' && options.focusedDisplay?.kind === 'multiline';
+  const multilineClock = useRef(multiline); multilineClock.current = multiline;
+  const displayListeners = useRef(new Set<() => void>());
+  const lastPositionPaint = useRef(0);
+  const subscribeDisplay = useCallback((listener: () => void) => {
+    displayListeners.current.add(listener);
+    return () => { displayListeners.current.delete(listener); };
+  }, []);
   const setTargets = useMemo(() => audioSourceTargets(segments), [segments]);
   const availableIds = useMemo(() => new Set(audioChunks.map(chunk => chunk.id)), [audioChunks]);
   const seekPending = useRef(false);
@@ -139,7 +146,12 @@ export function AudioReader({ book, onClose, attribution, localTools, demo = fal
     anchor.current = playbackAnchor(clock.segment, clock.media.currentTime, clock.media.ended);
     if (!clock.media.seeking && !clock.media.paused && seconds > positionRef.current + .001) setBuffering(false);
     positionRef.current = seconds;
-    setPosition(seconds);
+    const now = performance.now();
+    // Keep the native clock and reading markers on every sample; transport only needs a coarse repaint.
+    if (!multilineClock.current || clock.media.paused || now - lastPositionPaint.current >= 100) {
+      lastPositionPaint.current = now; setPosition(seconds);
+    }
+    for (const listener of displayListeners.current) listener();
     return seconds;
   }, []);
 
@@ -215,6 +227,7 @@ export function AudioReader({ book, onClose, attribution, localTools, demo = fal
       if (target && availableIds.has(target.segmentId)) seek(target.seconds);
     },
     marker: () => audioReadingMarker(segment, positionRef.current),
+    subscribe: subscribeDisplay,
     sourceVersion: segments,
   };
 

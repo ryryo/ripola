@@ -53,5 +53,5 @@ export function RubyText({ unit, show, marker, layoutKey }: { unit?: Pick<Readin
     offset = span.end;
   }
   pieces.push(<span key={`text:${offset}`}>{text.slice(offset)}</span>);
-  return <span ref={element} className="reading-text" data-testid={active ? 'reading-marker' : undefined} data-precision={active ? marker?.precision : undefined}>{pieces}{active && <span ref={background} className="reading-marker-layer" aria-hidden="true" />}</span>;
+  return <span ref={element} className="reading-text" data-testid={active ? 'reading-marker' : undefined} data-precision={active ? marker?.precision : undefined} data-marker-start={active ? start + from : undefined} data-marker-end={active ? start + to : undefined}>{pieces}{active && <span ref={background} className="reading-marker-layer" aria-hidden="true" />}</span>;
 }

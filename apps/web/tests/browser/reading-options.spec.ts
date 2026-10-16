@@ -1,3 +1,4 @@
+import { denseAudioFixture } from './dense-audio-fixture';
 import { adjustReaderDisplay, readerStage } from './display-controls-helpers';
 import { createHash } from 'node:crypto';
 import { expect, test, type Page } from '@playwright/test';
@@ -1254,5 +1255,46 @@ test('multiline audio keeps the spoken marker on screen when short cues use esti
       })).toBe(true);
       if (fullscreen) await page.keyboard.press('Escape');
     }
+  }
+});
+
+
+test('five-times multiline markers track dense speech cues independently of transport repaint', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const clock = await denseAudioFixture(page);
+  await page.getByRole('slider', { name: '表示量', exact: true }).fill('5');
+  await page.getByRole('slider', { name: 'フォントサイズ', exact: true }).fill('56');
+  await page.getByRole('combobox', { name: '音声の速さ', exact: true }).click();
+  await page.getByRole('option', { name: '5倍', exact: true }).click();
+  for (const mode of ['horizontal-tb', 'vertical-rl']) {
+    await page.getByLabel('本文の向き', { exact: true }).selectOption(mode);
+    await page.getByRole('slider', { name: '音声の再生位置', exact: true }).fill('0');
+    await expect.poll(() => page.locator('audio').evaluate((audio: HTMLAudioElement) => !audio.seeking)).toBe(true);
+    await page.getByRole('button', { name: '再生', exact: true }).click();
+    await expect.poll(() => page.locator('audio').evaluate((audio: HTMLAudioElement) => !audio.paused)).toBe(true);
+    const frames = await page.evaluate(clock => new Promise<{ frames: number; distinct: number; empty: number; stale: number; paused: boolean }>(resolve => {
+      let frames = 0, empty = 0, stale = 0; const observed = new Set<number>();
+      const sample = () => {
+        const audio = document.querySelector('audio')!;
+        const marker = document.querySelector('[data-testid="reading-marker"]');
+        const from = marker?.getAttribute('data-marker-start');
+        const cue = from === null || from === undefined ? undefined : Math.floor(Number(from) / clock.characters);
+        frames++;
+        if (cue === undefined || !marker?.querySelector('.reading-marker-layer>span')) empty++;
+        else {
+          observed.add(cue); const expected = Math.floor(audio.currentTime / clock.cueSeconds);
+          if (expected - cue > 2 || cue - expected > 1) stale++;
+        }
+        if (audio.currentTime >= 12 || audio.paused) resolve({ frames, distinct: observed.size, empty, stale, paused: audio.paused });
+        else requestAnimationFrame(sample);
+      };
+      requestAnimationFrame(sample);
+    }), clock);
+    expect(frames.paused).toBe(false); expect(frames.empty).toBe(0);
+    expect(frames.distinct).toBeGreaterThan(Math.min(70, frames.frames * .7));
+    expect(frames.stale).toBeLessThan(frames.frames * .1);
+    await page.getByRole('button', { name: '一時停止', exact: true }).click();
+    const media = await page.locator('audio').evaluate((audio: HTMLAudioElement) => audio.currentTime);
+    expect(Number(await page.getByRole('slider', { name: '音声の再生位置', exact: true }).inputValue())).toBeCloseTo(media, 2);
   }
 });

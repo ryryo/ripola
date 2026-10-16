@@ -2898,5 +2898,25 @@
       "audio",
       "layout"
     ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "reading-options.spec.ts",
+    "title": "five-times multiline markers track dense speech cues independently of transport repaint",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "reading-options.spec.ts",
+    "title": "five-times multiline markers track dense speech cues independently of transport repaint",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
   }
 ]
