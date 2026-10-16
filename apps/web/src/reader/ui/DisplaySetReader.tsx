@@ -4,6 +4,7 @@ import { planPreviousTextPage, planTextPage, type ReadingMarker } from '../displ
 import { displayFlow, displaySet, flowOffset, previousDisplayFlow, setContains, sourceSlices, type DisplayFlow, type DisplaySet, type SetSource } from '../display-flow';
 import { shortcutBlocked, repeatedArrowAllowed } from '../shortcuts';
 import { RubyText } from './ReadingText';
+import { appendReadingText } from './reading-typography';
 import './display-sets.css';
 
 export interface DisplaySetSession {
@@ -82,16 +83,7 @@ export function DisplaySetReader({ session, lines, fontSize, family, ruby, writi
       effectiveSize = Math.max(8, effectiveSize);
       const measure = (range: { start: number; end: number }) => {
         probe.style.fontSize = `${effectiveSize}px`;
-        probe.replaceChildren();
-        let offset = range.start;
-        for (const span of ruby ? flow.ruby : []) {
-          if (span.start < range.start || span.end > range.end) continue;
-          probe.append(document.createTextNode(flow.text.slice(offset, span.start)));
-          const base = document.createElement('ruby');
-          base.append(document.createTextNode(flow.text.slice(span.start, span.end)));
-          const rt = document.createElement('rt'); rt.textContent = span.reading; base.append(rt); probe.append(base); offset = span.end;
-        }
-        probe.append(document.createTextNode(flow.text.slice(offset, range.end)));
+        appendReadingText(probe, { text: flow.text.slice(range.start, range.end), ruby: flow.ruby.filter(span => span.start >= range.start && span.end <= range.end).map(span => ({ ...span, start: span.start - range.start, end: span.end - range.start })) }, ruby, vertical);
         const bands: number[] = [];
         const walker = document.createTreeWalker(probe, NodeFilter.SHOW_TEXT);
         let node: Node | null;
@@ -175,7 +167,7 @@ export function DisplaySetReader({ session, lines, fontSize, family, ruby, writi
   return <div className="display-set-reader" data-testid="display-set-reader" data-writing-mode={writingMode} style={{ '--reading-font': family } as CSSProperties}>
     <div ref={viewport} className="display-set-viewport" aria-label="本文">
       <div className="display-set-text" data-testid="display-set-text" data-block-id={set?.ranges[0]?.blockId} data-source-start={set?.ranges[0]?.start} data-source-end={set?.ranges.at(-1)?.end} data-source-ranges={JSON.stringify(set?.ranges)} data-lines={set?.lines} data-set-id={set?.id} style={{ fontSize: layout?.fontSize ?? fontSize, fontFamily: family, writingMode }}>
-        {slices.map((slice, index) => <Fragment key={`${slice.blockId}:${slice.start}`}>{index > 0 && '\n'}<RubyText unit={slice} show={ruby} marker={marker} layoutKey={`${layout?.revision}:${layout?.fontSize}`} /></Fragment>)}
+        {slices.map((slice, index) => <Fragment key={`${slice.blockId}:${slice.start}`}>{index > 0 && '\n'}<RubyText unit={slice} show={ruby} vertical={vertical} marker={marker} layoutKey={`${layout?.revision}:${layout?.fontSize}`} /></Fragment>)}
       </div>
     </div>
     {([-1, 1] as const).map(direction => <button key={direction} type="button" className={`display-set-nav ${direction === -1 ? 'display-set-previous' : 'display-set-next'}`} aria-label={direction === -1 ? '前へ' : '次へ'} aria-keyshortcuts={direction === -1 ? 'ArrowUp' : 'ArrowDown'} title={direction === -1 ? '前の本文へ（↑）' : '次の本文へ（↓）'} disabled={disabled || (direction === -1 ? !before : !set?.next)}

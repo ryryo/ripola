@@ -139,7 +139,7 @@ export function GuideReader({ blocks, units, currentIndices, playing, ruby, fami
         if (element) setScroll(vertical ? -element.scrollLeft : element.scrollTop);
       }}>
       <div style={{ blockSize: prefix[first] }} aria-hidden="true" />
-      {rows.slice(first, end).map(row => <MeasuredRow key={row.id} row={row} onMeasure={measure} vertical={vertical}>{row.units.map(({ unit, index }) => <button key={unit.id} type="button" className={`guide-unit ${active.has(index) ? 'active' : ''}`} aria-current={active.has(index) ? 'location' : undefined} data-unit-id={unit.id} onClick={() => { setFollow(true); onJump(index); }} title="ここへ移動して停止"><RubyText unit={unit} show={ruby} /></button>)}</MeasuredRow>)}
+      {rows.slice(first, end).map(row => <MeasuredRow key={row.id} row={row} onMeasure={measure} vertical={vertical}>{row.units.map(({ unit, index }) => <button key={unit.id} type="button" className={`guide-unit ${active.has(index) ? 'active' : ''}`} aria-current={active.has(index) ? 'location' : undefined} data-unit-id={unit.id} onClick={() => { setFollow(true); onJump(index); }} title="ここへ移動して停止"><RubyText unit={unit} show={ruby} vertical={vertical} /></button>)}</MeasuredRow>)}
       <div style={{ blockSize: (prefix.at(-1) ?? 0) - (prefix[end] ?? 0) }} aria-hidden="true" />
       </GuideScrollAnchor>
     </div>

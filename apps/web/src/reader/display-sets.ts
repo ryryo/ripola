@@ -1,6 +1,7 @@
 import type { ReadingUnit, SourceAnchor, TextBlock } from './model';
 import type { SetSource } from './display-flow';
 import { protectedSpans } from './segmentation';
+import { uprightRuns } from './vertical-typography';
 
 export interface SourceRange { blockId: string; start: number; end: number }
 export interface ReadingMarker extends SourceRange { precision: 'spoken' | 'estimated' | 'position' }
@@ -19,6 +20,7 @@ export function layoutWindowEnd(block: LayoutText, start: number, end: number, m
     if (finish >= start + maximum) break;
   }
   for (const span of block.ruby) if (span.start < finish && finish < span.end) finish = span.start > start ? span.start : span.end;
+  for (const span of uprightRuns(block.text.slice(start, Math.min(end, finish + 2))).filter(run => run.combined)) if (span.start + start < finish && finish < span.end + start) finish = span.start > 0 ? span.start + start : span.end + start;
   return Math.min(end, finish || end);
 }
 
@@ -71,8 +73,9 @@ export function planTextPage(block: LayoutText, start: number, end: number, boun
     const naturalIndex = furthest(natural);
     if (naturalIndex >= 0 && (!requestedLines || measure({ start, end: natural[naturalIndex] }).lines >= requestedLines)) { cuts = natural; selected = naturalIndex; }
     else {
+      const atomic = [...block.ruby, ...uprightRuns(block.text.slice(start, stop)).filter(run => run.combined).map(run => ({ start: run.start + start, end: run.end + start }))];
       cuts = [...graphemes.segment(block.text.slice(start, stop))].map(part => start + part.index + part.segment.length)
-      .filter(cut => !block.ruby.some(span => span.start < cut && cut < span.end));
+      .filter(cut => !atomic.some(span => span.start < cut && cut < span.end));
       selected = furthest(cuts);
     }
   }
@@ -96,8 +99,9 @@ export function planPreviousTextPage(block: LayoutText, end: number, boundaries:
   };
   let start = earliest([0, ...boundaries.filter(cut => cut > 0 && cut < end)]);
   if (!measure({ start, end }).fits || (start > 0 && measure({ start, end }).lines < requestedLines)) {
+    const atomic = [...block.ruby, ...uprightRuns(block.text.slice(0, end)).filter(run => run.combined)];
     const cuts = [...graphemes.segment(block.text.slice(0, end))].map(part => part.index)
-      .filter(cut => !block.ruby.some(span => span.start < cut && cut < span.end));
+      .filter(cut => !atomic.some(span => span.start < cut && cut < span.end));
     start = earliest(cuts);
   }
   return { start, end, ...measure({ start, end }) };
