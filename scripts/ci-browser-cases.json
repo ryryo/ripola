@@ -2898,5 +2898,85 @@
       "audio",
       "layout"
     ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "reading-options.spec.ts",
+    "title": "multiline previous and next arrows navigate adjacent source sets with up and down keys in both writing modes",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "reading-options.spec.ts",
+    "title": "multiline audio previous returns across chunk boundaries and keyboard navigation preserves native play intent and speed",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "reading-options.spec.ts",
+    "title": "multiline previous and next arrows navigate adjacent source sets with up and down keys in both writing modes",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "reading-options.spec.ts",
+    "title": "multiline audio previous returns across chunk boundaries and keyboard navigation preserves native play intent and speed",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "reading-options.spec.ts",
+    "title": "multiline navigation keeps the accepted page while destination audio metadata is pending",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "audio-progressive.spec.ts",
+    "title": "multiline previous becomes available when earlier audio arrives without replacing the current set",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "reading-options.spec.ts",
+    "title": "multiline navigation keeps the accepted page while destination audio metadata is pending",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "audio-progressive.spec.ts",
+    "title": "multiline previous becomes available when earlier audio arrives without replacing the current set",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
   }
 ]

@@ -15,6 +15,7 @@ import { PhraseDisplay } from './PhraseDisplay';
 import { ShortcutHelp, useReadingFont } from './ReadingOptions';
 import { READING_FONTS } from '../reading-fonts';
 import { audioDisplayPosition, audioReadingMarker, audioSetSeek, audioSetSource, audioSourceTargets } from '../audio-display-session';
+import { previousSetPosition } from '../display-sets';
 import { DisplaySetReader, type DisplaySetSession } from './DisplaySetReader';
 import { RubyText } from './ReadingText';
 import { shortcutBlocked, repeatedArrowAllowed } from '../shortcuts';
@@ -206,13 +207,20 @@ export function AudioReader({ book, onClose, attribution, localTools, demo = fal
     }
   }, [index, persist, segments, rate, book, readyForAhead]);
 
+  const setSource: DisplaySetSession['source'] = position => {
+    const target = audioSetSeek(setTargets, position);
+    const ids = target && !availableIds.has(target.segmentId) ? new Set(contiguousChunks(book, target.segmentId).map(chunk => chunk.id)) : availableIds;
+    return audioSetSource(book.document.blocks, setTargets, ids, position);
+  };
   const displaySession: DisplaySetSession = {
     position: () => audioDisplayPosition(segment, positionRef.current),
-    source: position => audioSetSource(book.document.blocks, setTargets, availableIds, position),
+    before: position => previousSetPosition(book.document.blocks, setTargets, position, setSource),
+    source: setSource,
     seek: position => {
-      if (seekPending.current) return;
+      if (seekPending.current) return false;
       const target = audioSetSeek(setTargets, position);
-      if (target && availableIds.has(target.segmentId)) seek(target.seconds);
+      if (!target) return false;
+      seek(target.seconds); return true;
     },
     marker: () => audioReadingMarker(segment, positionRef.current),
     sourceVersion: segments,
@@ -326,6 +334,7 @@ export function AudioReader({ book, onClose, attribution, localTools, demo = fal
   useEffect(() => {
     const key = (event: KeyboardEvent) => {
       if (sourceOpen || settingsOpen || font.busy || !segment || shortcutBlocked(event)) return;
+      if (multiline && (event.code === 'ArrowUp' || event.code === 'ArrowDown')) return;
       if (event.code.startsWith('Arrow') && !repeatedArrowAllowed(event, arrowAt)) { event.preventDefault(); return; }
       if (event.code === 'Space') { event.preventDefault(); if (!event.repeat) { if (intent.current) pause(); else void play(); } }
       if (event.code === 'ArrowLeft' || event.code === 'ArrowRight') {
@@ -338,7 +347,7 @@ export function AudioReader({ book, onClose, attribution, localTools, demo = fal
     };
     window.addEventListener('keydown', key);
     return () => window.removeEventListener('keydown', key);
-  }, [index, pause, seek, moveSentence, sourceOpen, settingsOpen, font.busy, rate, segment, sample, total]);
+  }, [index, pause, seek, moveSentence, sourceOpen, settingsOpen, font.busy, rate, segment, sample, total, multiline]);
 
   async function play() {
     if (!audio.current || !segment || font.busy) return;
@@ -379,7 +388,7 @@ export function AudioReader({ book, onClose, attribution, localTools, demo = fal
         speed={<label>音声の速さ<NativeSelect aria-label="音声の速さ" value={rate} onChange={event => setRate(event.target.value)}>{Array.from({ length: 19 }, (_, i) => String(.5 + i * .25)).map(value => <option key={value} value={value}>{value}倍</option>)}</NativeSelect></label>}>
       <section className={`audio-stage ${options.mode === 'guide' ? 'guide-mode' : multiline ? 'multiline-mode' : ''} ${guide ? 'with-guide' : ''}`} aria-label="音声同期表示" data-testid="audio-stage" data-unit-index={displayIndex} data-sentence-index={sentenceIndex} data-buffering={showLoading} style={{ '--reader-font-size': `${options.fontSize}px`, '--display-lines': options.focusedDisplay?.kind === 'multiline' ? options.focusedDisplay.maxLines : 1 } as CSSProperties}>
         <div className="stage-topline"><span role="status" className="audio-playback-status">{showLoading && <Loader size={16} aria-hidden="true" />}{waitingFor ? '次の音声の生成を待っています' : showLoading ? '音声を読み込み中…' : reading ? '音声再生中' : position >= total ? '再生終了' : '一時停止'}</span></div>
-        {options.mode === 'guide' ? <GuideReader key={options.writingMode} writingMode={options.writingMode} blocks={book.document.blocks} units={playableUnits} currentIndices={display.units.map(unit => unitPositions.get(unit.id) ?? displayIndex)} fontSize={options.documentFontSize ?? 20} playing={reading} ruby={ruby} family={READING_FONTS[font.applied].family} onJump={target => seek(unitTimes.get(playableUnits[target]?.id) ?? 0, false)} onPause={pause} /> : multiline ? <DisplaySetReader session={displaySession} lines={options.focusedDisplay?.kind === 'multiline' ? options.focusedDisplay.maxLines : 2} fontSize={options.fontSize} ruby={ruby} family={READING_FONTS[font.applied].family} writingMode={options.writingMode} playing={reading} /> : <PhraseDisplay writingMode={options.writingMode} unit={display.units[0]} sourceUnits={display.units} activeUnit={display.units[0]} playing={reading} getProgress={() => display.cue && segment ? (positionRef.current - segment.startSeconds - display.cue.startSeconds) / (display.cue.endSeconds - display.cue.startSeconds) : 0} fontSize={options.fontSize} ruby={ruby} family={READING_FONTS[font.applied].family} audio precision={display.precision} timingMethod={display.method} timingScore={display.score} unitIds={display.units.map(unit => unit.id).join(' ')} />}
+        {options.mode === 'guide' ? <GuideReader key={options.writingMode} writingMode={options.writingMode} blocks={book.document.blocks} units={playableUnits} currentIndices={display.units.map(unit => unitPositions.get(unit.id) ?? displayIndex)} fontSize={options.documentFontSize ?? 20} playing={reading} ruby={ruby} family={READING_FONTS[font.applied].family} onJump={target => seek(unitTimes.get(playableUnits[target]?.id) ?? 0, false)} onPause={pause} /> : multiline ? <DisplaySetReader disabled={font.busy} session={displaySession} lines={options.focusedDisplay?.kind === 'multiline' ? options.focusedDisplay.maxLines : 2} fontSize={options.fontSize} ruby={ruby} family={READING_FONTS[font.applied].family} writingMode={options.writingMode} playing={reading} /> : <PhraseDisplay writingMode={options.writingMode} unit={display.units[0]} sourceUnits={display.units} activeUnit={display.units[0]} playing={reading} getProgress={() => display.cue && segment ? (positionRef.current - segment.startSeconds - display.cue.startSeconds) / (display.cue.endSeconds - display.cue.startSeconds) : 0} fontSize={options.fontSize} ruby={ruby} family={READING_FONTS[font.applied].family} audio precision={display.precision} timingMethod={display.method} timingScore={display.score} unitIds={display.units.map(unit => unit.id).join(' ')} />}
       {fullscreen.active && !multiline && options.mode !== 'guide' && <ReaderPlayButton playing={reading} disabled={font.busy} label={position >= total && book.completedChunks >= book.totalChunks ? 'もう一度' : '再生'}
         onPlay={() => { void play(); fullscreen.containerRef.current?.focus({ preventScroll: true }); }} />}
       <FullscreenEnterButton fullscreen={fullscreen} />
@@ -425,7 +434,7 @@ export function AudioReader({ book, onClose, attribution, localTools, demo = fal
       {onRename && <section className="settings-section"><h2>タイトル</h2><TitleEditor title={book.title} onRename={onRename} /></section>}
       <section className="settings-section"><h2>読書位置</h2><div className="reader-book-actions"><Button variant="light" aria-keyshortcuts="Home" onClick={() => { seek(0, false); setBookOpen(false); }}>先頭へ戻る</Button><Button variant="subtle" aria-keyshortcuts="End" onClick={() => { seek(total, false); setBookOpen(false); }}>末尾へ</Button></div><p className="muted">続きの位置は自動で保存されます。</p></section>
       <section className="settings-section"><h2>本文の確認</h2><Button variant="subtle" onClick={() => { setBookOpen(false); setSourceOpen(true); }}>原文</Button></section>
-      <section className="settings-section"><ShortcutHelp audio /></section>
+      <section className="settings-section"><ShortcutHelp audio multiline={multiline} /></section>
       {localTools && <section className="settings-section"><h2>音声の調整</h2>{localTools}</section>}
       <section className="settings-section"><h2>作品情報</h2>{(book.attribution || attribution) && <p className="audio-attribution">{book.attribution || attribution}</p>}<AozoraInfo value={book.document.provenance} />
       </section>

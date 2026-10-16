@@ -258,3 +258,22 @@ test('複数行は追加chunkで本文を組み替えず次セットだけを有
   await expect(page.locator('audio')).toHaveAttribute('src', new RegExp(full.chunks[1].speechKey));
   expect(await page.locator('audio').evaluate((media: HTMLAudioElement) => media.paused)).toBe(true);
 });
+
+
+test('multiline previous becomes available when earlier audio arrives without replacing the current set', async ({ page }) => {
+  await publish([1]);
+  await page.goto(`${origin}/library?book=${full.id}&revision=${full.revision}&job=${jobId}`);
+  await expect(page.getByTestId('audio-phrase')).toBeVisible();
+  await expect.poll(() => page.locator('audio').evaluate((media: HTMLAudioElement) => media.readyState)).toBeGreaterThan(0);
+  await page.getByRole('slider', { name: '表示量', exact: true }).fill('2');
+  const text = page.getByTestId('display-set-text');
+  const previous = page.getByRole('button', { name: '前へ', exact: true });
+  await expect(previous).toBeDisabled();
+  const id = await text.getAttribute('data-set-id');
+  await publish([0, 1]);
+  await expect(previous).toBeEnabled({ timeout: 20000 });
+  await expect(text).toHaveAttribute('data-set-id', id!);
+  await previous.click();
+  await expect(page.locator('audio')).toHaveAttribute('src', new RegExp(full.chunks[0].speechKey));
+  expect(await page.locator('audio').evaluate((media: HTMLAudioElement) => media.paused)).toBe(true);
+});

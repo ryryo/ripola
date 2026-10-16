@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { DEFAULT_SETTINGS, migrateReaderSettings, validReaderSettings, type TextBlock } from '../src/reader/model.ts';
-import { displayFlow, displaySet, flowOffset, sourceSlices } from '../src/reader/display-flow.ts';
-import { naturalBoundaries, planTextPage, silentSetSource } from '../src/reader/display-sets.ts';
+import { displayFlow, displaySet, flowOffset, previousDisplayFlow, sourceSlices } from '../src/reader/display-flow.ts';
+import { naturalBoundaries, planPreviousTextPage, planTextPage, previousSetPosition, silentSetSource } from '../src/reader/display-sets.ts';
 import { audioDisplayPosition, audioReadingMarker, audioSetSeek, audioSetSource, audioSourceTargets } from '../src/reader/audio-display-session.ts';
 import { importText } from '../src/reader/text-import.ts';
 import { prepareDocument } from '../src/reader/segmentation.ts';
@@ -228,4 +228,83 @@ test('uncovered text with no audio gap uses one estimated source clock instead o
     assert.ok(actual.offset >= offset && actual.offset - offset < .001);
   }
   assert.equal(JSON.stringify(segment), before);
+});
+
+
+test('backward sets end at the current start and preserve ruby and UTF-16 boundaries in restored windows', async () => {
+  const document = await prepareDocument(importText('朝に図書館で読む。'.repeat(200) + '👩‍💻<ruby>図書館<rt>としょかん</rt></ruby>で読む。', 'txt', 'back'));
+  const block = document.blocks[0];
+  assert.equal(previousSetPosition(document.blocks, document.units, { blockId: block.id, offset: 0 }, anchor => silentSetSource(document.blocks, document.units, anchor)), undefined);
+  const end = block.text.length;
+  const anchor = previousSetPosition(document.blocks, document.units, { blockId: block.id, offset: end }, anchor => silentSetSource(document.blocks, document.units, anchor))!;
+  assert.ok(anchor.offset > 0 && end - anchor.offset <= 1030);
+  assert.ok(!block.ruby.some(span => span.start < anchor.offset && anchor.offset < span.end));
+  const page = planPreviousTextPage(block, end, naturalBoundaries(block, Math.max(0, end - 100), end), range => ({ fits: range.end - range.start <= 18, lines: Math.ceil((range.end - range.start) / 9) }), 2);
+  assert.equal(page.end, end); assert.ok(page.fits); assert.equal(page.lines, 2);
+  assert.ok(!block.ruby.some(span => span.start < page.start && page.start < span.end));
+  const unbroken = { text: '👩‍💻'.repeat(10), ruby: [] };
+  const fallback = planPreviousTextPage(unbroken, unbroken.text.length, [], range => ({ fits: range.end - range.start <= 10, lines: Math.ceil((range.end - range.start) / 5) }), 2);
+  assert.equal(unbroken.text.slice(fallback.start, fallback.end), '👩‍💻👩‍💻');
+});
+
+test('backward source windows use the preceding available paragraph and stop at source gaps', () => {
+  const blocks: TextBlock[] = ['a', 'b'].map(id => ({ id, kind: 'paragraph', text: 'あ'.repeat(1500), ruby: [], runs: [] }));
+  const ranges = [{ blockId: 'a', start: 0, end: 100 }, { blockId: 'a', start: 500, end: 1500 }, { blockId: 'b', start: 0, end: 10 }];
+  assert.deepEqual(previousSetPosition(blocks, ranges, { blockId: 'b', offset: 0 }, () => ({ end: 1500 })), { blockId: 'a', offset: 500 });
+  assert.deepEqual(previousSetPosition(blocks, ranges, { blockId: 'a', offset: 520 }, () => ({ end: 1500 })), { blockId: 'a', offset: 500 });
+});
+
+
+test('backward windows respect hard PDF boundaries inside an otherwise contiguous source block', () => {
+  const block: TextBlock = { id: 'pdf', kind: 'paragraph', text: 'あ'.repeat(200), ruby: [], runs: [] };
+  const units = Array.from({ length: 4 }, (_, i) => ({ id: `u${i}`, blockId: block.id, kind: 'text' as const, text: block.text.slice(i * 50, (i + 1) * 50), start: i * 50, end: (i + 1) * 50, ruby: [], mapping: 'exact' as const, characters: 50, cumulativeCharacters: (i + 1) * 50, pause: 'none' as const, sources: [{ kind: 'pdf' as const, page: Math.floor(i / 2) + 1, item: 0, start: 0, end: 50, rect: [0, 0, 50, 10] as [number, number, number, number] }] }));
+  const source = (anchor: { blockId: string; offset: number }) => silentSetSource([block], units, anchor);
+  assert.deepEqual(previousSetPosition([block], units, { blockId: block.id, offset: 150 }, source), { blockId: block.id, offset: 100 });
+  assert.deepEqual(previousSetPosition([block], units, { blockId: block.id, offset: 100 }, source), { blockId: block.id, offset: 0 });
+});
+
+
+test('backward sets can fill the requested rows across adjacent short paragraphs', async () => {
+  const document = await prepareDocument(importText('朝の文章。\n\n次の文章。\n\n最後の文章。', 'txt', 'back across paragraphs'));
+  const source = (anchor: { blockId: string; offset: number }) => silentSetSource(document.blocks, document.units, anchor);
+  const current = { blockId: document.blocks[2].id, offset: 0 };
+  const before = previousSetPosition(document.blocks, document.units, current, source)!;
+  assert.deepEqual(before, { blockId: document.blocks[0].id, offset: 0 });
+  const flow = displayFlow(source, before)!;
+  const end = flowOffset(flow, current)!;
+  const page = planPreviousTextPage(flow, end, flow.boundaries, range => ({ fits: range.end - range.start <= 20, lines: range.end - range.start > 6 ? 2 : 1 }), 2);
+  const slices = sourceSlices(flow, page);
+  assert.deepEqual(slices.map(slice => slice.blockId), document.blocks.slice(0, 2).map(block => block.id));
+  assert.equal(displaySet(flow, page).next?.blockId, current.blockId);
+});
+
+
+test('many tiny paragraphs keep the backward window within the forward flow limit', async () => {
+  const document = await prepareDocument(importText(Array.from({ length: 100 }, () => '文。').join('\n\n'), 'txt', 'bounded back'));
+  const source = (anchor: { blockId: string; offset: number }) => silentSetSource(document.blocks, document.units, anchor);
+  const current = { blockId: document.blocks.at(-1)!.id, offset: 0 };
+  const before = previousSetPosition(document.blocks, document.units, current, source)!;
+  const flow = displayFlow(source, before)!;
+  assert.equal(flow.spans.length, 64);
+  assert.deepEqual(flow.next, current);
+});
+
+
+test('backward flow reaches the immediate preceding text after an oversized atomic ruby', () => {
+  const blocks: TextBlock[] = [{ id: 'a', kind: 'paragraph', text: 'あ'.repeat(3100), ruby: [{ start: 0, end: 3000, reading: 'ながいるび' }], runs: [] }, ...['b', 'c'].map(id => ({ id, kind: 'paragraph' as const, text: '文'.repeat(100), ruby: [], runs: [] }))];
+  const source = (anchor: { blockId: string; offset: number }) => {
+    const index = blocks.findIndex(block => block.id === anchor.blockId); const block = blocks[index];
+    return { block, start: 0, end: block.text.length, boundaries: [], joinsNext: true, next: blocks[index + 1] && { blockId: blocks[index + 1].id, offset: 0 } };
+  };
+  for (const end of [{ blockId: 'c', offset: 0 }, { blockId: 'a', offset: 3090 }]) {
+    const flow = previousDisplayFlow(source, { blockId: 'a', offset: 0 }, end)!;
+    assert.equal(flow.spans[0].start, 3000);
+    const finish = flowOffset(flow, end)!;
+    const slices = sourceSlices(flow, { start: 0, end: finish });
+    assert.equal(slices[0].start, 3000);
+    assert.equal(slices.at(-1)!.end, end.blockId === 'a' ? 3090 : 100);
+    if (end.blockId === 'c') assert.equal(slices.at(-1)!.blockId, 'b');
+  }
+  const rubyOnly = previousDisplayFlow(source, { blockId: 'a', offset: 0 }, { blockId: 'a', offset: 3000 })!;
+  assert.deepEqual(rubyOnly.next, { blockId: 'a', offset: 3000 });
 });

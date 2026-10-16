@@ -18,7 +18,7 @@ import { AudioDemo } from './AudioDemo';
 import { PhraseDisplay, RubyText } from './PhraseDisplay';
 import { ShortcutHelp, useReadingFont } from './ReadingOptions';
 import { READING_FONTS } from '../reading-fonts';
-import { silentSetSource } from '../display-sets';
+import { previousSetPosition, silentSetSource } from '../display-sets';
 import { DisplaySetReader, type DisplaySetSession } from './DisplaySetReader';
 import { shortcutBlocked, repeatedArrowAllowed } from '../shortcuts';
 import { GuideReader } from './GuideReader';
@@ -92,8 +92,9 @@ export function ReaderApp() {
   const multiline = settings.mode !== 'guide' && settings.focusedDisplay?.kind === 'multiline';
   const displaySession: DisplaySetSession = {
     position: controller.getSourcePosition,
+    before: position => document ? previousSetPosition(document.blocks, document.units, position, anchor => silentSetSource(document.blocks, document.units, anchor)) : undefined,
     source: position => document ? silentSetSource(document.blocks, document.units, position) : undefined,
-    seek: position => controller.seekSource(position),
+    seek: position => { controller.seekSource(position); return true; },
   };
   const arrowAt = useRef(0);
   const chapters = useMemo(() => {
@@ -146,6 +147,7 @@ export function ReaderApp() {
   useEffect(() => {
     const key = (event: KeyboardEvent) => {
       if (shortcutBlocked(event) || !document || loading || font.busy || importOpen || sourceOpen || settingsOpen || helpOpen) return;
+      if (multiline && (event.code === 'ArrowUp' || event.code === 'ArrowDown')) return;
       if (event.code.startsWith('Arrow') && !repeatedArrowAllowed(event, arrowAt)) { event.preventDefault(); return; }
       if (event.code === 'Space') { event.preventDefault(); if (event.repeat) return; if (playback.status === 'playing') controller.pause(); else if (playback.status === 'completed') controller.seek(0); else controller.play(); }
       if (event.code === 'ArrowLeft') { event.preventDefault(); if (event.shiftKey) controller.seek(sentences[Math.max(0, sentenceIndex - 1)]?.target ?? 0); else controller.step(-1); }
@@ -156,7 +158,7 @@ export function ReaderApp() {
     };
     window.addEventListener('keydown', key);
     return () => window.removeEventListener('keydown', key);
-  }, [controller, document, importOpen, loading, playback.status, settings.cpm, settingsOpen, sourceOpen, helpOpen, font.busy, sentences, sentenceIndex, update]);
+  }, [controller, document, importOpen, loading, playback.status, settings.cpm, settingsOpen, sourceOpen, helpOpen, font.busy, sentences, sentenceIndex, update, multiline]);
 
   const cancel = () => {
     operation.current++;
@@ -350,7 +352,7 @@ export function ReaderApp() {
             speed={<label>読む速さ（字/分）<input aria-label="読む速さ（字/分）" type="number" min="100" max="3000" step="50" value={cpmInput} onChange={event => { setCpmInput(event.target.value); const value = Number(event.target.value); if (Number.isFinite(value) && value >= 100 && value <= 3000) update({ cpm: Math.round(value) }); }} onBlur={() => setCpmInput(String(settings.cpm))} /></label>}>
           <section className={`reader-stage ${settings.mode === 'guide' ? 'guide-mode' : multiline ? 'multiline-mode' : ''} ${settings.guide ? 'with-guide' : ''}`} aria-label="フレーズ表示" data-testid="reader-stage" data-unit-index={playback.index} data-sentence-index={sentenceIndex} style={{ '--reader-font-size': `${settings.fontSize}px`, '--display-lines': settings.focusedDisplay?.kind === 'multiline' ? settings.focusedDisplay.maxLines : 1 } as CSSProperties}>
             <div className="stage-topline"><span>{completed ? '読了' : current?.kind === 'static' ? '原文で確認' : playback.status === 'playing' ? '再生中' : '一時停止'}</span></div>
-            {settings.mode === 'guide' ? <GuideReader key={settings.writingMode} writingMode={settings.writingMode} blocks={document.blocks} units={document.units} currentIndices={[playback.index]} fontSize={settings.documentFontSize ?? 20} playing={playback.status === 'playing'} ruby={settings.ruby} family={READING_FONTS[font.applied].family} onJump={index => controller.seek(index)} onPause={pauseReading} /> : current?.kind === 'static' ? <div className="static-notice"><h2>コード・表は原文で。</h2><p>内容を確認してから、次のフレーズへ進めます。</p><Button variant="light" onClick={openSource}>原文を開く</Button></div> : multiline ? <DisplaySetReader session={displaySession} lines={settings.focusedDisplay?.kind === 'multiline' ? settings.focusedDisplay.maxLines : 2} fontSize={settings.fontSize} family={READING_FONTS[font.applied].family} ruby={settings.ruby} writingMode={settings.writingMode} playing={playback.status === 'playing'} /> : <PhraseDisplay writingMode={settings.writingMode} unit={current} sourceUnits={current ? [current] : undefined} activeUnit={current} playing={playback.status === 'playing'} getProgress={() => { const timing = controller.getProgress(); return timing.unitDurationMs > 0 ? timing.unitElapsedMs / timing.unitDurationMs : 0; }} fontSize={settings.fontSize} ruby={settings.ruby} family={READING_FONTS[font.applied].family} />}
+            {settings.mode === 'guide' ? <GuideReader key={settings.writingMode} writingMode={settings.writingMode} blocks={document.blocks} units={document.units} currentIndices={[playback.index]} fontSize={settings.documentFontSize ?? 20} playing={playback.status === 'playing'} ruby={settings.ruby} family={READING_FONTS[font.applied].family} onJump={index => controller.seek(index)} onPause={pauseReading} /> : current?.kind === 'static' ? <div className="static-notice"><h2>コード・表は原文で。</h2><p>内容を確認してから、次のフレーズへ進めます。</p><Button variant="light" onClick={openSource}>原文を開く</Button></div> : multiline ? <DisplaySetReader disabled={font.busy || loading} session={displaySession} lines={settings.focusedDisplay?.kind === 'multiline' ? settings.focusedDisplay.maxLines : 2} fontSize={settings.fontSize} family={READING_FONTS[font.applied].family} ruby={settings.ruby} writingMode={settings.writingMode} playing={playback.status === 'playing'} /> : <PhraseDisplay writingMode={settings.writingMode} unit={current} sourceUnits={current ? [current] : undefined} activeUnit={current} playing={playback.status === 'playing'} getProgress={() => { const timing = controller.getProgress(); return timing.unitDurationMs > 0 ? timing.unitElapsedMs / timing.unitDurationMs : 0; }} fontSize={settings.fontSize} ruby={settings.ruby} family={READING_FONTS[font.applied].family} />}
 
             {fullscreen.active && !multiline && settings.mode !== 'guide' && <ReaderPlayButton playing={playback.status === 'playing'} disabled={loading || font.busy}
               label={completed ? 'もう一度' : current?.kind === 'static' ? '次のフレーズへ' : '再生'}
@@ -379,7 +381,7 @@ export function ReaderApp() {
       <section className="settings-section"><h2>読書位置</h2><div className="reader-book-actions"><Button variant="light" onClick={() => { controller.seek(0); setBookOpen(false); }}>先頭へ戻る</Button><Button variant="subtle" onClick={() => { controller.seek(Math.max(0, (document?.units.length ?? 1) - 1)); setBookOpen(false); }}>末尾へ</Button></div></section>
       <section className="settings-section"><h2>文章と保存</h2><Button variant="light" onClick={() => { setBookOpen(false); setImportOpen(true); setError(''); }}>別の文章を開く</Button><Button variant="subtle" onClick={() => { setBookOpen(false); openSource(); }}>原文</Button><p className="muted">本文と読書位置を残すには「端末に保存」を押してください。</p><Button variant="subtle" color="red" disabled={saving || !saved} onClick={() => void removeSaved()}>保存を削除</Button></section>
       <section className="settings-section"><h2>黙読のペース</h2><ReadingPaceControls value={settings.readingPace} summary={controller.getTimingSummary()} onChange={readingPace => { controller.pause(); update({ readingPace }); }} /></section>
-      <section className="settings-section"><ShortcutHelp /></section>
+      <section className="settings-section"><ShortcutHelp multiline={multiline} /></section>
       {document?.provenance && <section className="settings-section"><h2>作品情報</h2><AozoraInfo value={document.provenance} /></section>}
       <section className="settings-section"><h2>ページURLを共有</h2><ShareLink title={document?.title ?? 'リーダー'} /></section>
     </div></Drawer>

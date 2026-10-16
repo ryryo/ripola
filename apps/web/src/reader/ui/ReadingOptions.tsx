@@ -58,6 +58,6 @@ export function FontSize({ settings, onChange, label = '文字サイズ' }: { se
   return <label className="reader-setting-slider font-size-setting"><span>{label}<strong>{maximum ? '上限 ' : ''}{value} px</strong></span><input aria-label={label} aria-valuetext={`${maximum ? '上限 ' : ''}${value}ピクセル`} type="range" min={full ? 14 : 24} max={full ? 48 : 96} step="2" value={value} onChange={event => onChange(full ? { documentFontSize: Number(event.target.value) } : { fontSize: Number(event.target.value) })} /></label>;
 }
 
-export function ShortcutHelp({ audio = false }: { audio?: boolean }) {
-  return <details className="shortcut-help"><summary>キーボード操作</summary><dl><dt>Space</dt><dd>再生・一時停止</dd><dt>← / →</dt><dd>{audio ? '原音声を5秒戻す・進める（再生状態を維持）' : '前・次の元フレーズへ移動して停止'}</dd><dt>Shift + ← / →</dt><dd>前・次の文へ移動{audio ? '（再生状態を維持）' : 'して停止'}</dd><dt>↑ / ↓</dt><dd>{audio ? '再生率を0.25倍ずつ変更（0.5〜5倍）' : '100字/分ずつ変更（100〜3000）'}</dd><dt>Home / End</dt><dd>先頭・末尾へ移動して停止</dd></dl></details>;
+export function ShortcutHelp({ audio = false, multiline = false }: { audio?: boolean; multiline?: boolean }) {
+  return <details className="shortcut-help"><summary>キーボード操作</summary><dl><dt>Space</dt><dd>再生・一時停止</dd><dt>← / →</dt><dd>{audio ? '原音声を5秒戻す・進める（再生状態を維持）' : '前・次の元フレーズへ移動して停止'}</dd><dt>Shift + ← / →</dt><dd>前・次の文へ移動{audio ? '（再生状態を維持）' : 'して停止'}</dd><dt>↑ / ↓</dt><dd>{multiline ? '前・次の表示へ移動（再生状態を維持）' : audio ? '再生率を0.25倍ずつ変更（0.5〜5倍）' : '100字/分ずつ変更（100〜3000）'}</dd><dt>Home / End</dt><dd>先頭・末尾へ移動して停止</dd></dl></details>;
 }

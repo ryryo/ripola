@@ -1,4 +1,5 @@
 import type { ReadingUnit, SourceAnchor, TextBlock } from './model';
+import type { SetSource } from './display-flow';
 import { protectedSpans } from './segmentation';
 
 export interface SourceRange { blockId: string; start: number; end: number }
@@ -79,6 +80,59 @@ export function planTextPage(block: LayoutText, start: number, end: number, boun
   const finish = cuts[Math.max(0, selected)] ?? end;
   const result = measure({ start, end: finish });
   return { start, end: finish, fits: result.fits, lines: result.lines };
+}
+
+/** A backward page ends exactly where the visible page starts. */
+export function planPreviousTextPage(block: LayoutText, end: number, boundaries: readonly number[],
+  measure: (range: { start: number; end: number }) => SetMeasurement, requestedLines: number): TextPage {
+  const earliest = (cuts: readonly number[]) => {
+    let low = 0; let high = cuts.length - 1; let selected = high;
+    while (low <= high) {
+      const middle = (low + high) >>> 1;
+      if (measure({ start: cuts[middle], end }).fits) { selected = middle; high = middle - 1; }
+      else low = middle + 1;
+    }
+    return cuts[selected];
+  };
+  let start = earliest([0, ...boundaries.filter(cut => cut > 0 && cut < end)]);
+  if (!measure({ start, end }).fits || (start > 0 && measure({ start, end }).lines < requestedLines)) {
+    const cuts = [...graphemes.segment(block.text.slice(0, end))].map(part => part.index)
+      .filter(cut => !block.ruby.some(span => span.start < cut && cut < span.end));
+    start = earliest(cuts);
+  }
+  return { start, end, ...measure({ start, end }) };
+}
+
+/** Bound backward layout work, including restored cursors with no in-memory page history. */
+export function previousSetPosition(blocks: readonly TextBlock[], ranges: readonly SourceRange[], position: SourceAnchor, sourceAt: (position: SourceAnchor) => Pick<SetSource, 'end' | 'next' | 'joinsNext'> | undefined): SourceAnchor | undefined {
+  const first = ranges.findIndex(range => range.blockId === position.blockId);
+  if (first < 0) return undefined;
+  let index = first - 1;
+  for (let i = first; i < ranges.length && ranges[i].blockId === position.blockId && ranges[i].start < position.offset; i++) index = i;
+  const last = ranges[index];
+  if (!last) return undefined;
+  let blockId = last.blockId;
+  let end = blockId === position.blockId ? Math.min(last.end, position.offset) : last.end;
+  let start = last.start; let length = end - start; let blockCount = 1;
+  while (index > 0 && length < 1024) {
+    const previous = ranges[index - 1];
+    const source = sourceAt({ blockId: previous.blockId, offset: previous.start });
+    if (!source) break;
+    if (previous.blockId === blockId) {
+      if (previous.end !== start || source.end < end) break;
+    } else {
+      if (blockCount >= 64 || !source.joinsNext || source.next?.blockId !== blockId || source.next.offset !== start) break;
+      blockCount++; end = previous.end;
+    }
+    length += previous.end - previous.start;
+    blockId = previous.blockId; start = previous.start; index--;
+  }
+  const block = blocks.find(block => block.id === blockId);
+  if (!block) return undefined;
+  const part = graphemes.segment(block.text.slice(start, end)).containing(Math.max(0, length - 1024));
+  start += part?.index ?? 0;
+  for (const span of block.ruby) if (span.start < start && start < span.end) start = span.start;
+  return { blockId, offset: start };
 }
 
 /** Source/PDF page boundaries, and static blocks, remain hard boundaries. */
