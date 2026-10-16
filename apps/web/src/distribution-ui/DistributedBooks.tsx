@@ -1,3 +1,4 @@
+import { useAppNavigation } from '../navigation/AppNavigation';
 import { AudioSampleReader } from '../reader/ui/AudioSampleReader';
 import { Brand } from '../ui/Brand';
 import { ThemeControl } from '../ui/ThemeControl';
@@ -11,13 +12,14 @@ import { BookReadingProgress } from '../reader/ui/BookReadingProgress';
 import '../generation-ui/generation.css';
 
 export function DistributedBooks() {
-  const [sampleKey, setSampleKey] = useState<string | null>();
-  useEffect(() => { setSampleKey(new URLSearchParams(location.search).get('sample')); }, []);
-  if (sampleKey === undefined) return <div className="generation-shell"><main><p role="status">読み込んでいます…</p></main></div>;
+  const sampleKey = useAppNavigation().search.get('sample');
   return sampleKey ? <AudioSampleReader sampleKey={sampleKey} /> : <DistributedLibrary />;
 }
 
 function DistributedLibrary() {
+  const navigation = useAppNavigation();
+  const bookId = navigation.search.get('book');
+  const revision = navigation.search.get('revision');
   const [books, setBooks] = useState<PublicBookEntry[]>([]);
   const [book, setBook] = useState<PublicAudioBookManifest>();
   const [loading, setLoading] = useState(true);
@@ -25,27 +27,21 @@ function DistributedLibrary() {
   const demo = import.meta.env.VITE_RSVP_PROFILE === 'pages' || (books.length > 0 && books.every(entry => entry.publicDemo));
   useEffect(() => {
     let active = true;
+    setLoading(true); setError(''); setBook(undefined);
     void loadDistributionLibrary(import.meta.env.BASE_URL).then(async library => {
       if (!active) return;
       setBooks(library.books);
-      const query = new URLSearchParams(location.search);
-      const entry = library.books.find(entry => entry.id === query.get('book') && entry.revision === query.get('revision'));
+      const entry = library.books.find(entry => entry.id === bookId && entry.revision === revision);
       if (entry) { const opened = await loadDistributedBook(entry, import.meta.env.BASE_URL); if (active) setBook(opened); }
     }).catch(error => { if (active) setError(distributionLoadError(error)); }).finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
-  }, []);
-  async function open(entry: PublicBookEntry) {
-    setLoading(true); setError('');
-    try {
-      setBook(await loadDistributedBook(entry, import.meta.env.BASE_URL));
-      const url = new URL(location.href); url.search = new URLSearchParams({ book: entry.id, revision: entry.revision }).toString();
-      history.replaceState(null, '', url);
-    } catch (error) { setError(distributionLoadError(error)); }
-    finally { setLoading(false); }
+  }, [bookId, revision]);
+  function open(entry: PublicBookEntry) {
+    void navigation.go(`${location.pathname}?${new URLSearchParams({ book: entry.id, revision: entry.revision })}`);
   }
-  if (book) {
+  if (book && book.id === bookId && book.revision === revision) {
     const isDemo = books.some(entry => entry.id === book.id && entry.revision === book.revision && entry.publicDemo);
-    return <AudioReader book={book} demo={isDemo} onClose={() => { if (isDemo) { location.assign(import.meta.env.BASE_URL); return; } setBook(undefined); history.replaceState(null, '', location.pathname); }} />;
+    return <AudioReader book={book} demo={isDemo} onClose={() => navigation.backTo(isDemo ? import.meta.env.BASE_URL : location.pathname)} />;
   }
   return <div className="generation-shell"><header className="generation-header"><Brand /><div className="header-actions"><ThemeControl /><nav><a href={import.meta.env.BASE_URL}>黙読</a></nav></div></header><main><Stack gap="lg">
     <Button component="a" href={import.meta.env.BASE_URL} variant="subtle" style={{ alignSelf: 'start' }}>黙読リーダーへ</Button>

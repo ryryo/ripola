@@ -253,3 +253,54 @@ test('本棚の読書位置はバーで表示し、途中生成・再開・別�
   await page.keyboard.press('Escape');
   await expect(page.getByRole('dialog')).toHaveCount(0);
 });
+
+test('ローカル本棚も履歴で原稿・音声位置へ戻り、離れた音声は停止する', async ({ page }) => {
+  await publish([0, 1, 2]);
+  await page.goto(origin);
+  const text = '未保存の原稿を残します。本棚を往復しても同じ内容を読めます。';
+  await page.getByLabel('読む文章', { exact: true }).fill(text);
+  await page.getByRole('link', { name: 'このPCの本棚', exact: true }).first().click();
+  await expect(page.getByRole('heading', { name: 'このPCの本棚', exact: true })).toBeVisible();
+  const card = page.getByRole('article').filter({ hasText: full.title });
+  await card.getByRole('button', { name: '保存音声を読む', exact: true }).click();
+  await expect(page.getByTestId('audio-stage')).toBeVisible();
+  const slider = page.getByRole('slider', { name: '音声の再生位置', exact: true });
+  await slider.fill('6');
+  await page.getByRole('button', { name: '再生', exact: true }).click();
+  await expect.poll(() => page.locator('audio').evaluate((audio: HTMLAudioElement) => audio.currentTime)).toBeGreaterThan(4.1);
+  await page.locator('audio').evaluate(audio => { (window as unknown as { departedAudio: HTMLAudioElement }).departedAudio = audio as HTMLAudioElement; });
+  await page.goBack(); await expect(card).toBeVisible();
+  expect(await page.evaluate(() => (window as unknown as { departedAudio: HTMLAudioElement }).departedAudio.paused)).toBe(true);
+  await page.goForward(); await expect(page.getByTestId('audio-stage')).toBeVisible();
+  await expect(page.getByRole('button', { name: '再生', exact: true })).toBeEnabled();
+  expect(Number(await slider.inputValue())).toBeGreaterThan(6);
+  await page.getByRole('button', { name: '本棚へ戻る', exact: true }).click(); await expect(card).toBeVisible();
+  await page.goBack(); await expect(page.getByLabel('読む文章', { exact: true })).toHaveValue(text);
+  await page.goForward(); await expect(card).toBeVisible();
+});
+
+
+test('本棚の古い名前変更の応答が履歴で開いた別の本を閉じない', async ({ page }) => {
+  await publish([0, 1, 2]);
+  let release!: () => void;
+  const pending = new Promise<void>(resolve => { release = resolve; });
+  let requested!: () => void;
+  const started = new Promise<void>(resolve => { requested = resolve; });
+  await page.route('**/_serverFn/**', async route => {
+    if (rpcId(route.request().url()) !== rpcIds.renameBook) { await route.continue(); return; }
+    const response = await route.fetch(); requested(); await pending; await route.fulfill({ response });
+  });
+  await page.goto(`${origin}/library`);
+  await page.getByRole('article').filter({ hasText: full.title }).getByRole('button', { name: '保存音声を読む', exact: true }).click();
+  await expect(page.getByTestId('audio-stage')).toBeVisible();
+  await page.getByRole('button', { name: '本の操作', exact: true }).click();
+  await page.getByLabel('タイトルを変更', { exact: true }).fill('遅れて返る名前変更');
+  await page.getByRole('button', { name: '名前を変更', exact: true }).click(); await started;
+  await page.goBack();
+  await page.getByRole('article').filter({ hasText: '保存音声 4' }).getByRole('button', { name: '保存音声を読む', exact: true }).click();
+  await expect(page.getByRole('heading', { name: '保存音声 4', exact: true })).toBeVisible();
+  const url = page.url(); release(); await page.waitForTimeout(300);
+  expect(page.url()).toBe(url);
+  await expect(page.getByRole('heading', { name: '保存音声 4', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: '再生', exact: true })).toBeEnabled();
+});

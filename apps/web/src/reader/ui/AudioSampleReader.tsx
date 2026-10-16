@@ -1,3 +1,4 @@
+import { useAppNavigation } from '../../navigation/AppNavigation';
 import { Alert, Button, Loader } from '@mantine/core';
 import { useEffect, useState } from 'react';
 import { distributionLoadError, loadDistributedBook, type PublicAudioBookManifest } from '../../distribution/library';
@@ -6,12 +7,13 @@ import { AudioReader } from './AudioReader';
 
 /** Bundled samples use the same verified static audio on every build profile. */
 export function AudioSampleReader({ sampleKey }: { sampleKey: string }) {
+  const navigation = useAppNavigation();
   const [book, setBook] = useState<PublicAudioBookManifest>();
   const [error, setError] = useState('');
   const [attempt, setAttempt] = useState(0);
   useEffect(() => {
     let active = true;
-    setError('');
+    setError(''); setBook(undefined);
     void (async () => {
       const sample = audioDemo(sampleKey);
       if (!sample) throw new Error('Unknown sample');
@@ -23,7 +25,7 @@ export function AudioSampleReader({ sampleKey }: { sampleKey: string }) {
     })().catch(error => { if (active) setError(distributionLoadError(error)); });
     return () => { active = false; };
   }, [sampleKey, attempt]);
-  const close = () => location.assign(import.meta.env.BASE_URL);
+  const close = () => navigation.backTo(import.meta.env.BASE_URL);
   if (book) return <AudioReader book={book} demo onClose={close} />;
   return <div className="generation-shell"><main>
     <Button variant="subtle" onClick={close}>トップへ戻る</Button>

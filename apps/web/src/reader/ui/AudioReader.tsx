@@ -1,3 +1,4 @@
+import { useBeforeAppNavigation } from '../../navigation/AppNavigation';
 import { Brand } from '../../ui/Brand';
 import { ThemeControl } from '../../ui/ThemeControl';
 import { Alert, Button, Drawer, Loader, Select } from '@mantine/core';
@@ -152,6 +153,7 @@ export function AudioReader({ book, onClose, attribution, localTools, demo = fal
 
   const font = useReadingFont(book.document.blocks, options.fontFamily ?? 'system', pause);
   const fullscreen = useFullscreenReader(pause);
+  useBeforeAppNavigation(() => { pause(); fullscreen.exit(); });
   useScreenWakeLock(reading && validation.valid && display.precision !== 'unavailable' && !error && !font.busy);
   useEffect(() => { if (error && fullscreen.active) fullscreen.exit(); }, [error, fullscreen.active, fullscreen.exit]);
   const updateOptions = (patch: Partial<ReaderSettings>) => { pause(); setOptions(previous => ({ ...previous, ...patch })); };
