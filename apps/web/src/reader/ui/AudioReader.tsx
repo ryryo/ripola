@@ -118,8 +118,8 @@ export function AudioReader({ book, onClose, attribution, localTools, demo = fal
   const sentenceEntries = useMemo(() => audioSentenceTargets(book, segments), [book, segments]);
   const sentenceIndex = audioSentenceIndexAt(sentenceEntries, position);
 
-  const persist = useCallback((seconds: number) => {
-    if (activeBook.current !== storageKey || seekPending.current) return;
+  const persist = useCallback((seconds: number, explicitSeek = false) => {
+    if (activeBook.current !== storageKey || seekPending.current && !explicitSeek) return;
     try {
       localStorage.setItem(storageKey, String(seconds));
       if (anchor.current) localStorage.setItem(`${storageKey}:source`, serializePlaybackAnchor(anchor.current));
@@ -207,6 +207,8 @@ export function AudioReader({ book, onClose, attribution, localTools, demo = fal
     const nextPosition = mediaPosition(segments[target.index], target.localSeconds);
     positionRef.current = nextPosition;
     setPosition(nextPosition);
+    // Keep the requested position on immediate navigation, before the native seek settles.
+    persist(nextPosition, true);
 
     setError('');
     prefetch.current?.update(contiguousChunks(book, segments[target.index]?.chunk.id ?? ''), 0, target.localSeconds, Number(rate), continuePlaying, readyForAhead(segments[target.index]?.chunk));
