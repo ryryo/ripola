@@ -75,16 +75,20 @@
 .is-reading .app-footer { display: none; }
 
 /* The portal panels share the selected paper/night palette and touch targets. */
+.reader-drawer { --settings-title-size: 18px; --settings-heading-size: 15px; --settings-label-size: 14px; --settings-note-size: 12px; }
 .reader-drawer .mantine-Drawer-content { background: var(--panel); color: var(--ink); }
 .reader-drawer .mantine-Drawer-header { background: var(--panel); color: var(--ink); border-bottom: 1px solid var(--line); padding: 16px 24px; }
-.reader-drawer .mantine-Drawer-title { font-size: 18px; font-weight: 600; }
+.reader-drawer .mantine-Drawer-title { font-size: var(--settings-title-size); font-weight: 600; }
 .reader-drawer .mantine-Drawer-close { min-width: 44px; min-height: 44px; color: var(--ink); }
 .reader-drawer .mantine-Drawer-body { padding: 20px 24px max(28px, env(safe-area-inset-bottom)); }
-.reader-drawer .mantine-Switch-label { color: var(--ink); font-size: 14px; }
+.reader-drawer .mantine-Switch-label { color: var(--ink); font-size: var(--settings-label-size); }
 .settings-panel { gap: 24px; }
 .settings-section { display: flex; flex-direction: column; gap: 18px; border-bottom: 1px solid var(--line); padding-bottom: 24px; }
 .settings-section h2 { font-size: 12px; letter-spacing: .06em; color: var(--muted); margin: 0; font-weight: 650; }
 .settings-section .muted { margin: 0; font-size: 12px; }
+.reader-drawer .settings-panel .settings-section h2 { font-size: var(--settings-heading-size); line-height: 1.5; font-weight: 600; letter-spacing: normal; color: var(--ink); }
+.reader-drawer .settings-item-label, .reader-drawer .settings-option-label { font-size: var(--settings-label-size); line-height: 1.5; font-weight: 400; letter-spacing: normal; color: var(--ink); }
+.reader-drawer .settings-section .muted, .reader-drawer .reading-font-setting > a, .reader-drawer .font-status { font-size: var(--settings-note-size); line-height: 1.5; }
 .font-size-setting { font-size: 14px; line-height: 2; }
 .font-size-setting strong { float: right; font-size: 12px; font-variant-numeric: tabular-nums; }
 .font-size-setting input { display: block; }

@@ -247,6 +247,173 @@ async function audioFixture(page: Page, seconds: 12 | 60 = 12, long: boolean | s
   await expect(page.getByRole('button', { name: '再生', exact: true })).toBeEnabled();
 }
 
+for (const kind of ['silent', 'audio'] as const) {
+  test(`${kind} multiline highlight colors and intensities preserve text layout and persist`, async ({ page }, info) => {
+    test.setTimeout(90000);
+    if (kind === 'audio') await audioFixture(page, 12, true); else await read(page);
+    await settings(page);
+    const color = page.getByRole('group', { name: 'ハイライトの色', exact: true });
+    const intensity = page.getByRole('slider', { name: 'ハイライトの濃さ', exact: true });
+    await expect(color.getByRole('radio', { name: '青系', exact: true })).toBeChecked();
+    await expect(intensity).toHaveAttribute('aria-valuetext', '標準');
+    await expect(page.getByRole('heading', { name: '複数行・複数列の表示設定', exact: true })).toBeVisible();
+    await close(page);
+    await page.getByRole('slider', { name: '表示量', exact: true }).fill('3');
+    const text = page.getByTestId('display-set-text');
+    const boxes = text.locator('.reading-marker-layer>span');
+    const snapshot = () => text.evaluate(element => {
+      const origin = element.getBoundingClientRect();
+      const positions: number[][] = [];
+      const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
+      let node: Node | null;
+      while ((node = walker.nextNode())) {
+        for (let i = 0; i < (node.textContent?.length ?? 0); i++) {
+          const range = document.createRange(); range.setStart(node, i); range.setEnd(node, i + 1);
+          const rect = range.getBoundingClientRect();
+          positions.push([rect.x - origin.x, rect.y - origin.y, rect.width, rect.height]);
+        }
+      }
+      const marker = element.querySelector('[data-testid="reading-marker"]');
+      return { text: element.textContent, set: element.getAttribute('data-set-id'), start: element.getAttribute('data-source-start'), end: element.getAttribute('data-source-end'), markerStart: marker?.getAttribute('data-marker-start'), markerEnd: marker?.getAttribute('data-marker-end'), positions };
+    });
+    const paint = () => boxes.first().evaluate(element => {
+      const canvas = document.createElement('canvas'); canvas.width = 1; canvas.height = 1;
+      const context = canvas.getContext('2d')!;
+      context.fillStyle = getComputedStyle(element).backgroundColor;
+      context.fillRect(0, 0, 1, 1);
+      return [...context.getImageData(0, 0, 1, 1).data];
+    });
+    for (const theme of ['ライト', 'ダーク'] as const) {
+      await chooseTheme(page, theme);
+      for (const writingMode of ['horizontal-tb', 'vertical-rl']) {
+        await adjustReaderDisplay(page, '本文の向き', writingMode);
+        await expect(boxes.first()).toBeAttached();
+        const before = await snapshot();
+        const position = () => kind === 'audio' ? page.getByRole('slider', { name: '音声の再生位置', exact: true }).inputValue() : readerStage(page).getAttribute('data-unit-index');
+        const beforePosition = await position();
+        for (const highlightColor of ['blue', 'yellow']) {
+          for (const [highlightIntensity, opacity] of [['light', .16], ['normal', .28], ['strong', .42]] as const) {
+            await settings(page);
+            await color.getByText(highlightColor === 'blue' ? '青系' : '黄色系', { exact: true }).click();
+            await page.getByRole('group', { name: 'ハイライトの濃さ', exact: true }).getByRole('button', { name: { light: '薄い', normal: '標準', strong: '濃い' }[highlightIntensity], exact: true }).click();
+            await close(page);
+            await expect.poll(async () => (await paint())[3] / 255).toBeCloseTo(opacity, 2);
+            const [red, , blue] = await paint();
+            if (highlightColor === 'yellow') expect(red).toBeGreaterThan(blue);
+            else expect(blue).toBeGreaterThan(red);
+            expect(await snapshot()).toEqual(before);
+            expect(await position()).toBe(beforePosition);
+          }
+        }
+      }
+    }
+    // The selected yellow/strong appearance also survives fullscreen layout changes.
+    await page.evaluate(() => { Element.prototype.requestFullscreen = () => Promise.reject(new Error('test fallback')); });
+    await page.getByRole('button', { name: '全画面で読む', exact: true }).click();
+    await expect(page.locator('.fullscreen-reader')).toHaveAttribute('data-fullscreen', 'true');
+    await expect.poll(async () => (await paint())[3] / 255).toBeCloseTo(.42, 2);
+    expect((await paint())[0]).toBeGreaterThan((await paint())[2]);
+    await page.screenshot({ path: info.outputPath('highlight-yellow-strong-dark-fullscreen.png') });
+    await page.keyboard.press('Escape');
+    await settings(page);
+    await expect(color).toBeVisible();
+    await page.screenshot({ path: info.outputPath('highlight-settings.png'), animations: 'disabled' });
+    await close(page);
+    if (kind === 'silent') {
+      await page.getByRole('button', { name: '端末に保存', exact: true }).click();
+      await expect(page.getByRole('status')).toContainText('保存しました');
+    }
+    await page.reload();
+    if (kind === 'silent') await page.getByRole('button', { name: '続きから開く', exact: true }).click();
+    await expect(boxes.first()).toBeAttached();
+    await expect.poll(async () => (await paint())[3] / 255).toBeCloseTo(.42, 2);
+    await settings(page);
+    await expect(color.getByRole('radio', { name: '黄色系', exact: true })).toBeChecked();
+    await expect(intensity).toHaveAttribute('aria-valuetext', '濃い');
+    await close(page);
+    await page.getByRole('button', { name: '全文表示', exact: true }).click();
+    const guideColor = await page.locator('.guide-unit.active').first().evaluate(element => getComputedStyle(element).backgroundColor);
+    await settings(page);
+    await page.getByRole('button', { name: '表示設定をリセット', exact: true }).click();
+    await expect(color.getByRole('radio', { name: '青系', exact: true })).toBeChecked();
+    await expect(intensity).toHaveAttribute('aria-valuetext', '標準');
+    await close(page);
+    await page.getByRole('button', { name: '全文表示', exact: true }).click();
+    await expect(page.locator('.guide-unit.active').first()).toHaveCSS('background-color', guideColor);
+    await page.getByRole('button', { name: 'フレーズ表示', exact: true }).click();
+    await page.getByRole('slider', { name: '表示量', exact: true }).fill('3');
+    await expect.poll(async () => (await paint())[3] / 255).toBeCloseTo(.28, 2);
+    expect((await paint())[2]).toBeGreaterThan((await paint())[0]);
+  });
+}
+
+for (const kind of ['silent', 'audio'] as const) {
+  test(`${kind} multiline spacing reflows rows and columns without moving source position`, async ({ page }) => {
+    test.setTimeout(90000);
+    const paragraph = '静かな図書館で本を開き、窓辺の椅子で物語を読み進めます。'.repeat(20);
+    if (kind === 'audio') await audioFixture(page, 60, paragraph); else await read(page, paragraph);
+    await page.getByRole('slider', { name: '表示量', exact: true }).fill('3');
+    const text = page.getByTestId('display-set-text');
+    const spacing = page.getByRole('group', { name: '行間・列間', exact: true });
+    await settings(page);
+    await expect(spacing.getByRole('slider')).toHaveAttribute('aria-valuetext', '標準');
+    await close(page);
+    for (const writingMode of ['horizontal-tb', 'vertical-rl']) {
+      await adjustReaderDisplay(page, '本文の向き', writingMode);
+      for (const [label, expected] of [['狭い', 1.4], ['標準', 1.6], ['広い', 2]] as const) {
+        const unit = await readerStage(page).getAttribute('data-unit-index');
+        const seconds = kind === 'audio' ? await page.locator('audio').evaluate((element: HTMLAudioElement) => element.currentTime) : undefined;
+        await settings(page);
+        await spacing.getByRole('button', { name: label, exact: true }).click();
+        await expect(spacing.getByRole('slider')).toHaveAttribute('aria-valuetext', label);
+        await close(page);
+        for (const fullscreen of [false, true]) {
+          if (fullscreen) {
+            await page.evaluate(() => { Element.prototype.requestFullscreen = () => Promise.reject(new Error('test fallback')); });
+            await page.getByRole('button', { name: '全画面で読む', exact: true }).click();
+          }
+          await expect(text).toHaveAttribute('data-lines', '3');
+          await expect(text.getByTestId('reading-marker').first()).toBeVisible();
+          const layout = await text.evaluate(element => {
+            const style = getComputedStyle(element), bounds = element.getBoundingClientRect(), frame = element.closest('.display-set-viewport')!.getBoundingClientRect();
+            const vertical = style.writingMode === 'vertical-rl';
+            const font = parseFloat(style.fontSize), line = parseFloat(style.lineHeight);
+            const bands: number[] = [];
+            const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT); let node: Node | null;
+            while ((node = walker.nextNode())) {
+              if (node.parentElement?.closest('rt')) continue;
+              const range = document.createRange(); range.selectNodeContents(node);
+              for (const rect of range.getClientRects()) {
+                const band = vertical ? rect.right : rect.top;
+                if (rect.width > .1 && rect.height > .1 && !bands.some(value => Math.abs(value - band) < font * .5)) bands.push(band);
+              }
+            }
+            bands.sort((a, b) => a - b);
+            return { ratio: line / font, steps: bands.slice(1).map((value, index) => (value - bands[index]) / font), inside: bounds.left >= frame.left - 1 && bounds.right <= frame.right + 1 && bounds.top >= frame.top - 1 && bounds.bottom <= frame.bottom + 1 };
+          });
+          expect(layout.ratio).toBeCloseTo(expected, 2);
+          expect(layout.steps).toHaveLength(2);
+          for (const step of layout.steps) expect(step).toBeCloseTo(expected, 2);
+          expect(layout.inside).toBe(true);
+          await expect(readerStage(page)).toHaveAttribute('data-unit-index', unit!);
+          if (kind === 'audio') expect(await page.locator('audio').evaluate((element: HTMLAudioElement) => element.currentTime)).toBe(seconds);
+          if (fullscreen) await page.keyboard.press('Escape');
+        }
+      }
+    }
+    if (kind === 'silent') {
+      await page.getByRole('button', { name: '端末に保存', exact: true }).click();
+      await expect(page.getByRole('status')).toContainText('保存しました');
+    }
+    await page.reload();
+    if (kind === 'silent') await page.getByRole('button', { name: '続きから開く', exact: true }).click();
+    await settings(page);
+    await expect(spacing.getByRole('slider')).toHaveAttribute('aria-valuetext', '広い');
+    await page.getByRole('button', { name: '表示設定をリセット', exact: true }).click();
+    await expect(spacing.getByRole('slider')).toHaveAttribute('aria-valuetext', '標準');
+  });
+}
+
 test('single-line audio subdivisions follow media seek and rate without changing cue or file identity', async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 740 });
   await audioFixture(page, 12, true);
