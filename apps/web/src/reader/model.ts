@@ -58,6 +58,7 @@ export interface ReadingDocument extends DraftDocument {
 }
 export interface SourceAnchor { blockId: string; offset: number }
 export type WritingMode = 'horizontal-tb' | 'vertical-rl';
+export const MULTILINE_SPACING = { narrow: 1.4, normal: 1.6, wide: 2 } as const;
 export interface ReaderSettings {
   readingPace?: 'legacy' | 'text-load';
   writingMode?: WritingMode;
@@ -68,6 +69,9 @@ export interface ReaderSettings {
   groupTarget?: number;
   groupMinimum?: number;
   fullscreenProgress?: boolean;
+  highlightColor?: 'blue' | 'yellow';
+  highlightIntensity?: 'light' | 'normal' | 'strong';
+  multilineSpacing?: keyof typeof MULTILINE_SPACING;
   mode?: 'flash' | 'guide';
   cpm: number;
   fontSize: number;
@@ -77,6 +81,8 @@ export interface ReaderSettings {
 }
 export const DEFAULT_SETTINGS: ReaderSettings = {
   readingPace: 'legacy',
+  highlightColor: 'blue', highlightIntensity: 'normal',
+  multilineSpacing: 'normal',
   settingsVersion: 3, focusedDisplay: { kind: 'phrase' }, documentFontSize: 20, fontFamily: 'system', mode: 'flash', writingMode: 'horizontal-tb',
   cpm: 400, fontSize: 56, punctuationPause: true, ruby: true, guide: true, fullscreenProgress: true,
 };
@@ -93,6 +99,9 @@ export function migrateReaderSettings(value: unknown): ReaderSettings {
   if (isReadingFont(stored.fontFamily)) settings.fontFamily = stored.fontFamily;
   if (stored.writingMode === 'horizontal-tb' || stored.writingMode === 'vertical-rl') settings.writingMode = stored.writingMode;
   if (stored.mode === 'flash' || stored.mode === 'guide') settings.mode = stored.mode;
+  if (stored.highlightColor === 'blue' || stored.highlightColor === 'yellow') settings.highlightColor = stored.highlightColor;
+  if (stored.highlightIntensity === 'light' || stored.highlightIntensity === 'normal' || stored.highlightIntensity === 'strong') settings.highlightIntensity = stored.highlightIntensity;
+  if (stored.multilineSpacing === 'narrow' || stored.multilineSpacing === 'normal' || stored.multilineSpacing === 'wide') settings.multilineSpacing = stored.multilineSpacing;
   if (stored.readingPace === 'legacy' || stored.readingPace === 'text-load') settings.readingPace = stored.readingPace;
   const display = stored.focusedDisplay as Record<string, unknown> | undefined;
   if (display?.kind === 'multiline' && typeof display.maxLines === 'number' && Number.isInteger(display.maxLines) && display.maxLines >= 2 && display.maxLines <= 10) settings.focusedDisplay = { kind: 'multiline', maxLines: display.maxLines };
@@ -105,7 +114,7 @@ export function validReaderSettings(value: unknown): value is ReaderSettings {
   const stored = value as Record<string, unknown>;
   const canonical = migrateReaderSettings(value) as unknown as Record<string, unknown>;
   for (const key of ['cpm', 'fontSize', 'punctuationPause', 'ruby', 'guide']) if (stored[key] !== canonical[key]) return false;
-  for (const key of ['fontFamily', 'writingMode', 'mode', 'readingPace', 'fullscreenProgress', 'documentFontSize']) if (stored[key] !== undefined && stored[key] !== canonical[key]) return false;
+  for (const key of ['fontFamily', 'writingMode', 'mode', 'readingPace', 'fullscreenProgress', 'documentFontSize', 'highlightColor', 'highlightIntensity', 'multilineSpacing']) if (stored[key] !== undefined && stored[key] !== canonical[key]) return false;
   if (stored.settingsVersion !== undefined && stored.settingsVersion !== 2 && stored.settingsVersion !== 3) return false;
   if (stored.focusedDisplay !== undefined) {
     const display = stored.focusedDisplay as { kind?: unknown; maxLines?: unknown } | null;

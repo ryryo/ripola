@@ -49,6 +49,24 @@
 .reader-book-panel .settings-section { padding-bottom: 22px; border-bottom: 1px solid var(--line); }
 .reader-book-panel .settings-section:last-child { border-bottom: 0; }
 .reader-book-panel .settings-section h2 { font-size: 15px; margin: 0 0 12px; }
+.reader-drawer .settings-section { gap: 16px; padding-bottom: 20px; }
+.reader-drawer .reading-font-setting { display: flex; flex-direction: column; gap: 8px; }
+.reader-drawer .reading-font-setting label { margin: 0; gap: 8px; }
+.reader-drawer .reading-font-setting > a { align-self: flex-start; }
+.reader-drawer .reading-font-setting .font-status { margin: 0; }
+.highlight-section-heading { display: flex; flex-direction: column; gap: 6px; }
+.highlight-controls { display: flex; flex-direction: column; gap: 20px; margin-top: 24px; }
+.highlight-color-palette { border: 0; padding: 0; margin: 0; display: flex; gap: 16px; }
+.highlight-color-palette legend { padding: 0; margin-bottom: 8px; }
+.highlight-color-option { position: relative; display: flex; align-items: center; gap: 10px; padding: 6px; min-width: 100px; min-height: 44px; cursor: pointer; }
+.highlight-color-option input:checked + .highlight-color-chip { outline: 2px solid var(--ink); outline-offset: 3px; }
+.highlight-color-option input:focus-visible + .highlight-color-chip { outline: 3px solid var(--focus); outline-offset: 3px; }
+.reader-step-setting { display: flex; flex-direction: column; gap: 8px; }
+.reader-step-slider { margin: 0 16px; height: 32px; justify-content: center; }
+.reader-step-slider .mantine-Slider-thumb { border-width: 2px; }
+.reader-step-labels { display: flex; justify-content: space-between; }
+.reader-step-labels button { border: 0; background: transparent; min-width: 44px; min-height: 44px; padding: 0; }
+.reader-step-labels button[aria-pressed='true'] { color: var(--ink); font-weight: 600; }
 .reader-book-panel .shortcut-help { margin: 0; }
 .audio-reader > main { padding-top: 24px; }
 .audio-reader .audio-stage { margin: 0; }

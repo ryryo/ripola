@@ -38,7 +38,7 @@ export function useReadingFont(blocks: TextBlock[] | undefined, requested: Readi
 }
 
 export function FontSelect({ value, onChange, phase, error }: { value: ReadingFontId; onChange: (id: ReadingFontId) => void; phase: string; error: string }) {
-  return <div className="reading-font-setting"><label>本文の書体<NativeSelect aria-label="本文の書体" value={value} onChange={event => { if (isReadingFont(event.target.value)) onChange(event.target.value); }}>{Object.entries(READING_FONTS).map(([id, font]) => <option key={id} value={id}>{font.label}</option>)}</NativeSelect></label><p role="status" className="font-status" data-state={phase}>{phase === 'loading' ? '書体を読み込んでいます…' : phase === 'measuring' ? '文字の配置を確認しています…' : error || ''}</p><a href={`${import.meta.env.BASE_URL}fonts/NOTICE.md`} target="_blank" rel="noreferrer">書体とライセンス</a></div>;
+  return <div className="reading-font-setting"><label className="settings-item-label">本文の書体<NativeSelect classNames={{ input: 'settings-option-label' }} aria-label="本文の書体" value={value} onChange={event => { if (isReadingFont(event.target.value)) onChange(event.target.value); }}>{Object.entries(READING_FONTS).map(([id, font]) => <option key={id} value={id}>{font.label}</option>)}</NativeSelect></label><p role="status" className="font-status" data-state={phase}>{phase === 'loading' ? '書体を読み込んでいます…' : phase === 'measuring' ? '文字の配置を確認しています…' : error || ''}</p><a href={`${import.meta.env.BASE_URL}fonts/NOTICE.md`} target="_blank" rel="noreferrer">書体とライセンス</a></div>;
 }
 
 export function DisplayAmount({ settings, onChange, label = '一度に表示する量', compact = false }: { settings: ReaderSettings; onChange: (patch: Partial<ReaderSettings>) => void; label?: string; compact?: boolean }) {

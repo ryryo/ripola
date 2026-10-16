@@ -71,3 +71,50 @@ test('fullscreen progress defaults to visible, persists hiding and returns on di
     assert.equal(normalizeSettings({ fullscreenProgress }).fullscreenProgress, true);
   }
 });
+
+test('highlight choices persist independently and reset to blue with normal intensity', () => {
+  const local = storage();
+  assert.equal(readPreferences(local).settings.highlightColor, 'blue');
+  assert.equal(readPreferences(local).settings.highlightIntensity, 'normal');
+  for (const highlightColor of ['blue', 'yellow'] as const) {
+    for (const highlightIntensity of ['light', 'normal', 'strong'] as const) {
+      writePreferences({ settings: { ...DEFAULT_SETTINGS, highlightColor, highlightIntensity, cpm: 900, readingPace: 'text-load' }, audioRate: '4' }, local);
+      const restored = readPreferences(local);
+      assert.equal(restored.settings.highlightColor, highlightColor);
+      assert.equal(restored.settings.highlightIntensity, highlightIntensity);
+      writePreferences({ settings: resetDisplaySettings(restored.settings) }, local);
+      assert.deepEqual(readPreferences(local), { audioRate: '4', settings: { ...DEFAULT_SETTINGS, cpm: 900, readingPace: 'text-load' } });
+    }
+  }
+});
+
+test('old or malformed highlight choices recover independently without losing other settings', () => {
+  for (const value of [undefined, null, '', 'unknown', 0, false, {}, [], ['yellow']]) {
+    const color = normalizeSettings({ highlightColor: value, highlightIntensity: 'strong', cpm: 900 });
+    assert.equal(color.highlightColor, 'blue');
+    assert.equal(color.highlightIntensity, 'strong');
+    assert.equal(color.cpm, 900);
+    const intensity = normalizeSettings({ highlightColor: 'yellow', highlightIntensity: value, ruby: false });
+    assert.equal(intensity.highlightColor, 'yellow');
+    assert.equal(intensity.highlightIntensity, 'normal');
+    assert.equal(intensity.ruby, false);
+  }
+});
+
+test('multiline spacing defaults to normal, persists each choice and resets without changing speeds', () => {
+  const local = storage();
+  assert.equal(readPreferences(local).settings.multilineSpacing, 'normal');
+  for (const multilineSpacing of ['narrow', 'normal', 'wide'] as const) {
+    writePreferences({ settings: { ...DEFAULT_SETTINGS, multilineSpacing, cpm: 900, highlightColor: 'yellow' }, audioRate: '4' }, local);
+    assert.equal(readPreferences(local).settings.multilineSpacing, multilineSpacing);
+    assert.equal(readPreferences(local).settings.highlightColor, 'yellow');
+    writePreferences({ settings: resetDisplaySettings(readPreferences(local).settings) }, local);
+    assert.deepEqual(readPreferences(local), { audioRate: '4', settings: { ...DEFAULT_SETTINGS, cpm: 900 } });
+  }
+  for (const multilineSpacing of [undefined, null, '', 'unknown', 1.6, false, {}, [], ['wide']]) {
+    const settings = normalizeSettings({ multilineSpacing, highlightColor: 'yellow', cpm: 900 });
+    assert.equal(settings.multilineSpacing, 'normal');
+    assert.equal(settings.highlightColor, 'yellow');
+    assert.equal(settings.cpm, 900);
+  }
+});

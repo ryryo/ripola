@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
-import type { SourceAnchor, WritingMode } from '../model';
+import { MULTILINE_SPACING, type ReaderSettings, type SourceAnchor, type WritingMode } from '../model';
 import { planPreviousTextPage, planTextPage, type ReadingMarker } from '../display-sets';
 import { displayFlow, displaySet, flowOffset, previousDisplayFlow, setContains, sourceSlices, type DisplayFlow, type DisplaySet, type SetSource } from '../display-flow';
 import { shortcutBlocked, repeatedArrowAllowed } from '../shortcuts';
@@ -19,8 +19,10 @@ export interface DisplaySetSession {
 interface Layout { set: DisplaySet; flow: DisplayFlow; start: number; end: number; revision: string; fontSize: number; sourceVersion?: unknown; before?: SourceAnchor }
 
 /** Clocks own source position; measured pages own only layout and reversible source mappings. */
-export function DisplaySetReader({ session, lines, fontSize, family, ruby, writingMode = 'horizontal-tb', playing, disabled = false }: {
+export function DisplaySetReader({ session, lines, fontSize, family, ruby, writingMode = 'horizontal-tb', playing, disabled = false, highlightColor = 'blue', highlightIntensity = 'normal', multilineSpacing = 'normal' }: {
   session: DisplaySetSession; lines: number; fontSize: number; family: string; ruby: boolean; writingMode?: WritingMode; playing: boolean; disabled?: boolean;
+  highlightColor?: ReaderSettings['highlightColor']; highlightIntensity?: ReaderSettings['highlightIntensity'];
+  multilineSpacing?: ReaderSettings['multilineSpacing'];
 }) {
   const viewport = useRef<HTMLDivElement>(null);
   const clock = useRef(session); clock.current = session;
@@ -30,6 +32,7 @@ export function DisplaySetReader({ session, lines, fontSize, family, ruby, writi
   const [marker, setMarker] = useState<ReadingMarker>();
   const painted = useRef<ReadingMarker | undefined>(undefined);
   const vertical = writingMode === 'vertical-rl';
+  const lineHeight = MULTILINE_SPACING[multilineSpacing];
   const gesture = useRef<{ id: string; x: number; y: number; time: number; valid: boolean } | undefined>(undefined);
   const refresh = useRef<() => void>(() => {});
   const navigate = useRef<(direction: -1 | 1) => void>(() => {});
@@ -39,12 +42,12 @@ export function DisplaySetReader({ session, lines, fontSize, family, ruby, writi
     if (!slot) return;
     const probe = document.createElement('div');
     probe.className = 'display-set-text'; probe.setAttribute('aria-hidden', 'true');
-    probe.style.cssText = `position:fixed;inset:0 auto auto 0;visibility:hidden;pointer-events:none;font-family:${family};writing-mode:${writingMode};max-width:none;`;
+    probe.style.cssText = `position:fixed;inset:0 auto auto 0;visibility:hidden;pointer-events:none;font-family:${family};writing-mode:${writingMode};line-height:${lineHeight};max-width:none;`;
     document.body.append(probe);
     const plan = (navigation?: { position: SourceAnchor; end?: SourceAnchor }) => {
       const position = navigation?.position ?? clock.current.position();
       if (!position || slot.clientWidth <= 0 || slot.clientHeight <= 0) return;
-      const revision = `${slot.clientWidth}:${slot.clientHeight}:${lines}:${fontSize}:${family}:${ruby}:${writingMode}`;
+      const revision = `${slot.clientWidth}:${slot.clientHeight}:${lines}:${fontSize}:${family}:${ruby}:${writingMode}:${lineHeight}`;
       const previous = current.current;
       if (!navigation && previous?.revision === revision && setContains(previous.set, position)) {
         if (previous.sourceVersion !== clock.current.sourceVersion) {
@@ -79,7 +82,7 @@ export function DisplaySetReader({ session, lines, fontSize, family, ruby, writi
       probe.style.width = vertical ? 'max-content' : `${slot.clientWidth}px`;
       probe.style.height = vertical ? `${slot.clientHeight}px` : 'max-content';
       const extent = vertical ? slot.clientWidth : slot.clientHeight;
-      let effectiveSize = Math.min(fontSize, Math.floor(extent / (lines * 1.6 + (ruby ? .4 : 0)) * 4) / 4);
+      let effectiveSize = Math.min(fontSize, Math.floor(extent / (lines * lineHeight + (ruby ? .4 : 0)) * 4) / 4);
       effectiveSize = Math.max(8, effectiveSize);
       const measure = (range: { start: number; end: number }) => {
         probe.style.fontSize = `${effectiveSize}px`;
@@ -139,7 +142,7 @@ export function DisplaySetReader({ session, lines, fontSize, family, ruby, writi
     refresh.current();
     const observer = new ResizeObserver(() => plan()); observer.observe(slot);
     return () => { observer.disconnect(); probe.remove(); refresh.current = () => {}; navigate.current = () => {}; };
-  }, [lines, fontSize, family, ruby, writingMode, vertical]);
+  }, [lines, fontSize, family, ruby, writingMode, vertical, lineHeight]);
   useLayoutEffect(() => refresh.current());
   const subscribe = session.subscribe;
   useEffect(() => {
@@ -164,7 +167,12 @@ export function DisplaySetReader({ session, lines, fontSize, family, ruby, writi
   const set = layout?.set;
   const before = layout?.before;
   const slices = layout ? sourceSlices(layout.flow, layout) : [];
-  return <div className="display-set-reader" data-testid="display-set-reader" data-writing-mode={writingMode} style={{ '--reading-font': family } as CSSProperties}>
+  return <div className="display-set-reader" data-testid="display-set-reader" data-writing-mode={writingMode} style={{
+    '--reading-font': family,
+    '--display-line-height': lineHeight,
+    '--reading-highlight-color': highlightColor === 'yellow' ? '#f2c94c' : 'var(--mantine-primary-color-filled,#d09b46)',
+    '--reading-highlight-intensity': `${{ light: 16, normal: 28, strong: 42 }[highlightIntensity]}%`,
+  } as CSSProperties}>
     <div ref={viewport} className="display-set-viewport" aria-label="本文">
       <div className="display-set-text" data-testid="display-set-text" data-block-id={set?.ranges[0]?.blockId} data-source-start={set?.ranges[0]?.start} data-source-end={set?.ranges.at(-1)?.end} data-source-ranges={JSON.stringify(set?.ranges)} data-lines={set?.lines} data-set-id={set?.id} style={{ fontSize: layout?.fontSize ?? fontSize, fontFamily: family, writingMode }}>
         {slices.map((slice, index) => <Fragment key={`${slice.blockId}:${slice.start}`}>{index > 0 && '\n'}<RubyText unit={slice} show={ruby} vertical={vertical} marker={marker} layoutKey={`${layout?.revision}:${layout?.fontSize}`} /></Fragment>)}
