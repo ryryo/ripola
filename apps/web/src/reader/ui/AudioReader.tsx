@@ -1,3 +1,4 @@
+import { useBeforeAppNavigation } from '../../navigation/AppNavigation';
 import { Brand } from '../../ui/Brand';
 import { ThemeControl } from '../../ui/ThemeControl';
 import { Alert, Button, Drawer, Loader, NativeSelect, Select } from '@mantine/core';
@@ -117,8 +118,8 @@ export function AudioReader({ book, onClose, attribution, localTools, demo = fal
   const sentenceEntries = useMemo(() => audioSentenceTargets(book, segments), [book, segments]);
   const sentenceIndex = audioSentenceIndexAt(sentenceEntries, position);
 
-  const persist = useCallback((seconds: number) => {
-    if (activeBook.current !== storageKey || seekPending.current) return;
+  const persist = useCallback((seconds: number, explicitSeek = false) => {
+    if (activeBook.current !== storageKey || seekPending.current && !explicitSeek) return;
     try {
       localStorage.setItem(storageKey, String(seconds));
       if (anchor.current) localStorage.setItem(`${storageKey}:source`, serializePlaybackAnchor(anchor.current));
@@ -186,6 +187,7 @@ export function AudioReader({ book, onClose, attribution, localTools, demo = fal
 
   const font = useReadingFont(book.document.blocks, options.fontFamily ?? 'system', pause);
   const fullscreen = useFullscreenReader(pause);
+  useBeforeAppNavigation(() => { pause(); fullscreen.exit(); });
   useScreenWakeLock(reading && validation.valid && display.precision !== 'unavailable' && !error && !font.busy);
   useEffect(() => { if (error && fullscreen.active) fullscreen.exit(); }, [error, fullscreen.active, fullscreen.exit]);
   const updateOptions = (patch: Partial<ReaderSettings>) => { pause(); setOptions(previous => ({ ...previous, ...patch })); };
@@ -205,6 +207,8 @@ export function AudioReader({ book, onClose, attribution, localTools, demo = fal
     const nextPosition = mediaPosition(segments[target.index], target.localSeconds);
     positionRef.current = nextPosition;
     setPosition(nextPosition);
+    // Keep the requested position on immediate navigation, before the native seek settles.
+    persist(nextPosition, true);
 
     setError('');
     prefetch.current?.update(contiguousChunks(book, segments[target.index]?.chunk.id ?? ''), 0, target.localSeconds, Number(rate), continuePlaying, readyForAhead(segments[target.index]?.chunk));

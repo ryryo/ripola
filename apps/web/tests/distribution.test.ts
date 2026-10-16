@@ -112,6 +112,10 @@ test('AAC staging preserves source audio and publishes only the selected content
   assert.equal(result.books, 1); assert.equal(result.fileCount, 3);
   const index = parsePublicLibrary(JSON.parse(await readFile(join(output, 'library/index.json'), 'utf8')));
   const entry = index.books[0];
+  assert.equal(entry.updatedAt, '2026-10-06T00:00:00Z');
+  const legacy = { ...entry, updatedAt: undefined };
+  assert.equal(parsePublicLibrary({ ...index, books: [legacy] }).books[0].updatedAt, undefined);
+  assert.equal(parsePublicLibrary({ ...index, books: [{ ...entry, updatedAt: 'invalid' }] }).books[0].updatedAt, undefined);
   const manifestBytes = await readFile(join(output, entry.manifestUrl));
   const manifest = JSON.parse(manifestBytes.toString());
   assert.equal(contentHash(manifestBytes), entry.manifestSha256);

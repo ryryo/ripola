@@ -160,3 +160,32 @@ test('完成Pagesの全音声サンプル・直リンク・seek・公開API境�
   for (const path of ['api/local-generation/config', 'api/local-audio/missing.wav', 'generate/']) expect((await request.get(path)).status(), path).toBe(404);
   expect(errors).toEqual([]);
 });
+
+test('完成Pagesでも黙読と音声サンプルの履歴が原稿と位置を保ち停止して戻る', async ({ page }) => {
+  await page.goto('./');
+  await page.getByLabel('タイトル', { exact: true }).fill('履歴の原稿');
+  await page.getByLabel('読む文章', { exact: true }).fill('これは未保存の原稿です。次の頁も残します。');
+  await page.getByRole('group', { name: '音声サンプルを開く' }).getByRole('link').first().click();
+  await expect(page.getByTestId('audio-stage')).toBeVisible();
+  expect(new URL(page.url()).pathname.replace(/\/$/, '')).toBe('/ripola/demo');
+  await page.goBack(); await expect(page.getByLabel('読む文章', { exact: true })).toHaveValue('これは未保存の原稿です。次の頁も残します。');
+  await page.reload(); await expect(page.getByLabel('タイトル', { exact: true })).toHaveValue('履歴の原稿');
+  await page.getByRole('button', { name: 'テキストのみ生成して読む', exact: true }).click();
+  await expect(page.getByTestId('current-phrase')).toBeVisible();
+  await page.getByRole('button', { name: '1つ進む', exact: true }).click();
+  const anchor = await page.getByTestId('current-phrase').innerText();
+  await page.getByRole('button', { name: '再生', exact: true }).click();
+  await page.goBack(); await expect(page.getByLabel('読む文章', { exact: true })).toHaveValue('これは未保存の原稿です。次の頁も残します。');
+  await page.goForward(); await expect(page.getByTestId('current-phrase')).toHaveText(anchor);
+  await expect(page.getByRole('button', { name: '再生', exact: true })).toBeEnabled();
+});
+
+
+test('完成Pagesの編集原稿はnative Back後に別画面を再読み込みしても進むで復元できる', async ({ page }) => {
+  await page.goto('demo/');
+  await page.getByRole('link', { name: '黙読', exact: true }).click();
+  await page.getByLabel('読む文章', { exact: true }).fill('履歴項目に残す未保存の原稿です。');
+  await page.goBack(); await expect(page.getByRole('heading', { name: '音声に合わせて、読む。' })).toBeVisible();
+  await page.reload();
+  await page.goForward(); await expect(page.getByLabel('読む文章', { exact: true })).toHaveValue('履歴項目に残す未保存の原稿です。');
+});

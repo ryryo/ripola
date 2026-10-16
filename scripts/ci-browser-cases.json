@@ -2791,7 +2791,7 @@
   {
     "project": "desktop-chromium",
     "file": "home-continue-reading.spec.ts",
-    "title": "本棚は進捗で並べ替えと絞り込みを行い途中生成を読了扱いしない",
+    "title": "本棚は新しい順と古い順で並べ替えと絞り込みを行い途中生成を読了扱いしない",
     "lane": "related",
     "domains": [
       "audio",
@@ -2802,7 +2802,7 @@
   {
     "project": "mobile-chromium",
     "file": "home-continue-reading.spec.ts",
-    "title": "本棚は進捗で並べ替えと絞り込みを行い途中生成を読了扱いしない",
+    "title": "本棚は新しい順と古い順で並べ替えと絞り込みを行い途中生成を読了扱いしない",
     "lane": "related",
     "domains": [
       "audio",
@@ -2916,6 +2916,222 @@
     "lane": "related",
     "domains": [
       "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "history.spec.ts",
+    "title": "黙読の戻る・進むは原稿と各読書位置を復元し再生を停止する",
+    "lane": "related",
+    "domains": [
+      "import",
+      "audio",
+      "distribution",
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "history.spec.ts",
+    "title": "黙読の戻る・進むは原稿と各読書位置を復元し再生を停止する",
+    "lane": "related",
+    "domains": [
+      "import",
+      "audio",
+      "distribution",
+      "layout"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "history.spec.ts",
+    "title": "PDFの原稿と原文は戻る・進むと本棚からの復帰でも失われない",
+    "lane": "related",
+    "domains": [
+      "import",
+      "audio",
+      "distribution",
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "history.spec.ts",
+    "title": "PDFの原稿と原文は戻る・進むと本棚からの復帰でも失われない",
+    "lane": "related",
+    "domains": [
+      "import",
+      "audio",
+      "distribution",
+      "layout"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "history.spec.ts",
+    "title": "配信本棚の履歴は一覧・各本・音声位置を復元し戻ると音声が止まる",
+    "lane": "related",
+    "domains": [
+      "import",
+      "audio",
+      "distribution",
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "history.spec.ts",
+    "title": "配信本棚の履歴は一覧・各本・音声位置を復元し戻ると音声が止まる",
+    "lane": "related",
+    "domains": [
+      "import",
+      "audio",
+      "distribution",
+      "layout"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "history.spec.ts",
+    "title": "本棚の遅い取得が戻る操作後の一覧を読書画面へ戻さない",
+    "lane": "related",
+    "domains": [
+      "import",
+      "audio",
+      "distribution",
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "history.spec.ts",
+    "title": "本棚の遅い取得が戻る操作後の一覧を読書画面へ戻さない",
+    "lane": "related",
+    "domains": [
+      "import",
+      "audio",
+      "distribution",
+      "layout"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "home-continue-reading.spec.ts",
+    "title": "ローカル本棚も履歴で原稿・音声位置へ戻り、離れた音声は停止する",
+    "lane": "related",
+    "domains": [
+      "import",
+      "audio",
+      "distribution",
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "home-continue-reading.spec.ts",
+    "title": "ローカル本棚も履歴で原稿・音声位置へ戻り、離れた音声は停止する",
+    "lane": "related",
+    "domains": [
+      "import",
+      "audio",
+      "distribution",
+      "layout"
+    ]
+  },
+  {
+    "project": "pages-chromium",
+    "file": "pages-smoke.spec.ts",
+    "title": "完成Pagesでも黙読と音声サンプルの履歴が原稿と位置を保ち停止して戻る",
+    "lane": "related",
+    "domains": [
+      "import",
+      "audio",
+      "distribution",
+      "layout"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "history.spec.ts",
+    "title": "名前変更の保存待ちが戻った原稿へ旧本文を再表示しない",
+    "lane": "related",
+    "domains": [
+      "import",
+      "audio",
+      "distribution",
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "history.spec.ts",
+    "title": "名前変更の保存待ちが戻った原稿へ旧本文を再表示しない",
+    "lane": "related",
+    "domains": [
+      "import",
+      "audio",
+      "distribution",
+      "layout"
+    ]
+  },
+  {
+    "project": "pages-chromium",
+    "file": "pages-smoke.spec.ts",
+    "title": "完成Pagesの編集原稿はnative Back後に別画面を再読み込みしても進むで復元できる",
+    "lane": "related",
+    "domains": [
+      "import",
+      "audio",
+      "distribution",
+      "layout"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "history.spec.ts",
+    "title": "別原稿のファイル読み込み待ちで戻っても遅い完了が画面を移動しない",
+    "lane": "related",
+    "domains": [
+      "import",
+      "audio",
+      "distribution",
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "history.spec.ts",
+    "title": "別原稿のファイル読み込み待ちで戻っても遅い完了が画面を移動しない",
+    "lane": "related",
+    "domains": [
+      "import",
+      "audio",
+      "distribution",
+      "layout"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "home-continue-reading.spec.ts",
+    "title": "本棚の古い名前変更の応答が履歴で開いた別の本を閉じない",
+    "lane": "related",
+    "domains": [
+      "import",
+      "audio",
+      "distribution",
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "home-continue-reading.spec.ts",
+    "title": "本棚の古い名前変更の応答が履歴で開いた別の本を閉じない",
+    "lane": "related",
+    "domains": [
+      "import",
+      "audio",
+      "distribution",
       "layout"
     ]
   }

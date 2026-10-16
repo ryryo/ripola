@@ -1,3 +1,4 @@
+import { useAppNavigation } from '../navigation/AppNavigation';
 import { AudioSampleReader } from '../reader/ui/AudioSampleReader';
 import { Brand } from '../ui/Brand';
 import { ThemeControl } from '../ui/ThemeControl';
@@ -11,20 +12,22 @@ import { AlignmentPanel } from './AlignmentPanel';
 import { AudioInspectionPanel } from './AudioInspectionPanel';
 import { Bookshelf } from '../reader/ui/Bookshelf';
 import { BookReadingProgress } from '../reader/ui/BookReadingProgress';
-import { DEFAULT_BOOKSHELF_OPTIONS } from '../reader/bookshelf';
+import { DEFAULT_BOOKSHELF_OPTIONS, type BookshelfOptions } from '../reader/bookshelf';
 import './generation.css';
 
 export function LibraryApp() {
-  const [sampleKey, setSampleKey] = useState<string | null>();
-  useEffect(() => { setSampleKey(new URLSearchParams(location.search).get('sample')); }, []);
-  if (sampleKey === undefined) return <div className="generation-shell"><main><p role="status">読み込んでいます…</p></main></div>;
-  return sampleKey ? <AudioSampleReader sampleKey={sampleKey} /> : <LocalLibraryApp />;
+  const navigation = useAppNavigation();
+  const [shelfOptions, setShelfOptions] = useState(DEFAULT_BOOKSHELF_OPTIONS);
+  const sampleKey = navigation.search.get('sample');
+  return sampleKey ? <AudioSampleReader sampleKey={sampleKey} /> : <LocalLibraryApp key={navigation.entryKey} shelfOptions={shelfOptions} onShelfOptionsChange={setShelfOptions} />;
 }
 
-function LocalLibraryApp() {
+function LocalLibraryApp({ shelfOptions, onShelfOptionsChange }: { shelfOptions: BookshelfOptions; onShelfOptionsChange: (options: BookshelfOptions) => void }) {
+  const navigation = useAppNavigation();
+  const bookId = navigation.search.get('book');
+  const revision = navigation.search.get('revision') ?? undefined;
   const [books, setBooks] = useState<AudioBookSummary[]>([]);
   const [book, setBook] = useState<AudioBookManifest>();
-  const [shelfOptions, setShelfOptions] = useState(DEFAULT_BOOKSHELF_OPTIONS);
   const [loading, setLoading] = useState(true);
   const [catalogStatus, setCatalogStatus] = useState<'loading' | 'ready' | 'failed'>('loading');
   const [error, setError] = useState('');
@@ -36,12 +39,9 @@ function LocalLibraryApp() {
 
   useEffect(() => {
     let active = true, request = 0;
-    const params = new URLSearchParams(window.location.search);
-    const bookId = params.get('book');
-    const revision = params.get('revision') ?? undefined;
     const load = async (initial = false) => {
       const current = ++request;
-      if (initial) setLoading(true);
+      if (initial) { setLoading(true); setBook(undefined); }
       setCatalogStatus('loading');
       try {
         const [library, selected] = await Promise.all([listLibrary(), initial && bookId ? getBook({ data: { bookId, revision } }) : Promise.resolve(undefined)]);
@@ -61,18 +61,10 @@ function LocalLibraryApp() {
     window.addEventListener('pageshow', shown);
     document.addEventListener('visibilitychange', visible);
     return () => { active = false; reloadLibrary.current = () => {}; window.removeEventListener('storage', changed); window.removeEventListener('pageshow', shown); document.removeEventListener('visibilitychange', visible); };
-  }, []);
+  }, [bookId, revision]);
 
-  async function open(value: AudioBookSummary) {
-    setLoading(true); setError('');
-    try {
-      const selected = await getBook({ data: { bookId: value.id, revision: value.revision } });
-      setBook(selected);
-      const target = new URL(window.location.href);
-      target.search = new URLSearchParams({ book: value.id, revision: value.revision }).toString();
-      window.history.replaceState(null, '', target);
-    } catch (error) { setError(error instanceof Error ? error.message : '保存音声を開けませんでした。'); }
-    finally { setLoading(false); }
+  function open(value: AudioBookSummary) {
+    void navigation.go(`/library?${new URLSearchParams({ book: value.id, revision: value.revision })}`);
   }
 
   async function rename(value: AudioBookSummary | AudioBookManifest, title: string) {
@@ -82,7 +74,7 @@ function LocalLibraryApp() {
     reloadLibrary.current();
   }
 
-  if (book) return <ProgressiveAudioReader key={`${book.id}:${book.revision}`} book={book} requestedJobId={new URLSearchParams(window.location.search).get('job') ?? undefined} onRename={book.id === AUDIO_DEMO_BOOK_ID ? undefined : title => rename(book, title)} demo={book.id === AUDIO_DEMO_BOOK_ID} renderTools={current => <><AlignmentPanel key={`${current.id}:${current.revision}`} book={current} onUpdated={refreshBook} />{current.id !== AUDIO_DEMO_BOOK_ID && <AudioInspectionPanel key={`qa:${current.id}:${current.revision}`} book={current} />}</>} attribution={book.options.provider === 'voicevox' ? '音声：VOICEVOX' : book.options.provider === 'irodori' ? '音声：Irodori' : '音声：Gemini'} onClose={() => { if (book.id === AUDIO_DEMO_BOOK_ID) { window.location.assign(import.meta.env.BASE_URL); return; } setBook(undefined); window.history.replaceState(null, '', '/library'); reloadLibrary.current(); }} />;
+  if (book && book.id === bookId && (!revision || book.revision === revision)) return <ProgressiveAudioReader key={`${book.id}:${book.revision}`} book={book} requestedJobId={navigation.search.get('job') ?? undefined} onRename={book.id === AUDIO_DEMO_BOOK_ID ? undefined : title => rename(book, title)} demo={book.id === AUDIO_DEMO_BOOK_ID} renderTools={current => <><AlignmentPanel key={`${current.id}:${current.revision}`} book={current} onUpdated={refreshBook} />{current.id !== AUDIO_DEMO_BOOK_ID && <AudioInspectionPanel key={`qa:${current.id}:${current.revision}`} book={current} />}</>} attribution={book.options.provider === 'voicevox' ? '音声：VOICEVOX' : book.options.provider === 'irodori' ? '音声：Irodori' : '音声：Gemini'} onClose={() => navigation.backTo(book.id === AUDIO_DEMO_BOOK_ID ? import.meta.env.BASE_URL : '/library')} />;
 
   const listedBooks = books.filter(value => value.id !== AUDIO_DEMO_BOOK_ID);
   return <div className="generation-shell">
@@ -92,7 +84,7 @@ function LocalLibraryApp() {
       {error && <Alert color="red" role="alert" mb="md">{error}</Alert>}
       {loading && <Loader aria-label="本棚を読み込み中" />}
       {!loading && !error && !listedBooks.length && <div className="generation-card"><p>まだ音声がありません。短い自作文から試せます。</p><Button component="a" href="/generate">音声を生成する</Button></div>}
-      {!loading && listedBooks.length > 0 && <Bookshelf books={listedBooks} options={shelfOptions} onChange={setShelfOptions}>{value => <li key={`${value.id}:${value.revision}`}><article className="generation-card bookshelf-book" aria-labelledby={`shelf-${value.id}-${value.revision}`}>
+      {!loading && listedBooks.length > 0 && <Bookshelf books={listedBooks} options={shelfOptions} onChange={onShelfOptionsChange}>{value => <li key={`${value.id}:${value.revision}`}><article className="generation-card bookshelf-book" aria-labelledby={`shelf-${value.id}-${value.revision}`}>
         <div className="bookshelf-book-content"><h2 id={`shelf-${value.id}-${value.revision}`} title={value.title}>{value.completedChunks > 0 ? <a href={`/library?${new URLSearchParams({ book: value.id, revision: value.revision })}`} onClick={event => { if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return; event.preventDefault(); if (!loading) void open(value); }}>{value.title}</a> : value.title}</h2><BookReadingProgress book={value} incomplete={value.completedChunks < value.totalChunks} catalogStatus={catalogStatus} /></div>
         <div className="bookshelf-book-actions"><Button variant="light" onClick={() => void open(value)} disabled={loading || value.completedChunks === 0} aria-label="保存音声を読む" aria-describedby={`shelf-${value.id}-${value.revision}`}>読む</Button></div>
       </article></li>}</Bookshelf>}

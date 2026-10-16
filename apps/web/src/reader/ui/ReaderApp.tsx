@@ -35,6 +35,7 @@ import { hasStoredPreferences } from '../preferences';
 import { resolveInputFormat, type InputFormat } from '../input-format';
 import { readerCapabilities } from '../environment';
 import { ReaderDisplayControls, ReaderDisplaySettings, ReaderDisplayToolbar, ReaderTransport } from './ReaderWorkspace';
+import { useAppNavigation, useBeforeAppNavigation, type ReadingSession, type ReadingDraft } from '../../navigation/AppNavigation';
 import { initialReadingDraft, PAGES_DEMO } from '../pages-demo';
 
 
@@ -46,26 +47,48 @@ const HomeContinueReading = lazy(() => import('./HomeContinueReading'));
 const SAMPLE = '# 朝の図書館\n\n静かな朝、私は<ruby>図書館<rt>としょかん</rt></ruby>へ向かった。窓辺で一冊の本を開く。\n\n今日は2026年10月5日。温かいお茶は1,200円でした。👩‍💻が書いたが、まだ終わっていない文章もある。\n\n急がず、ひとつずつ。分からないところでは立ち止まり、原文を読み返そう。';
 
 export function ReaderApp() {
-  const [initialDraft] = useState(() => initialReadingDraft(import.meta.env.VITE_RSVP_PROFILE, typeof window === 'undefined' ? undefined : window.history.state));
-  const [controller] = useState(() => new PlaybackController(DEFAULT_SETTINGS));
+  const { entryKey } = useAppNavigation();
+  return <ReadingSessionApp key={entryKey} />;
+}
+
+function ReadingSessionApp() {
+  const navigation = useAppNavigation();
+  const [initialSession] = useState(() => navigation.store.sessions.get(navigation.entryKey));
+  const [initialDraft] = useState<ReadingDraft>(() => initialSession?.draft ?? navigation.store.draft ?? { ...initialReadingDraft(import.meta.env.VITE_RSVP_PROFILE, typeof window === 'undefined' ? undefined : window.history.state), audioEnabled: false });
+  const [controller] = useState(() => {
+    const controller = new PlaybackController(DEFAULT_SETTINGS);
+    if (initialSession?.reading) {
+      controller.load(initialSession.reading.document.units, initialSession.reading.index);
+      if (initialSession.reading.anchor) controller.seekSource(initialSession.reading.anchor);
+    }
+    return controller;
+  });
   const playback = useSyncExternalStore(controller.subscribe, controller.getSnapshot, controller.getSnapshot);
-  const [document, setDocument] = useState<ReadingDocument>();
-  const [pdfData, setPdfData] = useState<ArrayBuffer>();
+  const [document, setDocument] = useState<ReadingDocument | undefined>(initialSession?.reading?.document);
+  const pdfData = initialSession?.reading?.pdfData;
   const { settings, setSettings, migrationNotice } = useReaderPreferences();
   const [cpmInput, setCpmInput] = useState(String(DEFAULT_SETTINGS.cpm));
   const [title, setTitle] = useState(() => initialDraft.title);
-  const [audioEnabled, setAudioEnabled] = useState(false);
+  const [audioEnabled, setAudioEnabled] = useState(initialDraft.audioEnabled);
   const [audioBusy, setAudioBusy] = useState(false);
   const [draftRevision, setDraftRevision] = useState(0);
-  const [generationDocument, setGenerationDocument] = useState<ReadingDocument>();
-  const [draftPdfData, setDraftPdfData] = useState<ArrayBuffer>();
+  const [generationDocument, setGenerationDocument] = useState<ReadingDocument | undefined>(initialDraft.document);
+  const [draftPdfData, setDraftPdfData] = useState<ArrayBuffer | undefined>(initialDraft.pdfData);
   const [input, setInput] = useState(() => initialDraft.text);
   const [format, setFormat] = useState<InputFormat>(() => initialDraft.format);
-  const draftEdited = useRef(false);
+  const draftEdited = useRef(Boolean(initialSession || navigation.store.draft));
   const historyDraft = useRef({ title, text: input, format });
   historyDraft.current = { title, text: input, format };
+  const preserveHistoryDraft = useCallback(() => {
+    if (import.meta.env.VITE_RSVP_PROFILE === 'pages' && draftEdited.current) {
+      // Native Back changes the active entry before navigation callbacks run.
+      try { window.history.replaceState({ ...window.history.state, ripolaPagesDraft: historyDraft.current }, ''); }
+      catch { /* Restricted browser history must not prevent navigation. */ }
+    }
+  }, []);
+  useLayoutEffect(preserveHistoryDraft, [title, input, format, preserveHistoryDraft]);
   const [importOpen, setImportOpen] = useState(false);
-  const [sourceOpen, setSourceOpen] = useState(false);
+  const [sourceOpen, setSourceOpen] = useState(initialSession?.reading?.sourceOpen ?? false);
   const bookActionRef = useRef<HTMLButtonElement>(null);
   const [helpOpen, setHelpOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -86,6 +109,24 @@ export function ReaderApp() {
   const sentenceIndex = sentenceIndexAt(sentences, playback.index);
   const pauseReading = useCallback(() => controller.pause(), [controller]);
   const fullscreen = useFullscreenReader(pauseReading);
+  const session = useRef<ReadingSession>({ draft: { title, text: input, format, audioEnabled } });
+  session.current = {
+    draft: { title, text: input, format, audioEnabled, document: generationDocument, pdfData: draftPdfData },
+    reading: document ? { document, pdfData, index: playback.index, anchor: controller.getSourcePosition(), sourceOpen } : undefined,
+  };
+  useBeforeAppNavigation(entryKey => {
+    controller.pause(); fullscreen.exit();
+    operation.current++; abort.current?.abort();
+    const value = session.current;
+    const snapshot = { ...value, reading: value.reading ? { ...value.reading, index: controller.getSnapshot().index, anchor: controller.getSourcePosition() } : undefined };
+    navigation.store.sessions.set(entryKey, snapshot);
+    navigation.store.draft = snapshot.draft;
+  });
+  const openReading = (document: ReadingDocument, pdfData?: ArrayBuffer, index = 0, anchor?: SourceAnchor) => {
+    const key = crypto.randomUUID();
+    navigation.store.sessions.set(key, { draft: session.current.draft, reading: { document, pdfData, index, anchor, sourceOpen: document.format === 'pdf' } });
+    void navigation.go(`${import.meta.env.BASE_URL}?reading=${key}`);
+  };
   useScreenWakeLock(playback.status === 'playing');
   useEffect(() => { controller.updateSettings(settings); setCpmInput(String(settings.cpm)); }, [controller, settings]);
   const font = useReadingFont(document?.blocks, settings.fontFamily ?? 'system', pauseReading);
@@ -111,14 +152,7 @@ export function ReaderApp() {
       if (active) setNotice(`保存したデータを開けませんでした。${message(e)}「保存を削除」で消去できます。`);
     });
     const stop = () => controller.pause();
-    const pageHide = () => {
-      stop();
-      if (import.meta.env.VITE_RSVP_PROFILE === 'pages' && draftEdited.current) {
-        // Preserve only this edited form in its browser history entry, never in a URL or bookshelf.
-        try { window.history.replaceState({ ...window.history.state, ripolaPagesDraft: historyDraft.current }, ''); }
-        catch { /* Restricted browser history must not prevent navigation. */ }
-      }
-    };
+    const pageHide = () => { stop(); preserveHistoryDraft(); };
     const visibility = () => { if (globalThis.document.hidden) stop(); };
     globalThis.document.addEventListener('visibilitychange', visibility);
     window.addEventListener('blur', stop);
@@ -134,7 +168,7 @@ export function ReaderApp() {
       window.removeEventListener('pagehide', pageHide);
       window.removeEventListener('resize', stop);
     };
-  }, [controller]);
+  }, [controller, preserveHistoryDraft]);
 
   const update = useCallback((patch: Partial<ReaderSettings>) => {
     if (patch.cpm !== undefined) setCpmInput(String(patch.cpm));
@@ -223,8 +257,7 @@ export function ReaderApp() {
         setNotice('');
         return result;
       }
-      setDocument(result); setPdfData(pdf); controller.load(result.units, aozoraSample ? Math.max(0, result.units.findIndex(unit => result.blocks.find(block => block.id === unit.blockId)?.kind === 'paragraph')) : 0);
-      setImportOpen(false); setSourceOpen(result.format === 'pdf');
+      openReading(result, pdf, aozoraSample ? Math.max(0, result.units.findIndex(unit => result.blocks.find(block => block.id === unit.blockId)?.kind === 'paragraph')) : 0);
       setNotice('');
       return result;
     } catch (e) {
@@ -245,9 +278,8 @@ export function ReaderApp() {
       if (request !== operation.current || task.signal.aborted) return;
       if (restored.contentHash !== saved.document.contentHash) throw new Error('保存した本文の一致を確認できませんでした。保存を削除して再度読み込んでください。');
       const restoredSettings = hasStoredPreferences() ? settings : saved.settings;
-      setDocument(restored); setPdfData(saved.pdfData); setSettings(restoredSettings);
-      controller.updateSettings(restoredSettings); controller.load(restored.units, sourceAnchorToIndex(restored, saved.anchor));
-      controller.seekSource(saved.anchor);
+      setSettings(restoredSettings);
+      controller.updateSettings(restoredSettings); openReading(restored, saved.pdfData, sourceAnchorToIndex(restored, saved.anchor), saved.anchor);
       setNotice('保存した位置を開きました。');
     } catch (e) { if (request === operation.current && !task.signal.aborted) setError(message(e)); }
     finally { if (request === operation.current) { setLoading(false); abort.current = null; } }
