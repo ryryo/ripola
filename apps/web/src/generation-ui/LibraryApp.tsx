@@ -12,22 +12,22 @@ import { AlignmentPanel } from './AlignmentPanel';
 import { AudioInspectionPanel } from './AudioInspectionPanel';
 import { Bookshelf } from '../reader/ui/Bookshelf';
 import { BookReadingProgress } from '../reader/ui/BookReadingProgress';
-import { DEFAULT_BOOKSHELF_OPTIONS } from '../reader/bookshelf';
+import { DEFAULT_BOOKSHELF_OPTIONS, type BookshelfOptions } from '../reader/bookshelf';
 import './generation.css';
 
 export function LibraryApp() {
   const navigation = useAppNavigation();
+  const [shelfOptions, setShelfOptions] = useState(DEFAULT_BOOKSHELF_OPTIONS);
   const sampleKey = navigation.search.get('sample');
-  return sampleKey ? <AudioSampleReader sampleKey={sampleKey} /> : <LocalLibraryApp key={navigation.entryKey} />;
+  return sampleKey ? <AudioSampleReader sampleKey={sampleKey} /> : <LocalLibraryApp key={navigation.entryKey} shelfOptions={shelfOptions} onShelfOptionsChange={setShelfOptions} />;
 }
 
-function LocalLibraryApp() {
+function LocalLibraryApp({ shelfOptions, onShelfOptionsChange }: { shelfOptions: BookshelfOptions; onShelfOptionsChange: (options: BookshelfOptions) => void }) {
   const navigation = useAppNavigation();
   const bookId = navigation.search.get('book');
   const revision = navigation.search.get('revision') ?? undefined;
   const [books, setBooks] = useState<AudioBookSummary[]>([]);
   const [book, setBook] = useState<AudioBookManifest>();
-  const [shelfOptions, setShelfOptions] = useState(DEFAULT_BOOKSHELF_OPTIONS);
   const [loading, setLoading] = useState(true);
   const [catalogStatus, setCatalogStatus] = useState<'loading' | 'ready' | 'failed'>('loading');
   const [error, setError] = useState('');
@@ -84,7 +84,7 @@ function LocalLibraryApp() {
       {error && <Alert color="red" role="alert" mb="md">{error}</Alert>}
       {loading && <Loader aria-label="本棚を読み込み中" />}
       {!loading && !error && !listedBooks.length && <div className="generation-card"><p>まだ音声がありません。短い自作文から試せます。</p><Button component="a" href="/generate">音声を生成する</Button></div>}
-      {!loading && listedBooks.length > 0 && <Bookshelf books={listedBooks} options={shelfOptions} onChange={setShelfOptions}>{value => <li key={`${value.id}:${value.revision}`}><article className="generation-card bookshelf-book" aria-labelledby={`shelf-${value.id}-${value.revision}`}>
+      {!loading && listedBooks.length > 0 && <Bookshelf books={listedBooks} options={shelfOptions} onChange={onShelfOptionsChange}>{value => <li key={`${value.id}:${value.revision}`}><article className="generation-card bookshelf-book" aria-labelledby={`shelf-${value.id}-${value.revision}`}>
         <div className="bookshelf-book-content"><h2 id={`shelf-${value.id}-${value.revision}`} title={value.title}>{value.completedChunks > 0 ? <a href={`/library?${new URLSearchParams({ book: value.id, revision: value.revision })}`} onClick={event => { if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return; event.preventDefault(); if (!loading) void open(value); }}>{value.title}</a> : value.title}</h2><BookReadingProgress book={value} incomplete={value.completedChunks < value.totalChunks} catalogStatus={catalogStatus} /></div>
         <div className="bookshelf-book-actions"><Button variant="light" onClick={() => void open(value)} disabled={loading || value.completedChunks === 0} aria-label="保存音声を読む" aria-describedby={`shelf-${value.id}-${value.revision}`}>読む</Button></div>
       </article></li>}</Bookshelf>}
