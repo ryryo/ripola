@@ -50,12 +50,15 @@ library/
   audio/<speech-key>.wav           保存した元音声
   cache/<speech-key>.json          完成状態・hash・実duration
   books/<id>_<revision>.json       文timelineを含むmanifest
+  catalog/index.json               再構築可能な本棚概要とmanifestの更新情報
   alignment-cache/<key>.json      CTC結果・元audio/spokenTextのhash・version
   alignment-jobs/<job-id>.json    整列chunkの進捗・再利用・中断/再開
   alignment-operations/           同じ開始operationを整列jobへ結び付ける
   alignment-owners/               runnerの生存確認（ローカルだけ）
   locks/                          server/CLI共有の排他
 ```
+
+本棚は概要だけをメモリと`catalog/index.json`へ保持し、各manifestのファイル識別子・サイズ・更新時刻を毎回照合します。別プロセスからの置換や編集があれば対象だけを読み直し、削除された本は除きます。既存蔵書・欠落／破損した目録はmanifestから最大16冊ずつ再構築します。初回の再構築と目録保存には追加の時間がかかります。目録へ書けない場合も一覧は利用できます。本文manifestは引き続き正本で、本を開く際の内容・音声検査は省略しません。表示名の変更は一覧の並び順に使う本文更新日時を変えません。
 
 秘密は蔵書JSONに含めません。元MD/PDFを保存・配布するかは別の明示選択です。`ReadingDocument.rawText`には元本文が含まれるため、元ファイルのcopyをOFFにしても本文artifactは全文を含みます。
 

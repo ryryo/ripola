@@ -3,11 +3,12 @@ import { Brand } from '../../ui/Brand';
 import { ThemeControl } from '../../ui/ThemeControl';
 import { Alert, Button, Drawer, Loader, NativeSelect, Select } from '@mantine/core';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
-import { audioDisplayAt, audioPhraseTargets, audioSegments, audioTimeLabel, locateAudioTime, mediaPosition, type PlayableAudioChunk } from '../audio-clock';
+import { audioDisplayAt, audioPhraseTargets, audioTimeLabel, locateAudioTime, mediaPosition, type PlayableAudioChunk } from '../audio-clock';
 import { audioSentenceIndexAt, audioSentenceTargets } from '../audio-sentences';
 import { MULTILINE_SPACING, type ReaderSettings, type TextBlock } from '../model';
-import { inspectAudioPresentation, requireAudioPresentation } from '../audio-presentation';
+import { prepareAudioPresentation } from '../audio-presentation';
 import { audioPositionKey, loadAudioPosition } from '../audio-position';
+import { notifyAudioPositionChanged } from '../audio-position-store';
 import { ShareLink } from '../../sharing/ShareLink';
 import '../../generation-ui/generation.css';
 import { NavigationLayout } from './NavigationLayout';
@@ -32,11 +33,8 @@ import type { JobStatus } from '../../generation/contracts';
 import { ReaderDisplayControls, ReaderDisplaySettings, ReaderDisplayToolbar, ReaderTransport } from './ReaderWorkspace';
 
 export function AudioReader({ book, onClose, attribution, localTools, demo = false, onRename, generationStatus }: { book: ProgressiveBook; generationStatus?: JobStatus; onClose: () => void; attribution?: string; localTools?: ReactNode; demo?: boolean; onRename?: (title: string) => Promise<void> }) {
-  const validation = useMemo(() => {
-    try { return { report: requireAudioPresentation(book), valid: true }; }
-    catch { return { report: inspectAudioPresentation(book), valid: false }; }
-  }, [book]);
-  const segments = useMemo(() => validation.valid ? audioSegments(book) : [], [book, validation.valid]);
+  const validation = useMemo(() => prepareAudioPresentation(book), [book]);
+  const segments = validation.segments;
   const phraseTargets = useMemo(() => audioPhraseTargets(segments), [segments]);
   const segmentsByBlock = useMemo(() => {
     const result = new Map<string, Array<{ segment: typeof segments[number]; index: number }>>();
@@ -124,6 +122,7 @@ export function AudioReader({ book, onClose, attribution, localTools, demo = fal
     try {
       localStorage.setItem(storageKey, String(seconds));
       if (anchor.current) localStorage.setItem(`${storageKey}:source`, serializePlaybackAnchor(anchor.current));
+      notifyAudioPositionChanged(storageKey);
     } catch { /* Playback remains usable without browser storage. */ }
   }, [storageKey]);
 

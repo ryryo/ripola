@@ -1,4 +1,15 @@
 import { expect, test } from '@playwright/test';
+import { existsSync } from 'node:fs';
+import { readFile, readdir } from 'node:fs/promises';
+import { resolve } from 'node:path';
+
+const rpcExports = new Map<string, string>();
+test.beforeAll(async () => {
+  const assets = resolve('apps/web/dist/server/assets');
+  if (!existsSync(assets)) return;
+  const files = (await readdir(assets)).filter(file => file.endsWith('.js'));
+  for (const file of files) for (const match of (await readFile(resolve(assets, file), 'utf8')).matchAll(/createServerRpc\(\{\s*id:\s*"([^"]+)",\s*name:\s*"([^"]+)"/g)) rpcExports.set(match[1], match[2]);
+});
 
 test.afterEach(async ({page}) => { await page.unrouteAll({behavior: 'wait'}); });
 
@@ -139,6 +150,7 @@ test('通常の生成は文単位で、自動調整を明示選択すると計�
 function rpcName(url: string): string {
   const id = new URL(url).pathname.split('/_serverFn/')[1];
   if (!id) return '';
+  if (rpcExports.has(id)) return rpcExports.get(id)!;
   try { return String((JSON.parse(Buffer.from(id, 'base64url').toString()) as {export: string}).export); } catch { return ''; }
 }
 
@@ -200,6 +212,7 @@ test('トップの展開を往復しても原稿・形式・読みを保持し�
   expect(calls.filter(name => !name.startsWith('listLibrary'))).toEqual([]);
   await toggle.press('Space');
   await expect(page.getByRole('combobox', {name:'生成方法'})).toBeVisible();
+  await expect(toggle).toBeFocused();
   await page.getByText('読みを調整する（任意）', {exact:true}).click();
   await page.getByLabel('読み辞書', {exact:true}).fill('図書館=トショカン');
   await toggle.press('Space');

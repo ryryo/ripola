@@ -62,6 +62,13 @@ export class LibraryDisk {
     const info = await lstat(await this.safe([directory]), { bigint: true });
     return `${info.mtimeNs}:${info.ctimeNs}`;
   }
+  async fileVersion(parts: string[]): Promise<string | undefined> {
+    try {
+      const info = await lstat(await this.safe(parts), { bigint: true });
+      if (!info.isFile()) throw new Error('保存ファイルが見つかりません。');
+      return `${info.dev}:${info.ino}:${info.size}:${info.mtimeNs}:${info.ctimeNs}`;
+    } catch (error) { if (missing(error)) return undefined; throw error; }
+  }
   async list(directory: string): Promise<string[]> {
     try { return (await readdir(await this.safe([directory]))).filter((name) => /^[a-zA-Z0-9_-]+\.json$/.test(name)); }
     catch (error) { if (missing(error)) return []; throw error; }

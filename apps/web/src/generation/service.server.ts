@@ -1,6 +1,7 @@
 import '@tanstack/react-start/server-only';
 import { getRequest } from '@tanstack/react-start/server';
 import { assertLocalRequest } from '../server/local-request';
+import { localGenerationOrigin } from '../server/local-origin.server';
 import { loadGenerationConfig } from './core/config';
 import { GenerationService } from './core/service';
 import { getIrodoriController } from './core/irodori-controller';
@@ -17,6 +18,7 @@ export function getGenerationService(): Promise<GenerationService> {
   });
 }
 export async function getLocalGenerationService(): Promise<GenerationService> {
+  assertLocalRequest(getRequest(), await localGenerationOrigin());
   const service = await getGenerationService();
   assertLocalRequest(getRequest(), service.config.localOrigin);
   return service;

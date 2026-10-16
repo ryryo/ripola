@@ -36,9 +36,9 @@ export async function findRepositoryRoot(start = process.cwd()): Promise<string>
   }
 }
 
-/** Values remain in Node; browser configuration is a separate, redacted DTO. */
-export async function loadGenerationConfig(repositoryRoot?: string): Promise<GenerationServerConfig> {
-  const root = repositoryRoot ?? await findRepositoryRoot();
+export type LibraryServerConfig = Pick<GenerationServerConfig, 'libraryDir' | 'localOrigin'>;
+
+async function serverEnvironment(root: string) {
   let fileEnv: Record<string, string> = {};
   try {
     const contents = await readFile(join(root, '.env.local'), 'utf8');
@@ -51,6 +51,27 @@ export async function loadGenerationConfig(repositoryRoot?: string): Promise<Gen
       throw new Error('.env.localの読込に失敗しました。');
     }
   }
+  return { ...fileEnv, ...process.env };
+}
+function libraryConfig(env: NodeJS.ProcessEnv): LibraryServerConfig {
+  const localOrigin = env.RSVP_LOCAL_ORIGIN ?? 'http://127.0.0.1:4173';
+  let url: URL;
+  try { url = new URL(localOrigin); } catch { throw new Error('ローカルURL設定が正しくありません。'); }
+  if (url.protocol !== 'http:' || !['127.0.0.1', 'localhost'].includes(url.hostname) || url.username || url.password || url.pathname !== '/' || url.search || url.hash) {
+    throw new Error('ローカルURLはlocalhostのHTTP originに限定してください。');
+  }
+  return { localOrigin: url.origin, libraryDir: resolve(env.RSVP_LIBRARY_DIR ?? join(homedir(), 'Documents', 'rsvp-reader-library')) };
+}
+/** Reading never needs provider setup, model recovery, or Wrangler configuration. */
+export async function loadLibraryConfig(repositoryRoot?: string): Promise<LibraryServerConfig> {
+  return libraryConfig(await serverEnvironment(repositoryRoot ?? await findRepositoryRoot()));
+}
+
+/** Values remain in Node; browser configuration is a separate, redacted DTO. */
+export async function loadGenerationConfig(repositoryRoot?: string): Promise<GenerationServerConfig> {
+  const root = repositoryRoot ?? await findRepositoryRoot();
+  const env = await serverEnvironment(root);
+  const local = libraryConfig(env);
   let generated: { alignmentPython?: string; alignmentModelDir?: string; alignmentVersion?: string } = {};
   let alignmentSetupState: 'ready' | 'failed' | undefined;
   try {
@@ -63,13 +84,6 @@ export async function loadGenerationConfig(repositoryRoot?: string): Promise<Gen
     const state = JSON.parse(await readFile(join(root, 'alignment-runtime', 'setup-state.json'), 'utf8'));
     if (alignmentSetupState !== 'failed' && state.schemaVersion === 1 && (state.status === 'ready' || state.status === 'failed')) alignmentSetupState = state.status;
   } catch { /* Optional setup status never exposes paths or secrets. */ }
-  const env = { ...fileEnv, ...process.env };
-  const localOrigin = env.RSVP_LOCAL_ORIGIN ?? 'http://127.0.0.1:4173';
-  let url: URL;
-  try { url = new URL(localOrigin); } catch { throw new Error('ローカルURL設定が正しくありません。'); }
-  if (url.protocol !== 'http:' || !['127.0.0.1', 'localhost'].includes(url.hostname) || url.username || url.password || url.pathname !== '/' || url.search || url.hash) {
-    throw new Error('ローカルURLはlocalhostのHTTP originに限定してください。');
-  }
   const alignmentPython = env.RSVP_ALIGNMENT_PYTHON || generated.alignmentPython;
   const alignmentModelDir = env.RSVP_ALIGNMENT_MODEL_DIR || generated.alignmentModelDir;
   if ((alignmentPython && !isAbsolute(alignmentPython)) || (alignmentModelDir && !isAbsolute(alignmentModelDir))) throw new Error('alignment runtimeとモデルの設定には絶対pathを指定してください。');
@@ -113,8 +127,7 @@ export async function loadGenerationConfig(repositoryRoot?: string): Promise<Gen
     alignmentCheckScript: join(root, 'scripts', 'check-alignment-runtime.py'),
     ...(alignmentSetupState ? { alignmentSetupState } : {}),
     alignmentVersion,
-    libraryDir: resolve(env.RSVP_LIBRARY_DIR ?? join(homedir(), 'Documents', 'rsvp-reader-library')),
-    localOrigin: url.origin,
+    ...local,
     geminiApiKey: env.GEMINI_API_KEY || undefined,
     experimentalIrodori: env.RSVP_ENABLE_EXPERIMENTAL_IRODORI === 'true',
     // 本文・接続先・概算の確認は各開始/再開時に必須。旧false指定は停止設定として尊重する。

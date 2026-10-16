@@ -1,7 +1,8 @@
+import { AudioDisclosure } from './HomeComposer';
 import { MAX_TITLE_LENGTH, resolveDocumentTitle } from '../reader/document-title';
 import { Brand } from '../ui/Brand';
 import { ThemeControl } from '../ui/ThemeControl';
-import { Alert, Badge, Button, Checkbox, Progress, Select, Switch, Textarea, TextInput } from '@mantine/core';
+import { Alert, Badge, Button, Checkbox, Progress, Select, Textarea, TextInput } from '@mantine/core';
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { GEMINI_MODELS, type GenerationConfig, type GenerationJob, type GenerationOptions, type GenerationPlan, type ReadingOverride } from '../generation/contracts';
 import { MAX_INPUT_BYTES, MAX_TEXT_LENGTH, type ReadingDocument } from '../reader/model';
@@ -47,6 +48,7 @@ export interface HomeGenerationProps {
   onRead: () => void;
   textBusy: boolean;
   onBusyChange: (busy: boolean) => void;
+  onReady?: () => void;
 }
 
 export function GenerationApp({ home }: { home?: HomeGenerationProps }) {
@@ -129,6 +131,8 @@ export function GenerationApp({ home }: { home?: HomeGenerationProps }) {
 
   const revision = home?.revision;
   const onBusyChange = home?.onBusyChange;
+  const onReady = home?.onReady;
+  useEffect(() => { onReady?.(); }, [onReady]);
   useEffect(() => { onBusyChange?.(Boolean(busy)); }, [busy, onBusyChange]);
   useEffect(() => { if (revision !== undefined) { request.current++; invalidate(true); } }, [revision, audioEnabled]);
 
@@ -270,9 +274,7 @@ export function GenerationApp({ home }: { home?: HomeGenerationProps }) {
         <div className="generation-actions"><Button onClick={() => void loadDocument()} disabled={Boolean(busy)}>本文を確認する</Button><Button variant="subtle" onClick={() => { setRaw(SAMPLE); setTitle('朝の図書館'); setFormat('txt'); void loadDocument(undefined, SAMPLE); }} disabled={Boolean(busy)}>自作文で試す</Button></div>
         {document && <div className="manuscript-preview"><h3>{document.title}</h3><p>{document.totalCharacters.toLocaleString()}文字 · {document.blocks.length}ブロック</p><details><summary>抽出本文を確認</summary><pre>{document.blocks.filter(block => !['code', 'table'].includes(block.kind)).map(block => block.text).join('\n\n')}</pre></details>{document.warnings.map((warning, i) => <p className="muted" key={i}>{warning}</p>)}</div>}
       </section>}
-      {home && <div className={`audio-disclosure ${audioEnabled ? 'is-open' : ''}`}>
-        <div className="audio-disclosure-heading"><div><strong>音声も生成する</strong><span className="advanced-label">アドバンスド設定</span><p>声や読みを選んで、同じ文章に音声を付けます。</p></div><Switch role="switch" aria-label="音声も生成する" aria-controls="home-audio-settings" checked={audioEnabled} disabled={Boolean(busy) || home.textBusy} onChange={event => home.onToggle(event.currentTarget.checked)} size="md" /></div>
-      </div>}
+      {home && <AudioDisclosure enabled={audioEnabled} disabled={Boolean(busy) || home.textBusy} onToggle={home.onToggle} />}
       {audioEnabled && <section id={home ? 'home-audio-settings' : undefined} className={home ? 'home-audio-settings' : 'generation-card'}>{!home && <h2>2. 読みと声</h2>}
         <Select label={home ? "生成方法" : "生成手段"} value={provider} onChange={changeProvider} data={[{ value: 'voicevox', label: '無料 · VOICEVOX' }, { value: 'gemini', label: '有料 · Gemini' }, ...(irodoriEnabled ? [{ value: 'irodori', label: '任意追加 · Irodori（このPC）' }] : [])]} allowDeselect={false} disabled={Boolean(busy) || irodoriBusy} />
         <div className="generation-connection" role="region" aria-label="音声生成の利用状態"><div className="environment-heading"><Badge color="gray" variant="light">ローカルPC版</Badge><span role="status">{configState === 'checking' ? '確認中…' : configState === 'error' ? '状態を確認できませんでした' : provider === 'voicevox' ? config?.voicevox.available ? '最終確認：VOICEVOXに接続あり' : '最終確認：VOICEVOX未接続' : selectedProviderAvailable ? '選択経路のサーバー設定あり' : 'サーバー設定が必要'}</span></div>

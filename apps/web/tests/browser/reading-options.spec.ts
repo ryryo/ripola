@@ -163,6 +163,7 @@ test('grouping is a view; Guide and Flash share position, ruby and static text',
   await page.getByLabel('本文を検索').fill('最後'); await page.getByRole('button', { name: '検索して移動' }).click();
   await expect(page.locator('.guide-unit[aria-current="location"]').first()).toContainText('最後');
   await expect(page.getByRole('button', { name: '再生', exact: true })).toBeVisible();
+  await expect(page.getByLabel('コピーする全文')).toHaveCount(0);
   await page.getByText('全文を静止表示・コピー', { exact: true }).click();
   await expect(page.getByLabel('コピーする全文')).toHaveValue(manuscript.replace('<ruby>図書館<rt>としょかん</rt></ruby>', '図書館'));
   await page.getByRole('button', { name: 'フレーズ表示', exact: true }).click();
@@ -245,6 +246,7 @@ async function audioFixture(page: Page, seconds: 12 | 60 = 12, long: boolean | s
   for (const audio of media) await page.route(`**/media/${audio.sha256}.mp3`, route => route.fulfill({ body: audio.bytes, contentType: 'audio/mpeg', headers: { 'Accept-Ranges': 'bytes' } }));
   await page.goto(`/books?book=${id}&revision=${revision}`); await expect(page.getByTestId('audio-phrase')).toBeVisible();
   await expect(page.getByRole('button', { name: '再生', exact: true })).toBeEnabled();
+  return { mediaHashes: media.map(audio => audio.sha256) };
 }
 
 for (const kind of ['silent', 'audio'] as const) {
@@ -1007,7 +1009,7 @@ test('multiline sets cover paragraph remainders and fill every requested amount 
   await settings(page); await adjustReaderDisplay(page, 'フォントサイズ', '56'); await close(page);
   const amount = page.getByRole('slider', { name: '表示量', exact: true });
   const visible = page.getByTestId('display-set-text');
-  await expect(amount.getByRole('option', { name: '1文', exact: true })).toHaveCount(1);
+  await expect(amount).toHaveAttribute('aria-valuetext', '1文');
   await amount.fill('2');
   const collected = new Map<string, string>(); const ends = new Map<string, number>();
   for (let i = 0; i < 50; i++) {
@@ -1059,8 +1061,9 @@ test('multiline requested rows determine normal and fullscreen layout instead of
             const next = nextButton.getBoundingClientRect();
             const nextStyle = getComputedStyle(nextButton);
             const enter = stage.querySelector('.fullscreen-enter')?.getBoundingClientRect();
+            const sideways = stage.closest('.fullscreen-reader')?.getAttribute('data-fullscreen') === 'true' && innerHeight <= 520 && innerWidth >= 540;
             const intersects = (a: DOMRect, b: DOMRect) => a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
-            return { next: { text: nextButton.textContent?.trim(), icon: Boolean(nextButton.querySelector('svg')), border: nextStyle.borderTopWidth, background: nextStyle.backgroundColor, width: next.width, height: next.height, after: vertical ? next.right <= slot.left : next.top >= slot.bottom, centered: vertical ? Math.abs((next.top + next.bottom - slot.top - slot.bottom) / 2) < 1 : Math.abs((next.left + next.right - slot.left - slot.right) / 2) < 1, overlapsText: intersects(next, rect), overlapsEnter: Boolean(enter && intersects(next, enter)) }, stageHeight: stage.getBoundingClientRect().height, belowStatus: rect.top >= status.bottom - 1, bounds: [rect.x, rect.y, rect.width, rect.height], slot: [slot.x, slot.y, slot.width, slot.height], rows: bands.length, inside: rect.left >= slot.left - 1 && rect.right <= slot.right + 1 && rect.top >= slot.top - 1 && rect.bottom <= slot.bottom + 1, font };
+            return { next: { text: nextButton.textContent?.trim(), icon: Boolean(nextButton.querySelector('svg')), border: nextStyle.borderTopWidth, background: nextStyle.backgroundColor, width: next.width, height: next.height, after: vertical ? next.right <= slot.left : sideways ? next.left >= slot.right : next.top >= slot.bottom, centered: vertical || sideways ? Math.abs((next.top + next.bottom - slot.top - slot.bottom) / 2) < 1 : Math.abs((next.left + next.right - slot.left - slot.right) / 2) < 1, overlapsText: intersects(next, rect), overlapsEnter: Boolean(enter && intersects(next, enter)) }, stageHeight: stage.getBoundingClientRect().height, belowStatus: rect.top >= status.bottom - 1, bounds: [rect.x, rect.y, rect.width, rect.height], slot: [slot.x, slot.y, slot.width, slot.height], rows: bands.length, inside: rect.left >= slot.left - 1 && rect.right <= slot.right + 1 && rect.top >= slot.top - 1 && rect.bottom <= slot.bottom + 1, font };
           }, mode === 'vertical-rl');
           expect(actual.rows, JSON.stringify({ size, mode, rows, fullscreen, actual })).toBe(rows); expect(actual.inside, JSON.stringify({ size, mode, rows, fullscreen, actual })).toBe(true); expect(actual.font).toBeLessThanOrEqual(96); expect(actual.belowStatus).toBe(true);
           expect(actual.next.after).toBe(true); expect(actual.next.centered).toBe(true);
@@ -1262,12 +1265,13 @@ test('five-times audio retains a painted highlight through cue gaps and display 
   await page.getByRole('button', { name: '再生', exact: true }).click();
   await expect.poll(() => page.locator('audio').evaluate((audio: HTMLAudioElement) => audio.currentTime)).toBeGreaterThan(.05);
   await page.evaluate(() => {
-    const target = window as typeof window & { markerFrames: { total: number; empty: number; pages: string[] } };
-    target.markerFrames = { total: 0, empty: 0, pages: [] };
+    const target = window as typeof window & { markerFrames: { total: number; empty: number; pages: string[]; running: boolean } };
+    target.markerFrames = { total: 0, empty: 0, pages: [], running: true };
     const tick = () => {
       const root = document.querySelector('.fullscreen-reader'); const slot = root?.querySelector('.display-set-viewport')?.getBoundingClientRect();
-      if (root?.getAttribute('data-playing') !== 'true' || !slot) return;
-      const state = target.markerFrames; state.total++;
+      const state = target.markerFrames; if (!state.running) return;
+      if (root?.getAttribute('data-playing') !== 'true' || !slot) { requestAnimationFrame(tick); return; }
+      state.total++;
       const id = root.querySelector('[data-set-id]')?.getAttribute('data-set-id') ?? '';
       if (state.pages.at(-1) !== id) state.pages.push(id);
       const painted = [...root.querySelectorAll('.reading-marker-layer>span')].some(element => {
@@ -1282,7 +1286,7 @@ test('five-times audio retains a painted highlight through cue gaps and display 
   await expect.poll(() => page.evaluate(() => (window as typeof window & { markerFrames: { total: number } }).markerFrames.total), { timeout: 10000 }).toBeGreaterThan(190);
   await expect.poll(() => page.evaluate(() => (window as typeof window & { markerFrames: { pages: string[] } }).markerFrames.pages.length), { timeout: 10000 }).toBeGreaterThan(2);
   await page.getByRole('button', { name: '一時停止', exact: true }).click();
-  const frames = await page.evaluate(() => (window as typeof window & { markerFrames: { total: number; empty: number; pages: string[] } }).markerFrames);
+  const frames = await page.evaluate(() => { const frames = (window as typeof window & { markerFrames: { total: number; empty: number; pages: string[]; running: boolean } }).markerFrames; frames.running = false; return frames; });
   expect(frames.empty).toBe(0); expect(frames.pages.length).toBeGreaterThan(2);
 });
 
@@ -1513,24 +1517,25 @@ test('multiline previous and next arrows navigate adjacent source sets with up a
 
 test('multiline audio previous returns across chunk boundaries and keyboard navigation preserves native play intent and speed', async ({ page }) => {
   test.setTimeout(60000);
-  await page.setViewportSize({ width: 320, height: 740 }); await audioFixture(page, 12, true);
+  await page.setViewportSize({ width: 320, height: 740 }); const fixture = await audioFixture(page, 12, true);
   await page.locator('audio').evaluate((media: HTMLAudioElement) => { media.muted = true; });
   await page.getByRole('slider', { name: '表示量', exact: true }).fill('2');
   const text = page.getByTestId('display-set-text'); const audio = page.locator('audio');
-  const firstSource = await audio.getAttribute('src');
+  const mediaHash = () => audio.evaluate(async (media: HTMLAudioElement) => { const bytes = await (await fetch(media.src)).arrayBuffer(); return [...new Uint8Array(await crypto.subtle.digest('SHA-256', bytes))].map(value => value.toString(16).padStart(2, '0')).join(''); });
+  const settled = async () => { await expect.poll(() => audio.evaluate((media: HTMLAudioElement) => media.readyState > 0 && !media.seeking)).toBe(true); await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))); };
   await page.getByRole('button', { name: '全画面で読む', exact: true }).click();
   const full = page.locator('.fullscreen-reader[data-fullscreen=true]');
-  await page.keyboard.press('ArrowDown');
+  await page.keyboard.press('ArrowDown'); await settled();
   const start = Number(await text.getAttribute('data-source-start'));
-  await page.keyboard.press('ArrowUp'); await expect(text).toHaveAttribute('data-source-end', String(start));
+  await page.keyboard.press('ArrowUp'); await settled(); await expect(text).toHaveAttribute('data-source-end', String(start));
   await expect(full).toHaveAttribute('data-playing', 'false');
   await full.getByRole('button', { name: '再生', exact: true }).click();
   await full.focus();
-  for (let i = 0; i < 20 && await audio.getAttribute('src') === firstSource; i++) await page.keyboard.press('ArrowDown');
-  await expect(audio).not.toHaveAttribute('src', firstSource!);
+  for (let i = 0; i < 20 && await mediaHash() === fixture.mediaHashes[0]; i++) { await page.keyboard.press('ArrowDown'); await settled(); }
+  await expect.poll(mediaHash).toBe(fixture.mediaHashes[1]);
   await expect(full).toHaveAttribute('data-playing', 'true');
-  for (let i = 0; i < 20 && await audio.getAttribute('src') !== firstSource; i++) await page.keyboard.press('ArrowUp');
-  await expect(audio).toHaveAttribute('src', firstSource!);
+  for (let i = 0; i < 20 && await mediaHash() !== fixture.mediaHashes[0]; i++) { await page.keyboard.press('ArrowUp'); await settled(); }
+  await expect.poll(mediaHash).toBe(fixture.mediaHashes[0]);
   await expect(full).toHaveAttribute('data-playing', 'true');
   expect(await audio.evaluate((media: HTMLAudioElement) => media.playbackRate)).toBe(2.5);
   await expect(text.getByTestId('reading-marker').first()).toBeVisible();

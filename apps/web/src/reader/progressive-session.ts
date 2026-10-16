@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
-import type { AudioBookManifest, GenerationJob } from '../generation/contracts';
-import { getBook, getJob, listJobs } from '../generation-ui/api';
+import type { AudioBookManifest, ReadingJob } from '../generation/contracts';
+import { getReadingUpdate, listReadingJobs } from '../generation-ui/api';
 import { acceptsManifest, mergeManifest } from './audio-progressive';
 
 export function useProgressiveBook(initial: AudioBookManifest, requestedJobId?: string) {
   const [book, setBook] = useState(initial);
-  const [job, setJob] = useState<GenerationJob>();
+  const [job, setJob] = useState<ReadingJob>();
   const [error, setError] = useState('');
   const current = useRef(initial);
   const epoch = useRef(0);
@@ -18,16 +18,21 @@ export function useProgressiveBook(initial: AudioBookManifest, requestedJobId?: 
     let timer: ReturnType<typeof setTimeout> | undefined;
     const alive = () => epoch.current === run;
     current.current = initial; setBook(initial); setError(''); setJob(undefined);
+    let version: string | undefined;
     const poll = async (jobId: string) => {
       try {
-        const state = await getJob({ data: { jobId }, signal: abort.signal });
+        const update = await getReadingUpdate({ data: { jobId, bookId: initial.id, revision: initial.revision, version }, signal: abort.signal });
+        const state = update.job;
         if (!alive()) return;
-        if (state.id !== jobId || state.bookId !== initial.id || state.revision !== initial.revision || initial.generation && state.planId !== initial.generation.planId) { setError('生成中の本の更新元が一致しないため、更新を停止しました。'); return; }
-        setJob(state);
-        const incoming = await getBook({ data: { bookId: initial.id, revision: initial.revision }, signal: abort.signal });
-        if (!alive()) return;
-        if (!acceptsManifest(current.current, incoming, state)) { setError('古い生成結果の更新を停止しました。保存済み音声は保持します。'); return; }
-        current.current = mergeManifest(current.current, incoming); setBook(current.current); setJob(state); setError('');
+        if (!state || state.id !== jobId || state.bookId !== initial.id || state.revision !== initial.revision || initial.generation && state.planId !== initial.generation.planId) { setError('生成中の本の更新元が一致しないため、更新を停止しました。'); return; }
+        const incoming = update.book;
+        if (incoming) {
+          if (!acceptsManifest(current.current, incoming, state)) { setError('古い生成結果の更新を停止しました。保存済み音声は保持します。'); return; }
+          current.current = mergeManifest(current.current, incoming); setBook(current.current);
+        }
+        version = update.version;
+        setJob(previous => previous && (Object.keys(state) as Array<keyof ReadingJob>).every(key => previous[key] === state[key]) ? previous : state);
+        setError('');
         if (state.status === 'completed') return;
         // Continue watching failed/cancelled jobs: explicitly resuming the same
         // job can produce more chunks. Polls never request synthesis themselves.
@@ -42,7 +47,7 @@ export function useProgressiveBook(initial: AudioBookManifest, requestedJobId?: 
         if (owner && requestedJobId && requestedJobId !== owner) throw new Error('指定した生成処理は、この保存音声と一致しません。');
         let id = owner ?? requestedJobId;
         if (!id && initial.completedChunks < initial.totalChunks) {
-          const jobs = await listJobs({ signal: abort.signal });
+          const jobs = await listReadingJobs({ signal: abort.signal });
           if (!alive()) return;
           id = jobs.find(job => job.bookId === initial.id && job.revision === initial.revision)?.id;
         }

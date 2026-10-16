@@ -177,7 +177,19 @@ export function parsePublicLibrary(value: unknown): PublicLibraryManifest {
   if (new Set(books.map(book => `${book.id}/${book.revision}`)).size !== books.length) throw new Error('配布bookが重複しています。');
   return { schemaVersion: 1, target: data.target as PublicLibraryManifest['target'], createdAt: data.createdAt, ...(data.audience ? { audience: data.audience as 'demo' | 'personal' } : {}), books };
 }
-export async function loadDistributionLibrary(baseUrl = '/', fetcher: typeof fetch = fetch): Promise<PublicLibraryManifest> {
+const pendingLibraries = new WeakMap<typeof fetch, Map<string, Promise<PublicLibraryManifest>>>();
+export function loadDistributionLibrary(baseUrl = '/', fetcher: typeof fetch = fetch): Promise<PublicLibraryManifest> {
+  const requests = pendingLibraries.get(fetcher) ?? new Map<string, Promise<PublicLibraryManifest>>();
+  pendingLibraries.set(fetcher, requests);
+  const key = `${globalThis.location?.origin ?? ''}:${baseUrl}`;
+  const stored = requests.get(key);
+  if (stored) return stored;
+  const pending = fetchDistributionLibrary(baseUrl, fetcher);
+  requests.set(key, pending);
+  void pending.finally(() => { if (requests.get(key) === pending) requests.delete(key); }).catch(() => {});
+  return pending;
+}
+async function fetchDistributionLibrary(baseUrl: string, fetcher: typeof fetch): Promise<PublicLibraryManifest> {
   const response = await fetcher(distributionAssetUrl('library/index.json', baseUrl));
   if (!response.ok) throw new Error('音声ライブラリーを取得できませんでした。');
   return parsePublicLibrary(await response.json());

@@ -132,6 +132,8 @@ export interface GenerationJob {
   automaticCompression?: { status: 'running' | 'completed' | 'partial' | 'unavailable' | 'cancelled' | 'failed'; completedFiles: number; totalFiles: number; sourceBytes: number; compressedBytes: number; removedWavBytes: number; retainedWavFiles: number };
   error?: string;
 }
+export type ReadingJob = Pick<GenerationJob, 'id' | 'planId' | 'bookId' | 'revision' | 'status' | 'completedChunks' | 'totalChunks' | 'updatedAt'>;
+export interface ReadingUpdate { version: string; job?: ReadingJob; book?: AudioBookManifest }
 export interface StartGenerationInput { planId: string; planHash: string; operationId: string; paidConfirmed: boolean; prioritizedChunkIds?: string[] }
 export interface PrioritizeGenerationInput { jobId: string; chunkIds: string[] }
 export interface ResumeGenerationInput { jobId: string; paidConfirmed?: boolean }

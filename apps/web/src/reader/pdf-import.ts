@@ -65,11 +65,8 @@ function safePdfError(error: unknown): Error {
 /** Browser-only entry. The runtime import prevents PDF.js DOM APIs from running in SSR.
  * Destroying the loading task also destroys its document and worker transport.
  */
-export async function withPdfDocument<T>(
-  data: ArrayBuffer,
-  signal: AbortSignal | undefined,
-  read: (document: PDFDocumentProxy) => Promise<T>,
-): Promise<T> {
+export interface PdfSession { document: PDFDocumentProxy; close: () => Promise<void> }
+export async function openPdfDocument(data: ArrayBuffer, signal?: AbortSignal): Promise<PdfSession> {
   abortIfNeeded(signal);
   validatePdfInput(data);
   const [pdfjs, worker] = await Promise.all([
@@ -98,23 +95,34 @@ export async function withPdfDocument<T>(
     verbosity: 0,
   });
   let destroyPromise: Promise<void> | undefined;
-  const destroy = () => (destroyPromise ??= task.destroy().catch(() => undefined));
+  const destroy = () => {
+    signal?.removeEventListener('abort', onAbort);
+    return destroyPromise ??= task.destroy().catch(() => undefined);
+  };
   const onAbort = () => { void destroy(); };
   signal?.addEventListener('abort', onAbort, { once: true });
   try {
     abortIfNeeded(signal);
     const document = await task.promise;
     abortIfNeeded(signal);
-    const result = await read(document);
+    return { document, close: destroy };
+  } catch (error) {
+    await destroy();
+    abortIfNeeded(signal);
+    throw safePdfError(error);
+  }
+}
+
+export async function withPdfDocument<T>(data: ArrayBuffer, signal: AbortSignal | undefined, read: (document: PDFDocumentProxy) => Promise<T>): Promise<T> {
+  const session = await openPdfDocument(data, signal);
+  try {
+    const result = await read(session.document);
     abortIfNeeded(signal);
     return result;
   } catch (error) {
     abortIfNeeded(signal);
     throw safePdfError(error);
-  } finally {
-    signal?.removeEventListener('abort', onAbort);
-    await destroy();
-  }
+  } finally { await session.close(); }
 }
 
 function median(values: number[]): number {
@@ -173,10 +181,33 @@ function hasClearColumns(lines: PdfLine[], pageWidth: number): boolean {
       }
     }
   }
-  return candidates.some((gap) => candidates.filter((other) =>
-    Math.abs(gap.right - other.right) < pageWidth * 0.05
-    && Math.min(gap.right, other.right) - Math.max(gap.left, other.left) > pageWidth * 0.04,
-  ).length >= Math.max(3, Math.ceil(lines.length * 0.35)));
+  return hasRepeatedColumnGaps(candidates, lines.length, pageWidth);
+}
+
+export function hasRepeatedColumnGaps(candidates: ReadonlyArray<{ left: number; right: number }>, lineCount: number, pageWidth: number): boolean {
+  const required = Math.max(3, Math.ceil(lineCount * .35));
+  if (candidates.length < required) return false;
+  const sorted = [...candidates].sort((a, b) => a.right - b.right);
+  const boundary = (value: number, inclusive: boolean) => {
+    let low = 0, high = sorted.length;
+    while (low < high) { const mid = (low + high) >>> 1; if (sorted[mid].right < value || inclusive && sorted[mid].right === value) low = mid + 1; else high = mid; }
+    return low;
+  };
+  for (const gap of sorted) {
+    // A conservative window keeps the original strict geometric predicates at float boundaries.
+    const radius = pageWidth * .05 + Number.EPSILON * Math.max(1, Math.abs(gap.right), Math.abs(pageWidth)) * 4;
+    const first = boundary(gap.right - radius, false), end = boundary(gap.right + radius, true);
+    if (end - first < required) continue;
+    let count = 0;
+    for (let index = first; index < end; index++) {
+      const other = sorted[index];
+      if (Math.abs(gap.right - other.right) < pageWidth * .05
+        && Math.min(gap.right, other.right) - Math.max(gap.left, other.left) > pageWidth * .04
+        && ++count >= required) return true;
+      if (count + end - index - 1 < required) break;
+    }
+  }
+  return false;
 }
 
 function sourceFor(item: PositionedItem, page: number): SourceRange {

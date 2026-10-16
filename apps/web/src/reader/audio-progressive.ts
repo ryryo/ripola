@@ -57,7 +57,7 @@ export function contiguousChunks(book: ProgressiveBook, currentId: string) {
   return result;
 }
 
-export function acceptsManifest(current: AudioBookManifest, incoming: AudioBookManifest, job?: GenerationJob): boolean {
+export function acceptsManifest(current: AudioBookManifest, incoming: AudioBookManifest, job?: Pick<GenerationJob, 'id' | 'bookId' | 'revision' | 'planId'>): boolean {
   if (current.id !== incoming.id || current.revision !== incoming.revision || current.totalChunks !== incoming.totalChunks) return false;
   if (current.document.contentHash !== incoming.document.contentHash || JSON.stringify(current.document.versions) !== JSON.stringify(incoming.document.versions)) return false;
   const owner = current.generation;
@@ -81,5 +81,6 @@ export function acceptsManifest(current: AudioBookManifest, incoming: AudioBookM
 
 /** Same revision means immutable manuscript; keep font preparation and source refs. */
 export function mergeManifest(current: AudioBookManifest, incoming: AudioBookManifest): AudioBookManifest {
+  if (current === incoming) return current;
   return { ...incoming, document: { ...incoming.document, blocks: current.document.blocks, units: current.document.units } };
 }

@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
+import { Fragment, useEffect, useLayoutEffect, useRef, useState, useMemo, type CSSProperties } from 'react';
 import { MULTILINE_SPACING, type ReaderSettings, type SourceAnchor, type WritingMode } from '../model';
 import { planPreviousTextPage, planTextPage, type ReadingMarker } from '../display-sets';
 import { displayFlow, displaySet, flowOffset, previousDisplayFlow, setContains, sourceSlices, type DisplayFlow, type DisplaySet, type SetSource } from '../display-flow';
@@ -166,7 +166,7 @@ export function DisplaySetReader({ session, lines, fontSize, family, ruby, writi
   }, []);
   const set = layout?.set;
   const before = layout?.before;
-  const slices = layout ? sourceSlices(layout.flow, layout) : [];
+  const slices = useMemo(() => layout ? sourceSlices(layout.flow, layout) : [], [layout]);
   return <div className="display-set-reader" data-testid="display-set-reader" data-writing-mode={writingMode} style={{
     '--reading-font': family,
     '--display-line-height': lineHeight,
@@ -175,7 +175,7 @@ export function DisplaySetReader({ session, lines, fontSize, family, ruby, writi
   } as CSSProperties}>
     <div ref={viewport} className="display-set-viewport" aria-label="本文">
       <div className="display-set-text" data-testid="display-set-text" data-block-id={set?.ranges[0]?.blockId} data-source-start={set?.ranges[0]?.start} data-source-end={set?.ranges.at(-1)?.end} data-source-ranges={JSON.stringify(set?.ranges)} data-lines={set?.lines} data-set-id={set?.id} style={{ fontSize: layout?.fontSize ?? fontSize, fontFamily: family, writingMode }}>
-        {slices.map((slice, index) => <Fragment key={`${slice.blockId}:${slice.start}`}>{index > 0 && '\n'}<RubyText unit={slice} show={ruby} vertical={vertical} marker={marker} layoutKey={`${layout?.revision}:${layout?.fontSize}`} /></Fragment>)}
+        {slices.map((slice, index) => <Fragment key={`${slice.blockId}:${slice.start}`}>{index > 0 && '\n'}<RubyText unit={slice} show={ruby} vertical={vertical} marker={marker && marker.blockId === slice.blockId && marker.start < slice.start + slice.text.length && marker.end > slice.start ? marker : undefined} layoutKey={`${layout?.revision}:${layout?.fontSize}`} /></Fragment>)}
       </div>
     </div>
     {([-1, 1] as const).map(direction => <button key={direction} type="button" className={`display-set-nav ${direction === -1 ? 'display-set-previous' : 'display-set-next'}`} aria-label={direction === -1 ? '前へ' : '次へ'} aria-keyshortcuts={direction === -1 ? 'ArrowUp' : 'ArrowDown'} title={direction === -1 ? '前の本文へ（↑）' : '次の本文へ（↓）'} disabled={disabled || (direction === -1 ? !before : !set?.next)}

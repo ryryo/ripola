@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import { prepareDocument } from '../src/reader/segmentation.ts';
 import { importText } from '../src/reader/text-import.ts';
 import { audioDisplayAt, audioPhraseTargets, audioSegments, type PlayableAudioBook } from '../src/reader/audio-clock.ts';
-import { inspectAudioPresentation, requireAudioPresentation } from '../src/reader/audio-presentation.ts';
+import { inspectAudioPresentation, requireAudioPresentation, prepareAudioPresentation } from '../src/reader/audio-presentation.ts';
 import type { ReadingDocument } from '../src/reader/model.ts';
 
 function bookFor(document: ReadingDocument): PlayableAudioBook {
@@ -30,6 +30,8 @@ for (const [name, text, format] of [
         cues: [{ unitId: unit.id, unitIds: [unit.id], blockId: unit.blockId, start: unit.start, end: unit.end, startSeconds: .3, endSeconds: 1.2, score: name === 'low confidence' ? .2 : .9 }] };
     }
     const snapshot = JSON.stringify(book); const report = requireAudioPresentation(book); const segments = audioSegments(book);
+    const prepared = prepareAudioPresentation(book);
+    assert.equal(prepared.valid, true); assert.deepEqual(prepared.report, report); assert.deepEqual(prepared.segments, segments);
     assert.equal(report.status, 'valid'); assert.equal(report.displayedUnits, report.expectedUnits);
     assert.deepEqual(report.missingUnitIds, []); assert.deepEqual(report.duplicateUnitIds, []);
     assert.ok(report.estimatedUnits > 0); assert.equal(JSON.stringify(book), snapshot);
