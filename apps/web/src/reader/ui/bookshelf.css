@@ -1,6 +1,14 @@
 .bookshelf { min-width: 0; }
 .bookshelf-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 12px; }
 .bookshelf-count { margin: 0; color: var(--muted); font-size: 14px; }
+.bookshelf-filters { display: flex; gap: 12px; margin-bottom: 16px; }
+.bookshelf-filters > div { flex: 1; min-width: 0; max-width: 240px; }
+.bookshelf-filters select { min-height: 44px; }
+.bookshelf-empty { padding: 24px 0; color: var(--muted); }
+.bookshelf-empty p { margin: 0 0 8px; }
+.bookshelf-book h2 a, .home-continue-books h3 a { color: inherit; text-decoration: none; }
+.bookshelf-book h2 a:hover, .home-continue-books h3 a:hover { text-decoration: underline; text-underline-offset: 3px; }
+.bookshelf-book h2 a:focus-visible, .home-continue-books h3 a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 2px; }
 .bookshelf-progress { position: relative; display: flex; align-items: center; gap: 8px; min-width: 0; padding-bottom: 8px; color: var(--muted); font-size: 12px; line-height: 1.5; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .bookshelf-book-duration, .bookshelf-progress-percent, .bookshelf-book-status { flex-shrink: 0; }
 .bookshelf-progress-percent { margin-inline-start: auto; color: var(--accent-ink); }
@@ -18,7 +26,6 @@
 .bookshelf-book-content > .bookshelf-progress { grid-column: 1 / -1; grid-row: 2; }
 .bookshelf-book-actions { grid-column: 2; grid-row: 1; display: flex; align-items: center; gap: 4px; min-width: 0; }
 .bookshelf-book-actions > .mantine-Button-root { min-height: 44px; padding-inline: 16px; }
-.bookshelf-book-actions .bookshelf-book-menu { width: 44px; padding: 0; }
 .bookshelf .bookshelf-items[data-view='grid'] { grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 20px; border-top: 0; }
 .bookshelf .bookshelf-items[data-view='grid'] .bookshelf-book { display: flex; flex-direction: column; align-items: stretch; gap: 16px; padding: 20px; border: 1px solid var(--line); border-radius: var(--radius-panel); background: var(--panel); }
 .bookshelf-items[data-view='grid'] .bookshelf-book-content { display: block; min-width: 0; }

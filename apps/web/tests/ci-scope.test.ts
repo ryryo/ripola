@@ -50,6 +50,10 @@ test('reader UI and preferences do not opt into generation/setup or Python; unkn
     assert.equal(scope.python, false, path);
   }
   assert.deepEqual(classifyChanges(['apps/web/src/styles.css']).domains, ['layout']);
+  for (const path of ['apps/web/src/reader/bookshelf.ts', 'apps/web/src/reader/home-reading-library.ts']) {
+    assert.deepEqual(classifyChanges([path]).domains, ['audio', 'layout', 'distribution']);
+    assert.equal(classifyChanges([path]).python, false);
+  }
   for (const size of ['desktop', 'mobile']) {
     const evidence = classifyChanges([`docs/development/reading-pace/${size}.png`]);
     assert.deepEqual(evidence.domains, ['layout']);

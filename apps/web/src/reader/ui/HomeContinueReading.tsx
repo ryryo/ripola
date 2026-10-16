@@ -57,7 +57,7 @@ export default function HomeContinueReading() {
       const saved = book.savedPosition !== undefined;
       const heading = `continue-${book.id}-${book.revision}`;
       return <li key={`${book.id}:${book.revision}`}><article aria-labelledby={heading}>
-        <h3 id={heading} title={book.title}>{book.title}</h3>
+        <h3 id={heading} title={book.title}><a href={book.href}>{book.title}</a></h3>
         <BookReadingProgress book={book} incomplete={book.incomplete} catalogStatus={error ? 'failed' : loading ? 'loading' : 'ready'} />
         <Button component="a" variant="subtle" href={book.href} aria-label={saved ? `${book.title}の続きを読む` : `${book.title}を読む`}>{saved ? '続きを読む' : '読む'}</Button>
       </article></li>;

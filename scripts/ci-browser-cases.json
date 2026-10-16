@@ -2765,7 +2765,7 @@
     "project": "pages-chromium",
     "file": "pages-smoke.spec.ts",
     "title": "配布版の続きを読むは保存位置と全幅バーを表示し音声を停止して再開する",
-    "lane": "normal",
+    "lane": "related",
     "domains": [
       "distribution"
     ]
@@ -2774,7 +2774,7 @@
     "project": "pages-chromium",
     "file": "pages-smoke.spec.ts",
     "title": "配布版の続きを読むは一覧取得の再試行と別タブの保存位置変更に対応する",
-    "lane": "normal",
+    "lane": "related",
     "domains": [
       "distribution"
     ]
@@ -2783,7 +2783,38 @@
     "project": "pages-chromium",
     "file": "pages-smoke.spec.ts",
     "title": "配布本棚の続きを読むは保存済みの本を優先しサンプル障害時も再開できる",
-    "lane": "normal",
+    "lane": "related",
+    "domains": [
+      "distribution"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "home-continue-reading.spec.ts",
+    "title": "本棚は進捗で並べ替えと絞り込みを行い途中生成を読了扱いしない",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "import",
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "home-continue-reading.spec.ts",
+    "title": "本棚は進捗で並べ替えと絞り込みを行い途中生成を読了扱いしない",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "import",
+      "layout"
+    ]
+  },
+  {
+    "project": "pages-chromium",
+    "file": "pages-smoke.spec.ts",
+    "title": "配布本棚は読了を絞り込みタイトルから保存位置を開く",
+    "lane": "related",
     "domains": [
       "distribution"
     ]
