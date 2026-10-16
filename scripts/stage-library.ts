@@ -155,7 +155,7 @@ export async function stageLibrary(input: unknown, options: StageOptions): Promi
       auditText(new TextDecoder().decode(manifestBytes), 'selected book');
       const manifestUrl = `${prefix}/manifest.json`;
       await writeFile(join(temporary, manifestUrl), manifestBytes, { mode: 0o600, flag: 'wx' });
-      library.books.push({ id: selected.id, revision: selected.revision, title: saved.title, manifestUrl, manifestSha256: contentHash(manifestBytes), manifestBytes: manifestBytes.byteLength,
+      library.books.push({ id: selected.id, revision: selected.revision, title: saved.title, updatedAt: saved.updatedAt, manifestUrl, manifestSha256: contentHash(manifestBytes), manifestBytes: manifestBytes.byteLength,
         durationSeconds: manifest.durationSeconds, precision: 'sentence', attribution: selected.attribution, publicDemo: selected.publicDemo === true });
     }
     await writeFile(join(temporary, 'library/index.json'), `${JSON.stringify(library)}\n`, { mode: 0o600, flag: 'wx' });

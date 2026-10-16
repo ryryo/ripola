@@ -2791,7 +2791,7 @@
   {
     "project": "desktop-chromium",
     "file": "home-continue-reading.spec.ts",
-    "title": "本棚は進捗で並べ替えと絞り込みを行い途中生成を読了扱いしない",
+    "title": "本棚は新しい順と古い順で並べ替えと絞り込みを行い途中生成を読了扱いしない",
     "lane": "related",
     "domains": [
       "audio",
@@ -2802,7 +2802,7 @@
   {
     "project": "mobile-chromium",
     "file": "home-continue-reading.spec.ts",
-    "title": "本棚は進捗で並べ替えと絞り込みを行い途中生成を読了扱いしない",
+    "title": "本棚は新しい順と古い順で並べ替えと絞り込みを行い途中生成を読了扱いしない",
     "lane": "related",
     "domains": [
       "audio",
