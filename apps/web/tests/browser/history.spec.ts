@@ -59,6 +59,26 @@ test('黙読の戻る・進むは原稿と各読書位置を復元し再生を�
   await page.goBack(); await expect(phrase(page)).toHaveText(anchor); await paused(page);
   expect(page.url()).toBe(firstURL);
   await page.goForward(); await expect(phrase(page)).toHaveText(secondAnchor); await paused(page);
+  await page.getByRole('link', { name: 'Ripola ホーム' }).click();
+  await read(page, `https://example.com/${'abcdefghij'.repeat(100)}`);
+  await page.getByRole('slider', { name: '表示量', exact: true }).fill('2');
+  const set = page.getByTestId('display-set-text');
+  await page.getByRole('button', { name: '次へ', exact: true }).click();
+  const offset = await set.getAttribute('data-source-start');
+  expect(Number(offset)).toBeGreaterThan(0);
+  const block = await set.getAttribute('data-block-id');
+  await page.getByRole('link', { name: 'Ripola ホーム' }).click();
+  await page.goBack();
+  await expect(set).toHaveAttribute('data-block-id', block!);
+  await expect(set).toHaveAttribute('data-source-start', offset!);
+  await paused(page);
+  await page.getByRole('button', { name: '端末に保存', exact: true }).click();
+  await expect(page.getByRole('status')).toContainText('保存しました');
+  await page.reload();
+  await page.getByRole('button', { name: '続きから開く', exact: true }).click();
+  await expect(set).toHaveAttribute('data-block-id', block!);
+  await expect(set).toHaveAttribute('data-source-start', offset!);
+  await paused(page);
   expect(errors).toEqual([]);
 });
 
@@ -78,6 +98,7 @@ test('PDFの原稿と原文は戻る・進むと本棚からの復帰でも失�
   await page.getByRole('link', { name: 'このPCの本棚', exact: true }).first().click();
   await expect(page.getByRole('heading', { name: 'このPCの本棚' })).toBeVisible();
   await page.goBack(); await expect(phrase(page)).toHaveText(anchor);
+  await page.getByRole('button', { name: '本の操作', exact: true }).click();
   await page.getByRole('button', { name: '原文', exact: true }).click();
   await expect(page.locator('canvas').first()).toBeVisible();
 });
