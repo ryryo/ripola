@@ -3368,5 +3368,25 @@
       "audio",
       "layout"
     ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "fullscreen.spec.ts",
+    "title": "phone fullscreen settings use a bottom sheet without reserving space or moving playback controls",
+    "lane": "related",
+    "domains": [
+      "layout",
+      "audio"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "fullscreen.spec.ts",
+    "title": "phone fullscreen settings use a bottom sheet without reserving space or moving playback controls",
+    "lane": "related",
+    "domains": [
+      "layout",
+      "audio"
+    ]
   }
 ]
