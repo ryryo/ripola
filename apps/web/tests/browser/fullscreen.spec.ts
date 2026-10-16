@@ -1,4 +1,4 @@
-import { adjustReaderDisplay, readerStage } from './display-controls-helpers';
+import { adjustReaderDisplay, readerStage, withFullscreenSettings } from './display-controls-helpers';
 import { test, expect, type Page } from '@playwright/test';
 import { chooseTheme } from './theme-helpers';
 import { installWakeLock } from '../helpers/screen-wake-lock';
@@ -141,7 +141,7 @@ test('screen wake lock is released at silent completion and respects an OS relea
   const position = full.getByRole('slider', { name: '読書の再生位置', exact: true });
   const last = await position.getAttribute('max');
   await position.fill(last!);
-  await full.getByLabel('読む速さ（字/分）', { exact: true }).fill('3000');
+  await withFullscreenSettings(page, () => full.getByLabel('読む速さ（字/分）', { exact: true }).fill('3000'));
   await full.getByRole('button', { name: '再生', exact: true }).click();
   await expect(full.getByRole('button', { name: 'もう一度', exact: true })).toBeVisible();
   expect(await page.evaluate(() => window.testWakeLock.requests.length)).toBe(2);
@@ -165,17 +165,20 @@ test('fullscreen expands the text surface, isolates playback, keeps progress vis
   if (!info.project.name.startsWith('mobile')) await expect.poll(() => full.evaluate(element => document.fullscreenElement === element)).toBe(true);
   await expect(full.getByTestId('stopped-context')).toHaveCount(0);
   await expect(full.getByRole('slider', { name: '読書の再生位置' })).toBeVisible();
-  await expect(full.getByLabel('読む速さ（字/分）', { exact: true })).toBeVisible();
+  await withFullscreenSettings(page, async () => { await expect(full.getByLabel('読む速さ（字/分）', { exact: true })).toBeVisible(); });
   const modes = await full.locator('.fullscreen-mode-controls').boundingBox();
   const topline = await full.locator('.stage-topline').boundingBox();
   expect(modes!.y + modes!.height / 2).toBeCloseTo(topline!.y + topline!.height / 2, 0);
   const exit = await full.getByRole('button', { name: '全画面を終了', exact: true }).boundingBox();
   const viewport = page.viewportSize()!;
-  expect(exit!.x + exit!.width).toBeCloseTo(viewport.width - 12, 0);
-  expect(exit!.y + exit!.height).toBeCloseTo(viewport.height - 12, 0);
+  expect(exit!.x + exit!.width).toBeCloseTo(viewport.width - 16, 0);
+  expect(exit!.y + exit!.height).toBeCloseTo(viewport.height - 16, 0);
+  const play = await full.getByRole('button', { name: '再生', exact: true }).boundingBox();
+  expect(play!.x + play!.width / 2).toBeCloseTo(viewport.width / 2, 0);
+  expect(play!.y + play!.height / 2).toBeCloseTo(exit!.y + exit!.height / 2, 0);
   await full.getByRole('slider', { name: '読書の再生位置' }).fill('3');
   await expect(readerStage(page)).toHaveAttribute('data-unit-index', '3');
-  await full.getByLabel('読む速さ（字/分）', { exact: true }).fill('800');
+  await withFullscreenSettings(page, () => full.getByLabel('読む速さ（字/分）', { exact: true }).fill('800'));
   const phrase = await full.getByTestId('current-phrase').innerText();
   await full.getByRole('button', { name: '全文表示', exact: true }).click();
   await expect(full.getByTestId('guide-reader')).toBeVisible();
@@ -197,14 +200,14 @@ test('fullscreen expands the text surface, isolates playback, keeps progress vis
   await expect(full.locator('.guide-bottom')).not.toHaveCSS('opacity', '0');
   await expect(full.getByTestId('stopped-context')).toHaveCount(0);
   await expect(full.locator('.fullscreen-seek')).toBeVisible();
-  await expect(full.locator('.fullscreen-actions')).toBeHidden();
+  await expect(full.getByRole('button', { name: '一時停止', exact: true })).toBeVisible();
   await expect(full.getByRole('button', { name: '全文表示', exact: true })).toHaveCount(0);
   await expect(page.getByRole('button', { name: '原文', exact: true })).toHaveCount(0);
   if (!info.project.name.startsWith('mobile')) {
     const before = await full.getByTestId('current-phrase').boundingBox();
     await full.locator('.fullscreen-footer').hover();
     await expect(full.locator('.fullscreen-seek')).toHaveCSS('opacity', '1');
-    await expect(full.locator('.fullscreen-actions')).toBeHidden();
+    await expect(full.getByRole('button', { name: '一時停止', exact: true })).toBeVisible();
     const after = await full.getByTestId('current-phrase').boundingBox();
     expect(after!.y).toBeCloseTo(before!.y, 0);
     await page.mouse.move(100, 100);
@@ -325,4 +328,48 @@ test('display and silent speed persist across reload; reset keeps speed and save
   await expect(page.getByLabel('読む速さ（字/分）', { exact: true })).toHaveValue('900');
   await page.getByRole('button', { name: '表示設定', exact: true }).click();
   await expect(page.getByLabel('フォントサイズ', { exact: true })).toHaveValue('56');
+});
+
+test('phone fullscreen settings use a bottom sheet without reserving space or moving playback controls', async ({ page }) => {
+  await page.addInitScript(() => { Element.prototype.requestFullscreen = () => Promise.reject(new Error('test fallback')); });
+  await read(page);
+  await page.getByRole('slider', { name: '表示量', exact: true }).fill('3');
+  for (const size of [{ width: 390, height: 844 }, { width: 844, height: 390 }]) {
+    await page.setViewportSize(size);
+    await page.getByRole('button', { name: '全画面で読む', exact: true }).click();
+    const full = page.getByRole('region', { name: '全画面の読書', exact: true });
+    const settings = full.getByRole('button', { name: '読書設定を開く', exact: true });
+    const sheet = full.getByRole('dialog', { name: '読書設定', exact: true });
+    const area = await full.locator('.display-set-viewport').boundingBox();
+    const footer = await full.locator('.fullscreen-footer').boundingBox();
+    expect(footer!.height).toBeLessThan(120);
+    await expect(full.getByLabel('読む速さ（字/分）', { exact: true })).toHaveCount(0);
+    await expect(settings).toBeVisible();
+    await full.getByRole('button', { name: '再生（画面中央）', exact: true }).click();
+    const transport = await full.getByRole('button', { name: '一時停止', exact: true }).boundingBox();
+    expect(transport!.x + transport!.width / 2).toBeCloseTo(size.width / 2, 0);
+    await settings.click();
+    await expect(full).toHaveAttribute('data-playing', 'false');
+    await expect(sheet).toBeVisible();
+    await expect(full.locator('.mantine-Drawer-overlay')).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+    await expect.poll(() => sheet.evaluate(element => element.getBoundingClientRect().bottom)).toBeCloseTo(size.height, 0);
+    expect((await sheet.boundingBox())!.height).toBeLessThan(340);
+    for (const label of ['読む速さ（字/分）', '本文の向き', '表示量', 'フォントサイズ']) await expect(sheet.getByLabel(label, { exact: true })).toBeVisible();
+    expect(await full.locator('.display-set-viewport').boundingBox()).toEqual(area);
+    expect(await full.locator('.fullscreen-footer').boundingBox()).toEqual(footer);
+    await sheet.getByLabel('読む速さ（字/分）', { exact: true }).fill('800');
+    for (let step = 0; step < 6; step++) {
+      await page.keyboard.press('Tab');
+      expect(await sheet.evaluate(element => element.contains(document.activeElement))).toBe(true);
+    }
+    await page.screenshot({ path: test.info().outputPath(`fullscreen-settings-${size.width}.png`) });
+    await page.keyboard.press('Escape');
+    await expect(sheet).toHaveCount(0);
+    await expect(full).toBeVisible();
+    await expect(settings).toBeFocused();
+    await expect(full).toHaveAttribute('data-playing', 'false');
+    expect(await full.getByRole('button', { name: '再生', exact: true }).boundingBox()).toEqual(transport);
+    await full.getByRole('button', { name: '全画面を終了', exact: true }).click();
+    await expect(page.getByLabel('読む速さ（字/分）', { exact: true })).toHaveValue('800');
+  }
 });

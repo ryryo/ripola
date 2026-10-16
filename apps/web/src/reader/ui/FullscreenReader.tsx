@@ -1,4 +1,5 @@
-import { Button } from '@mantine/core';
+import { Button, Drawer } from '@mantine/core';
+import { useMediaQuery } from '@mantine/hooks';
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import './fullscreen.css';
 
@@ -46,6 +47,11 @@ export function useFullscreenReader(pause: () => void) {
       else if (native.current) exit();
     };
     const key = (event: KeyboardEvent) => {
+      // The settings sheet handles Escape and traps its own keyboard focus.
+      if (element.dataset.settingsOpen === 'true') {
+        if (event.key === 'Escape' && !event.isComposing) event.preventDefault();
+        return;
+      }
       if (event.key === 'Escape' && !event.isComposing) { event.preventDefault(); exit(); }
       if (event.key !== 'Tab') return;
       const items = [...element.querySelectorAll<HTMLElement>('button, input, select, textarea, a[href], [tabindex="0"]')].filter(item => !item.closest('[inert]') && !item.matches(':disabled') && item.getClientRects().length && getComputedStyle(item).visibility !== 'hidden');
@@ -99,10 +105,15 @@ export function FullscreenReader({ fullscreen, playing, children, seek, speed, m
   toggle: () => void; pause: () => void; disabled?: boolean; playLabel?: string; showProgress?: boolean; multiline?: boolean;
 }) {
   const footerRef = useRef<HTMLDivElement>(null);
+  const compact = useMediaQuery('(max-width: 600px), (max-width: 950px) and (max-height: 520px)');
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const sheetOpen = fullscreen.active && compact && settingsOpen;
+  useEffect(() => { if (!fullscreen.active || !compact) setSettingsOpen(false); }, [fullscreen.active, compact]);
+  const settings = <div className="fullscreen-settings-grid"><div className="fullscreen-speed-control">{speed}</div>{displayControls}</div>;
   useEffect(() => {
     const element = fullscreen.containerRef.current; const footer = footerRef.current;
     if (!fullscreen.active || !element || !footer) return;
-    const selector = '.guide-viewport, .phrase-container';
+    const selector = '.guide-viewport, .phrase-container, .display-set-viewport';
     let surface = element.querySelector<HTMLElement>(selector);
     const measure = () => {
       element.style.setProperty('--fullscreen-footer-height', `${footer.getBoundingClientRect().height}px`);
@@ -125,7 +136,7 @@ export function FullscreenReader({ fullscreen, playing, children, seek, speed, m
     mutations.observe(element, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
     return () => { mutations.disconnect(); observer.disconnect(); element.style.removeProperty('--fullscreen-footer-height'); element.style.removeProperty('--fullscreen-play-top'); };
   }, [fullscreen.active, fullscreen.containerRef]);
-  return <div ref={fullscreen.containerRef} className="fullscreen-reader" data-fullscreen={fullscreen.active} data-playing={playing} tabIndex={-1} role={fullscreen.active ? 'region' : undefined} aria-label={fullscreen.active ? '全画面の読書' : undefined}
+  return <div ref={fullscreen.containerRef} className="fullscreen-reader" data-fullscreen={fullscreen.active} data-playing={playing} data-settings-open={sheetOpen} tabIndex={-1} role={fullscreen.active ? 'region' : undefined} aria-label={fullscreen.active ? '全画面の読書' : undefined}
     onClick={event => {
       if (multiline || !fullscreen.active || !playing || !(event.target instanceof HTMLElement) || !event.target.closest('.reader-stage, .audio-stage') || event.target.closest('button, input, select, a')) return;
       pause(); fullscreen.containerRef.current?.focus({ preventScroll: true });
@@ -133,12 +144,16 @@ export function FullscreenReader({ fullscreen, playing, children, seek, speed, m
     {fullscreen.active && <div className="fullscreen-mode-controls" hidden={playing}>{modes}</div>}
     {children}
     {fullscreen.active && <div ref={footerRef} className="fullscreen-footer">
+      {!compact && <div className="fullscreen-display-controls" hidden={playing} inert={playing}>{settings}</div>}
       <div className="fullscreen-seek" hidden={!showProgress} inert={!showProgress}>{seek}</div>
-      <div className="fullscreen-display-controls" hidden={playing} inert={playing}><div className="fullscreen-settings-grid"><div className="fullscreen-speed-control">{speed}</div>{displayControls}</div></div>
-      <div className="fullscreen-actions" hidden={playing && !multiline}>
-        <Button disabled={disabled} onClick={() => { toggle(); fullscreen.containerRef.current?.focus({ preventScroll: true }); }} aria-keyshortcuts="Space">{playing && multiline ? '一時停止' : playLabel}</Button>
+      <div className="fullscreen-actions">
+        {compact && <button type="button" className="fullscreen-settings-toggle" aria-label="読書設定を開く" title="読書設定" aria-haspopup="dialog" aria-expanded={sheetOpen} onClick={() => { pause(); setSettingsOpen(true); }}>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true"><path d="M4 7h16M4 17h16" /><circle cx="8" cy="7" r="3" fill="var(--panel)" /><circle cx="16" cy="17" r="3" fill="var(--panel)" /></svg>
+        </button>}
+        <Button disabled={disabled} onClick={() => { toggle(); fullscreen.containerRef.current?.focus({ preventScroll: true }); }} aria-keyshortcuts="Space">{playing ? '一時停止' : playLabel}</Button>
+        <button type="button" className="fullscreen-enter" aria-label="全画面を終了" title="全画面を終了" onClick={fullscreen.exit}><FullscreenIcon exiting /></button>
       </div>
-      <button type="button" className="fullscreen-enter" hidden={playing && !multiline} aria-label="全画面を終了" title="全画面を終了" onClick={fullscreen.exit}><FullscreenIcon exiting /></button>
     </div>}
+    {fullscreen.active && compact && <Drawer className="fullscreen-settings reader-drawer" opened={sheetOpen} onClose={() => setSettingsOpen(false)} title="読書設定" position="bottom" size="auto" withinPortal={false} overlayProps={{ backgroundOpacity: 0 }} zIndex={400} closeButtonProps={{ 'aria-label': '設定を閉じる' }}>{settings}</Drawer>}
   </div>;
 }

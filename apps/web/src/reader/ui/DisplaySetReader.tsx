@@ -83,7 +83,9 @@ export function DisplaySetReader({ session, lines, fontSize, family, ruby, writi
       probe.style.height = vertical ? `${slot.clientHeight}px` : 'max-content';
       const extent = vertical ? slot.clientWidth : slot.clientHeight;
       let effectiveSize = Math.min(fontSize, Math.floor(extent / (lines * lineHeight + (ruby ? .4 : 0)) * 4) / 4);
-      effectiveSize = Math.max(8, effectiveSize);
+      // Dense pages in a short landscape viewport may need less than 8px.
+      // The selected row count still has to fit the actual available extent.
+      effectiveSize = Math.max(1, effectiveSize);
       const measure = (range: { start: number; end: number }) => {
         probe.style.fontSize = `${effectiveSize}px`;
         appendReadingText(probe, { text: flow.text.slice(range.start, range.end), ruby: flow.ruby.filter(span => span.start >= range.start && span.end <= range.end).map(span => ({ ...span, start: span.start - range.start, end: span.end - range.start })) }, ruby, vertical);
@@ -114,8 +116,8 @@ export function DisplaySetReader({ session, lines, fontSize, family, ruby, writi
         start = page.end; page = pageAt(start);
       }
       // Row selection precedes physical fit, so height cannot silently reduce the requested amount.
-      while ((!page.fits || !measure(page).inside) && effectiveSize > 8) {
-        effectiveSize = Math.max(8, effectiveSize - 1); page = pageAt(start);
+      while ((!page.fits || !measure(page).inside) && effectiveSize > 1) {
+        effectiveSize = Math.max(1, effectiveSize - (effectiveSize <= 8 ? .25 : 1)); page = pageAt(start);
       }
       const set = displaySet(flow, page);
       const first = set.ranges[0];

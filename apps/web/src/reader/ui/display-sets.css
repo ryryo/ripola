@@ -22,5 +22,9 @@
 .guide-row{font-size:var(--document-font-size,20px)!important}
 
 .fullscreen-reader[data-fullscreen=false] > .multiline-mode > .stage-topline{position:absolute;inset:0 0 auto}
+/* Share the upper navigation row with the status in the horizontal reader. */
+.fullscreen-reader[data-fullscreen=false] > .multiline-mode:has(.display-set-reader[data-writing-mode=horizontal-tb]) > .stage-topline{top:68px;height:48px;padding-block:0;align-items:center;pointer-events:none}
+.fullscreen-reader[data-fullscreen=false] > .multiline-mode:has(.display-set-reader[data-writing-mode=horizontal-tb]) > .stage-topline > span{max-width:calc(50% - 36px)}
+@media(max-width:600px),(max-height:520px){.fullscreen-reader[data-fullscreen=false] > .multiline-mode:has(.display-set-reader[data-writing-mode=horizontal-tb]) > .stage-topline{top:64px}}
 @media(max-height:520px){.display-set-reader{padding-block:8px;gap:8px}}
 @media(max-height:520px){.fullscreen-reader[data-fullscreen=true] .display-set-reader{padding-top:0}}

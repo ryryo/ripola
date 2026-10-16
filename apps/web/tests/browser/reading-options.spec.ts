@@ -1,5 +1,5 @@
 import { denseAudioFixture } from './dense-audio-fixture';
-import { adjustReaderDisplay, readerStage } from './display-controls-helpers';
+import { adjustReaderDisplay, readerStage, withFullscreenSettings } from './display-controls-helpers';
 import { createHash } from 'node:crypto';
 import { expect, test, type Page } from '@playwright/test';
 import { chooseTheme } from './theme-helpers';
@@ -529,8 +529,10 @@ test('audio fullscreen keeps the media clock, remembers rate and shares display 
   const full = page.locator('.fullscreen-reader[data-fullscreen="true"]');
   await expect(full).toBeVisible();
   await expect(full.locator('.audio-stage')).toHaveCSS('background-color', 'rgb(29, 47, 61)');
-  await expect(full.getByRole('combobox', { name: '音声の速さ', exact: true })).toHaveValue('4.75');
-  await full.getByRole('combobox', { name: '音声の速さ', exact: true }).selectOption('1.25');
+  await withFullscreenSettings(page, async () => {
+    await expect(full.getByRole('combobox', { name: '音声の速さ', exact: true })).toHaveValue('4.75');
+    await full.getByRole('combobox', { name: '音声の速さ', exact: true }).selectOption('1.25');
+  });
   await expect.poll(() => page.locator('audio').evaluate((element: HTMLAudioElement) => element.playbackRate)).toBe(1.25);
   const slider = full.getByRole('slider', { name: '音声の再生位置', exact: true });
   await slider.fill('9');
@@ -566,7 +568,7 @@ test('audio fullscreen keeps the media clock, remembers rate and shares display 
   if (!info.project.name.startsWith('mobile')) {
     await full.locator('.fullscreen-footer').hover();
     await expect(full.locator('.fullscreen-seek')).toHaveCSS('opacity', '1');
-    await expect(full.locator('.fullscreen-actions')).toBeHidden();
+    await expect(full.getByRole('button', { name: '一時停止', exact: true })).toBeVisible();
     await slider.fill('13');
     await expect(full).toHaveAttribute('data-playing', 'true');
   }
@@ -1007,7 +1009,8 @@ test('multiline sets cover paragraph remainders and fill every requested amount 
   await settings(page); await adjustReaderDisplay(page, 'フォントサイズ', '56'); await close(page);
   const amount = page.getByRole('slider', { name: '表示量', exact: true });
   const visible = page.getByTestId('display-set-text');
-  await expect(amount.getByRole('option', { name: '1文', exact: true })).toHaveCount(1);
+  await expect(amount).toHaveValue('1');
+  await expect(amount).toHaveAttribute('aria-valuetext', '1文');
   await amount.fill('2');
   const collected = new Map<string, string>(); const ends = new Map<string, number>();
   for (let i = 0; i < 50; i++) {
@@ -1041,7 +1044,7 @@ test('multiline requested rows determine normal and fullscreen layout instead of
           if (fullscreen) await page.getByRole('button', { name: '全画面で読む', exact: true }).click();
           const visible = page.getByTestId('display-set-text');
           await expect(visible).toHaveAttribute('data-lines', String(rows));
-          const actual = await visible.evaluate((element, vertical) => {
+          const inspect = () => visible.evaluate((element, vertical) => {
             const font = parseFloat(getComputedStyle(element).fontSize); const bands: number[] = [];
             const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT); let node: Node | null;
             while ((node = walker.nextNode())) {
@@ -1062,6 +1065,10 @@ test('multiline requested rows determine normal and fullscreen layout instead of
             const intersects = (a: DOMRect, b: DOMRect) => a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
             return { next: { text: nextButton.textContent?.trim(), icon: Boolean(nextButton.querySelector('svg')), border: nextStyle.borderTopWidth, background: nextStyle.backgroundColor, width: next.width, height: next.height, after: vertical ? next.right <= slot.left : next.top >= slot.bottom, centered: vertical ? Math.abs((next.top + next.bottom - slot.top - slot.bottom) / 2) < 1 : Math.abs((next.left + next.right - slot.left - slot.right) / 2) < 1, overlapsText: intersects(next, rect), overlapsEnter: Boolean(enter && intersects(next, enter)) }, stageHeight: stage.getBoundingClientRect().height, belowStatus: rect.top >= status.bottom - 1, bounds: [rect.x, rect.y, rect.width, rect.height], slot: [slot.x, slot.y, slot.width, slot.height], rows: bands.length, inside: rect.left >= slot.left - 1 && rect.right <= slot.right + 1 && rect.top >= slot.top - 1 && rect.bottom <= slot.bottom + 1, font };
           }, mode === 'vertical-rl');
+          // Fullscreen changes resize the slot asynchronously. The row attribute
+          // can still describe the previous slot until ResizeObserver replans it.
+          await expect.poll(inspect).toMatchObject({ rows, inside: true, belowStatus: true });
+          const actual = await inspect();
           expect(actual.rows, JSON.stringify({ size, mode, rows, fullscreen, actual })).toBe(rows); expect(actual.inside, JSON.stringify({ size, mode, rows, fullscreen, actual })).toBe(true); expect(actual.font).toBeLessThanOrEqual(96); expect(actual.belowStatus).toBe(true);
           expect(actual.next.after).toBe(true); expect(actual.next.centered).toBe(true);
           expect(actual.next.text).toBe(''); expect(actual.next.icon).toBe(true);
@@ -1088,20 +1095,43 @@ test('multiline mobile portrait and landscape keep ruby, text selection and full
     await page.setViewportSize(size);
     for (const mode of ['horizontal-tb', 'vertical-rl']) {
       await settings(page); await adjustReaderDisplay(page, '本文の向き', mode); await close(page);
+      if (mode === 'horizontal-tb') {
+        const status = await readerStage(page).locator('.stage-topline').boundingBox();
+        const previous = await page.getByRole('button', { name: '前へ', exact: true }).boundingBox();
+        expect(status!.y + status!.height / 2).toBeCloseTo(previous!.y + previous!.height / 2, 0);
+      }
       await page.getByRole('button', { name: '全画面で読む', exact: true }).click();
       const full = page.locator('.fullscreen-reader[data-fullscreen=true]');
       const text = full.getByTestId('display-set-text');
       await expect(text).toHaveCSS('writing-mode', mode);
       expect(Number(await text.getAttribute('data-lines'))).toBeLessThanOrEqual(3);
-      await expect(full.getByRole('button', { name: /画面中央/ })).toHaveCount(0);
+      const centerPlay = full.getByRole('button', { name: '再生（画面中央）', exact: true });
+      await expect(centerPlay).toBeVisible();
+      const center = await centerPlay.boundingBox();
+      const readingArea = await full.locator('.display-set-viewport').boundingBox();
+      expect(center!.x + center!.width / 2).toBeCloseTo(size.width / 2, 0);
+      expect(center!.y + center!.height / 2).toBeCloseTo(readingArea!.y + readingArea!.height / 2, 0);
       const initial = await text.getAttribute('data-set-id');
       await text.evaluate(element => { const range = document.createRange(); range.selectNodeContents(element); const selection = window.getSelection()!; selection.removeAllRanges(); selection.addRange(range); });
-      await text.click(); await expect(text).toHaveAttribute('data-set-id', initial!);
+      await text.click({ position: { x: 2, y: 2 } }); await expect(text).toHaveAttribute('data-set-id', initial!);
       await page.evaluate(() => window.getSelection()?.removeAllRanges());
-      await full.getByRole('button', { name: '再生', exact: true }).click();
+      const seekBefore = await full.locator('.fullscreen-seek').boundingBox();
+      const playBefore = await full.getByRole('button', { name: '再生', exact: true }).boundingBox();
+      const areaBefore = await full.locator('.display-set-viewport').boundingBox();
+      expect(playBefore!.x + playBefore!.width / 2).toBeCloseTo(size.width / 2, 0);
+      expect(playBefore!.y - seekBefore!.y - seekBefore!.height).toBeLessThanOrEqual(size.height < 520 ? 24 : 8);
+      await page.screenshot({ path: test.info().outputPath(`multiline-${size.width}-${mode}-paused.png`) });
+      await centerPlay.click();
       await expect(full.getByRole('button', { name: '一時停止', exact: true })).toBeVisible();
+      await expect(centerPlay).toBeHidden();
+      const pauseButton = await full.getByRole('button', { name: '一時停止', exact: true }).boundingBox();
+      expect(pauseButton).toEqual(playBefore);
+      expect(await full.locator('.fullscreen-seek').boundingBox()).toEqual(seekBefore);
+      expect(await full.locator('.display-set-viewport').boundingBox()).toEqual(areaBefore);
+      await page.screenshot({ path: test.info().outputPath(`multiline-${size.width}-${mode}-playing.png`) });
       await full.getByRole('button', { name: '一時停止', exact: true }).click();
       await expect(full).toHaveAttribute('data-playing', 'false');
+      await expect(centerPlay).toBeVisible();
       const overlap = await text.evaluate(element => {
         const rect = element.getBoundingClientRect(); const footer = document.querySelector('.fullscreen-footer')!.getBoundingClientRect();
         const stage = element.closest('section')!.getBoundingClientRect();
@@ -1517,7 +1547,13 @@ test('multiline audio previous returns across chunk boundaries and keyboard navi
   await page.locator('audio').evaluate((media: HTMLAudioElement) => { media.muted = true; });
   await page.getByRole('slider', { name: '表示量', exact: true }).fill('2');
   const text = page.getByTestId('display-set-text'); const audio = page.locator('audio');
-  const firstSource = await audio.getAttribute('src');
+  // Prefetch can replace a network URL with a blob URL for the same chunk.
+  // Compare the played asset's bytes when checking that navigation returns.
+  const sourceHash = () => audio.evaluate(async (media: HTMLAudioElement) => {
+    const bytes = await (await fetch(media.currentSrc || media.src)).arrayBuffer();
+    return [...new Uint8Array(await crypto.subtle.digest('SHA-256', bytes))].map(byte => byte.toString(16).padStart(2, '0')).join('');
+  });
+  const firstSource = await sourceHash();
   await page.getByRole('button', { name: '全画面で読む', exact: true }).click();
   const full = page.locator('.fullscreen-reader[data-fullscreen=true]');
   await page.keyboard.press('ArrowDown');
@@ -1526,11 +1562,11 @@ test('multiline audio previous returns across chunk boundaries and keyboard navi
   await expect(full).toHaveAttribute('data-playing', 'false');
   await full.getByRole('button', { name: '再生', exact: true }).click();
   await full.focus();
-  for (let i = 0; i < 20 && await audio.getAttribute('src') === firstSource; i++) await page.keyboard.press('ArrowDown');
-  await expect(audio).not.toHaveAttribute('src', firstSource!);
+  for (let i = 0; i < 20 && await sourceHash() === firstSource; i++) await page.keyboard.press('ArrowDown');
+  await expect.poll(sourceHash).not.toBe(firstSource);
   await expect(full).toHaveAttribute('data-playing', 'true');
-  for (let i = 0; i < 20 && await audio.getAttribute('src') !== firstSource; i++) await page.keyboard.press('ArrowUp');
-  await expect(audio).toHaveAttribute('src', firstSource!);
+  for (let i = 0; i < 20 && await sourceHash() !== firstSource; i++) await page.keyboard.press('ArrowUp');
+  await expect.poll(sourceHash).toBe(firstSource);
   await expect(full).toHaveAttribute('data-playing', 'true');
   expect(await audio.evaluate((media: HTMLAudioElement) => media.playbackRate)).toBe(2.5);
   await expect(text.getByTestId('reading-marker').first()).toBeVisible();

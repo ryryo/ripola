@@ -85,18 +85,25 @@
 .fullscreen-reader[data-fullscreen='true'][data-playing='true'] .guide-status,
 .fullscreen-reader[data-fullscreen='true'][data-playing='true'] .guide-static-text { visibility: hidden; }
 .fullscreen-footer { position: absolute; bottom: 0; left: 0; width: 100%; padding: 0 max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left)); }
-.fullscreen-seek { padding: 36px 0 16px; }
+.fullscreen-seek { padding: 8px 0; }
 .fullscreen-seek[hidden] { display: block; visibility: hidden; pointer-events: none; }
 .fullscreen-seek label { display: flex; flex-direction: column; gap: 8px; font-size: 12px; }
 .fullscreen-seek input { width: 100%; min-height: 28px; accent-color: var(--accent); }
-.fullscreen-actions { display: flex; justify-content: center; align-items: center; gap: 16px; flex-wrap: wrap; padding-right: 56px; }
+.fullscreen-actions { position: relative; display: grid; grid-template-columns: minmax(44px, 1fr) auto minmax(44px, 1fr); align-items: center; gap: 8px; min-height: 44px; }
+.fullscreen-actions > .mantine-Button-root { grid-column: 2; grid-row: 1; min-width: 104px; min-height: 44px; }
+.fullscreen-actions > .fullscreen-enter { position: static; grid-column: 3; grid-row: 1; justify-self: end; }
+.fullscreen-settings-toggle { grid-column: 1; grid-row: 1; justify-self: start; display: grid; place-items: center; width: 44px; height: 44px; padding: 0; border: 0; border-radius: var(--radius-control); background: transparent; color: var(--muted); }
+.fullscreen-settings-toggle:hover { background: var(--accent-soft); color: var(--accent); }
+.fullscreen-settings .mantine-Drawer-content { height: auto; max-height: 80dvh; background: var(--panel); color: var(--ink); border-radius: 16px 16px 0 0; }
+.fullscreen-settings .mantine-Drawer-header { background: var(--panel); }
+.fullscreen-settings .mantine-Drawer-body { padding-bottom: max(20px, env(safe-area-inset-bottom)); }
 .fullscreen-display-controls { max-width: 760px; margin: 0 auto 8px; }
 .fullscreen-display-controls[hidden] { display: block; visibility: hidden; pointer-events: none; }
 .fullscreen-settings-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); align-items: end; gap: 16px; }
 .fullscreen-speed-control label { display: flex; flex-direction: column; gap: 2px; font-size: 12px; line-height: 1.5; }
 .fullscreen-speed-control input { width: 100%; min-width: 0; min-height: 44px; border: 1px solid var(--line); border-radius: var(--radius-control); background: var(--panel); color: var(--ink); padding: 8px; font-size: 13px; }
-/* Retain the paused controls' space so playback/hover never moves the body. */
-.fullscreen-actions[hidden] { display: flex; visibility: hidden; pointer-events: none; }
+/* Settings stay inline when paused. Reserve their height above the transport
+   during playback so the text, seek bar and buttons never change position. */
 .fullscreen-reader[data-fullscreen='true'] > .reader-stage:not(.guide-mode):not(.multiline-mode),
 .fullscreen-reader[data-fullscreen='true'] > .audio-stage:not(.guide-mode):not(.multiline-mode) {
   --fullscreen-reading-inset: max(calc(var(--fullscreen-footer-height, 170px) + 12px), calc(max(12px, env(safe-area-inset-top)) + 48px + 12px));
@@ -107,9 +114,8 @@
   .fullscreen-seek label { flex-direction: row; align-items: center; }
   .fullscreen-seek label > span { flex-shrink: 0; }
   .fullscreen-seek input { flex: 1; min-width: 0; }
-  .fullscreen-actions { gap: 8px; }
 }
-@media (max-width: 600px) {
+@media (max-width: 600px), (max-width: 950px) and (max-height: 520px) {
   .fullscreen-settings-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 12px; }
 }
 
@@ -139,12 +145,16 @@
   .fullscreen-reader[data-fullscreen='true'] .guide-status { min-height: 0; margin-block: 4px; line-height: 1.5; }
   .fullscreen-reader[data-fullscreen='true'] .guide-static-text { display: none; }
 }
-@media (max-height: 520px) and (min-width: 540px) {
-  .fullscreen-footer { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 0 16px; }
-  .fullscreen-seek { grid-column: 1 / -1; }
-  .fullscreen-display-controls { grid-column: 2; grid-row: 2; width: 100%; max-width: none; margin: 0; padding-right: 48px; }
-  .fullscreen-settings-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
-  .fullscreen-actions { grid-column: 1; grid-row: 2; flex-wrap: nowrap; padding-right: 0; }
+@media (max-height: 520px) and (min-width: 951px) {
+  /* In landscape, place the inline settings beside the centered transport so
+     two full control rows do not consume the reading surface. */
+  .fullscreen-footer { display: grid; }
+  .fullscreen-seek { grid-column: 1; grid-row: 1; }
+  .fullscreen-display-controls { grid-column: 1; grid-row: 2; width: 100%; max-width: none; margin: 0; padding-inline: 56px; }
+  .fullscreen-settings-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) 104px repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .fullscreen-settings-grid .reader-display-controls > :nth-child(2) { grid-column: 4; }
+  .fullscreen-actions { grid-column: 1; grid-row: 2; pointer-events: none; }
+  .fullscreen-actions > button { pointer-events: auto; }
 }
 
 .fullscreen-reader[data-fullscreen='true'] > .multiline-mode {
