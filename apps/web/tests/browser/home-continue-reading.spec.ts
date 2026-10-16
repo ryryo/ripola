@@ -263,7 +263,7 @@ test('本棚の読書位置はバーで表示し、途中生成・再開・別�
   await expect(page.getByRole('link', { name: full.title, exact: true })).toHaveAttribute('href', /book=/);
 });
 
-test('本棚は進捗で並べ替えと絞り込みを行い途中生成を読了扱いしない', async ({ page }) => {
+test('本棚は新しい順と古い順で並べ替えと絞り込みを行い途中生成を読了扱いしない', async ({ page }) => {
   await publish();
   await disk.write(['book-names', `home-other-1_${full.revision}.json`], { schemaVersion: 1, title: '保存音声 1' });
   await page.addInitScript(({ id, revision }) => {
@@ -276,7 +276,8 @@ test('本棚は進捗で並べ替えと絞り込みを行い途中生成を読�
   const rows = page.locator('.bookshelf-book');
   const titles = page.locator('.bookshelf-book h2');
   const filter = page.getByLabel('絞り込み', { exact: true });
-  const sort = page.getByLabel('並べ替え', { exact: true });
+  const newest = page.getByRole('button', { name: '新しい順', exact: true });
+  const oldest = page.getByRole('button', { name: '古い順', exact: true });
   await expect(rows).toHaveCount(6);
   await filter.selectOption('unfinished');
   await expect(rows).toHaveCount(5);
@@ -284,9 +285,9 @@ test('本棚は進捗で並べ替えと絞り込みを行い途中生成を読�
   await expect(page.getByRole('heading', { name: full.title, exact: true })).toBeVisible();
   await filter.selectOption('reading');
   await expect(rows).toHaveCount(2);
-  await sort.selectOption('progress-desc');
+  await newest.click();
   await expect(titles).toHaveText([full.title, '保存音声 2']);
-  await sort.selectOption('progress-asc');
+  await oldest.click();
   await expect(titles).toHaveText(['保存音声 2', full.title]);
   await filter.selectOption('completed');
   await expect(titles).toHaveText(['保存音声 3']);
@@ -295,26 +296,35 @@ test('本棚は進捗で並べ替えと絞り込みを行い途中生成を読�
   await filter.selectOption('unread');
   await expect(titles).toHaveText(['保存音声 1', '音声がまだない本']);
   await filter.selectOption('all');
-  await sort.selectOption('title');
-  const sorted = await titles.allTextContents();
-  expect(sorted).toEqual([...sorted].sort((a, b) => a.localeCompare(b, 'ja', { numeric: true })));
+  await oldest.click();
+  const chronological = await titles.allTextContents();
+  await newest.click();
+  await expect(titles).toHaveText([...chronological].reverse());
   const other = await page.context().newPage();
   await other.goto(origin);
   await other.evaluate(revision => localStorage.setItem(`rsvp-audio-position:home-other-1:${revision}`, '26'), full.revision);
   await other.close();
   await filter.selectOption('completed');
-  await expect(titles).toHaveText(['保存音声 1', '保存音声 3']);
+  await expect(titles).toHaveText(['保存音声 3', '保存音声 1']);
   await filter.selectOption('reading');
-  await sort.selectOption('progress-desc');
+  await newest.click();
   await page.getByRole('link', { name: '保存音声 2', exact: true }).click();
   await expect(page.getByTestId('audio-stage')).toBeVisible();
   await page.getByRole('button', { name: '本棚へ戻る', exact: true }).click();
   await expect(filter).toHaveValue('reading');
-  await expect(sort).toHaveValue('progress-desc');
+  await expect(newest).toHaveAttribute('aria-pressed', 'true');
+  await expect(oldest).toHaveAttribute('aria-pressed', 'false');
   await expect(page.getByRole('button', { name: 'グリッド', exact: true })).toHaveAttribute('aria-pressed', 'true');
   await expect(titles).toHaveText([full.title, '保存音声 2']);
-  for (const width of [320, 390, 1280]) {
+  for (const width of [320, 390, 768, 1280]) {
     await page.setViewportSize({ width, height: 844 });
+    const toolbar = page.locator('.bookshelf-toolbar');
+    for (const control of [newest, oldest, filter, page.getByRole('button', { name: 'グリッド', exact: true })]) {
+      const frame = await toolbar.boundingBox(); const box = await control.boundingBox();
+      expect(box!.x).toBeGreaterThanOrEqual(frame!.x);
+      expect(box!.x + box!.width).toBeLessThanOrEqual(frame!.x + frame!.width + 1);
+      expect(box!.height).toBeGreaterThanOrEqual(44);
+    }
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
   }
 });

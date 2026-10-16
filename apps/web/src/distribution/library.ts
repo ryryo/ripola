@@ -70,6 +70,7 @@ export interface PublicBookEntry {
   id: string;
   revision: string;
   title: string;
+  updatedAt?: string;
   manifestUrl: string;
   manifestSha256: string;
   manifestBytes: number;
@@ -168,6 +169,7 @@ export function parsePublicLibrary(value: unknown): PublicLibraryManifest {
     }
     return {
       id: book.id, revision: book.revision, title: book.title, manifestUrl: String(book.manifestUrl),
+      ...(typeof book.updatedAt === 'string' && Number.isFinite(Date.parse(book.updatedAt)) ? { updatedAt: book.updatedAt } : {}),
       manifestSha256: book.manifestSha256, manifestBytes: Number(book.manifestBytes), durationSeconds: Number(book.durationSeconds),
       precision: 'sentence' as const, attribution: book.attribution, publicDemo: book.publicDemo,
     };
