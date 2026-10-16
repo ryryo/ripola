@@ -212,7 +212,7 @@ test('旧AACの静的サンプルでmedia時計・倍速・明示seekを保つ',
   expect(clock.absolute).toBeCloseTo(clock.ended ? active.endSeconds : active.startSeconds + Math.min(active.chunk.durationSeconds, clock.local), 1);
   if (clock.ended) expect(clock.local).toBeCloseTo(clock.duration, 1);
   const previous = await page.getByTestId('audio-phrase').getAttribute('data-unit-id');
-  await page.getByRole('button', { name: '一文進む', exact: true }).click();
+  await page.locator('.generation-title h1').click(); await page.keyboard.press('Shift+ArrowRight');
   await expect(page.getByTestId('audio-phrase')).not.toHaveAttribute('data-unit-id', previous!);
   expect(await page.locator('audio').evaluate((media: HTMLAudioElement) => media.paused)).toBe(true);
 });

@@ -1,4 +1,4 @@
-import { Button, Drawer } from '@mantine/core';
+import { Button, Drawer, NativeSelect } from '@mantine/core';
 import { useMediaQuery } from '@mantine/hooks';
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import type { SentenceLocation } from '../sentences';
@@ -42,7 +42,7 @@ function SentencePanel({ entries, current, onJump, chapters }: {
     <div className="sentence-panel-heading"><h2>文を移動</h2><span data-testid="sentence-count">{current + 1} / {entries.length} 文</span></div>
     <p className="navigation-hint">読みたい文を選んで移動できます。</p>
     <div className="sentence-navigation-buttons"><Button variant="light" disabled={current <= 0} onClick={() => onJump(entries[current - 1].target)}>前の文へ移動</Button><Button variant="light" disabled={current >= entries.length - 1} onClick={() => onJump(entries[current + 1].target)}>次の文へ移動</Button></div>
-    {chapters.length > 0 && <label className="chapter-jump">章から移動<select aria-label="章から移動" value="" onChange={event => { if (event.target.value) onJump(Number(event.target.value)); }}><option value="">章を選ぶ</option>{chapters.map(chapter => <option key={chapter.target} value={chapter.target}>第{chapter.title}章</option>)}</select></label>}
+    {chapters.length > 0 && <label className="chapter-jump">章から移動<NativeSelect aria-label="章から移動" value="" onChange={event => { if (event.target.value) onJump(Number(event.target.value)); }}><option value="">章を選ぶ</option>{chapters.map(chapter => <option key={chapter.target} value={chapter.target}>第{chapter.title}章</option>)}</NativeSelect></label>}
     <form className="sentence-jump" onSubmit={event => { event.preventDefault(); submit(); }}><label>文番号<input aria-label="移動する文番号" type="number" min="1" max={entries.length} value={jump} onChange={event => setJump(event.target.value)} placeholder={String(current + 1)} /></label><Button type="submit" variant="light" disabled={!jump || Number(jump) < 1 || Number(jump) > entries.length}>移動</Button></form>
     <div ref={scroll} className="sentence-list" style={{ height: viewport }} role="list" aria-label="文一覧" data-testid="sentence-list" onScroll={event => setScrollTop(event.currentTarget.scrollTop)}>
       <div style={{ height: entries.length * rowHeight, position: 'relative' }}>{entries.slice(first, end).map((entry, index) => <div role="listitem" key={entry.id} style={{ position: 'absolute', top: (first + index) * rowHeight, height: rowHeight, width: '100%' }}>

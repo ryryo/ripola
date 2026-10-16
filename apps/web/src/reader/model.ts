@@ -67,7 +67,6 @@ export interface ReaderSettings {
   fontFamily?: 'system' | 'noto-sans-jp' | 'noto-serif-jp' | 'biz-udpgothic';
   groupTarget?: number;
   groupMinimum?: number;
-  context?: boolean;
   fullscreenProgress?: boolean;
   mode?: 'flash' | 'guide';
   cpm: number;
@@ -78,7 +77,7 @@ export interface ReaderSettings {
 }
 export const DEFAULT_SETTINGS: ReaderSettings = {
   readingPace: 'legacy',
-  settingsVersion: 3, focusedDisplay: { kind: 'phrase' }, documentFontSize: 20, fontFamily: 'system', context: true, mode: 'flash', writingMode: 'horizontal-tb',
+  settingsVersion: 3, focusedDisplay: { kind: 'phrase' }, documentFontSize: 20, fontFamily: 'system', mode: 'flash', writingMode: 'horizontal-tb',
   cpm: 400, fontSize: 56, punctuationPause: true, ruby: true, guide: true, fullscreenProgress: true,
 };
 /** Shared migration for browser preferences and saved documents. */
@@ -90,7 +89,7 @@ export function migrateReaderSettings(value: unknown): ReaderSettings {
   if (integer('cpm', 100, 3000)) settings.cpm = Number(stored.cpm);
   if (integer('fontSize', 24, 96)) settings.fontSize = Number(stored.fontSize);
   if (integer('documentFontSize', 14, 48)) settings.documentFontSize = Number(stored.documentFontSize);
-  for (const key of ['punctuationPause', 'ruby', 'guide', 'context', 'fullscreenProgress'] as const) if (typeof stored[key] === 'boolean') settings[key] = stored[key];
+  for (const key of ['punctuationPause', 'ruby', 'guide', 'fullscreenProgress'] as const) if (typeof stored[key] === 'boolean') settings[key] = stored[key];
   if (isReadingFont(stored.fontFamily)) settings.fontFamily = stored.fontFamily;
   if (stored.writingMode === 'horizontal-tb' || stored.writingMode === 'vertical-rl') settings.writingMode = stored.writingMode;
   if (stored.mode === 'flash' || stored.mode === 'guide') settings.mode = stored.mode;
@@ -106,7 +105,7 @@ export function validReaderSettings(value: unknown): value is ReaderSettings {
   const stored = value as Record<string, unknown>;
   const canonical = migrateReaderSettings(value) as unknown as Record<string, unknown>;
   for (const key of ['cpm', 'fontSize', 'punctuationPause', 'ruby', 'guide']) if (stored[key] !== canonical[key]) return false;
-  for (const key of ['fontFamily', 'writingMode', 'mode', 'readingPace', 'context', 'fullscreenProgress', 'documentFontSize']) if (stored[key] !== undefined && stored[key] !== canonical[key]) return false;
+  for (const key of ['fontFamily', 'writingMode', 'mode', 'readingPace', 'fullscreenProgress', 'documentFontSize']) if (stored[key] !== undefined && stored[key] !== canonical[key]) return false;
   if (stored.settingsVersion !== undefined && stored.settingsVersion !== 2 && stored.settingsVersion !== 3) return false;
   if (stored.focusedDisplay !== undefined) {
     const display = stored.focusedDisplay as { kind?: unknown; maxLines?: unknown } | null;

@@ -16,7 +16,7 @@ export function RubyText({ unit, show, marker, layoutKey }: { unit?: Pick<Readin
   const rubyKey = JSON.stringify(ruby);
   useLayoutEffect(() => {
     const node = element.current; const layer = background.current;
-    const surface = node?.closest<HTMLElement>('.display-set-text, .guide-row');
+    const surface = node?.closest<HTMLElement>('.display-set-text');
     if (!node || !layer || !surface || !active) return;
     const ranges: Range[] = [];
     const walker = document.createTreeWalker(node, NodeFilter.SHOW_TEXT);
@@ -53,5 +53,5 @@ export function RubyText({ unit, show, marker, layoutKey }: { unit?: Pick<Readin
     offset = span.end;
   }
   pieces.push(<span key={`text:${offset}`}>{text.slice(offset)}</span>);
-  return <span ref={element} className="reading-text" data-testid={active ? 'reading-marker' : undefined} data-precision={active ? marker?.precision : undefined}>{pieces}<span ref={background} className="reading-marker-layer" aria-hidden="true" /></span>;
+  return <span ref={element} className="reading-text" data-testid={active ? 'reading-marker' : undefined} data-precision={active ? marker?.precision : undefined} data-marker-start={active ? start + from : undefined} data-marker-end={active ? start + to : undefined}>{pieces}{active && <span ref={background} className="reading-marker-layer" aria-hidden="true" />}</span>;
 }

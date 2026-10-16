@@ -10,6 +10,7 @@ export interface DisplaySetSession {
   source: (position: SourceAnchor) => SetSource | undefined;
   seek: (position: SourceAnchor) => void;
   marker?: () => ReadingMarker | undefined;
+  subscribe?: (listener: () => void) => () => void;
   sourceVersion?: unknown;
 }
 interface Layout { set: DisplaySet; flow: DisplayFlow; start: number; end: number; revision: string; fontSize: number; sourceVersion?: unknown }
@@ -22,6 +23,8 @@ export function DisplaySetReader({ session, lines, fontSize, family, ruby, writi
   const clock = useRef(session); clock.current = session;
   const current = useRef<Layout | undefined>(undefined);
   const [layout, setLayout] = useState<Layout>();
+  const [marker, setMarker] = useState<ReadingMarker>();
+  const painted = useRef<ReadingMarker | undefined>(undefined);
   const vertical = writingMode === 'vertical-rl';
   const gesture = useRef<{ id: string; x: number; y: number; time: number; valid: boolean } | undefined>(undefined);
   const refresh = useRef<() => void>(() => {});
@@ -53,14 +56,16 @@ export function DisplaySetReader({ session, lines, fontSize, family, ruby, writi
       let flow = displayFlow(clock.current.source, position);
       if (!flow) return;
       const next = previous?.revision === revision ? previous.set.next : undefined;
+      let start = 0;
       if (next) {
         const continuation = displayFlow(clock.current.source, next);
-        if (continuation && flowOffset(continuation, position) !== undefined) {
-          // Drivers return whole cue/unit ranges: trim only layout, never timed units.
-          flow = continuation;
+        const from = continuation && flowOffset(continuation, next);
+        const cursor = continuation && flowOffset(continuation, position);
+        if (continuation && from !== undefined && cursor !== undefined && cursor >= from) {
+          // Whole cue/unit ranges can also contain a backward seek before this continuation.
+          flow = continuation; start = from;
         }
       }
-      let start = next && flowOffset(flow, next) !== undefined && flowOffset(flow, position) !== undefined ? flowOffset(flow, next)! : 0;
       probe.style.width = vertical ? 'max-content' : `${slot.clientWidth}px`;
       probe.style.height = vertical ? `${slot.clientHeight}px` : 'max-content';
       const extent = vertical ? slot.clientWidth : slot.clientHeight;
@@ -110,25 +115,33 @@ export function DisplaySetReader({ session, lines, fontSize, family, ruby, writi
       setLayout(current.current);
       slot.scrollTop = 0; slot.scrollLeft = 0;
     };
-    refresh.current = plan;
-    plan();
+    refresh.current = () => {
+      plan();
+      const next = clock.current.marker?.(); const previous = painted.current;
+      if (next?.blockId !== previous?.blockId || next?.start !== previous?.start || next?.end !== previous?.end || next?.precision !== previous?.precision) {
+        painted.current = next; setMarker(next);
+      }
+    };
+    refresh.current();
     const observer = new ResizeObserver(plan); observer.observe(slot);
     return () => { observer.disconnect(); probe.remove(); refresh.current = () => {}; };
   }, [lines, fontSize, family, ruby, writingMode, vertical]);
   useLayoutEffect(() => refresh.current());
+  const subscribe = session.subscribe;
   useEffect(() => {
+    if (subscribe) return subscribe(() => refresh.current());
     if (!playing) return;
     let frame: number;
     const tick = () => { refresh.current(); frame = requestAnimationFrame(tick); };
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
-  }, [playing]);
+  }, [playing, subscribe]);
   const set = layout?.set;
   const slices = layout ? sourceSlices(layout.flow, layout) : [];
   return <div className="display-set-reader" data-testid="display-set-reader" data-writing-mode={writingMode} style={{ '--reading-font': family } as CSSProperties}>
     <div ref={viewport} className="display-set-viewport" aria-label="本文">
       <div className="display-set-text" data-testid="display-set-text" data-block-id={set?.ranges[0]?.blockId} data-source-start={set?.ranges[0]?.start} data-source-end={set?.ranges.at(-1)?.end} data-source-ranges={JSON.stringify(set?.ranges)} data-lines={set?.lines} data-set-id={set?.id} style={{ fontSize: layout?.fontSize ?? fontSize, fontFamily: family, writingMode }}>
-        {slices.map((slice, index) => <Fragment key={`${slice.blockId}:${slice.start}`}>{index > 0 && '\n'}<RubyText unit={slice} show={ruby} marker={clock.current.marker?.()} layoutKey={`${layout?.revision}:${layout?.fontSize}`} /></Fragment>)}
+        {slices.map((slice, index) => <Fragment key={`${slice.blockId}:${slice.start}`}>{index > 0 && '\n'}<RubyText unit={slice} show={ruby} marker={marker} layoutKey={`${layout?.revision}:${layout?.fontSize}`} /></Fragment>)}
       </div>
     </div>
     <button type="button" className="display-set-next" aria-label="次へ" title="次の本文へ" disabled={!set?.next}
@@ -140,6 +153,6 @@ export function DisplaySetReader({ session, lines, fontSize, family, ruby, writi
         if (event.detail > 0 && (!value?.valid || value.id !== current.current?.set.id || performance.now() - value.time > 500 || window.getSelection()?.toString())) return;
         const target = current.current?.set.next;
         if (target) clock.current.seek(target);
-      }}><span>次へ</span><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={vertical ? 'M15 6l-6 6 6 6' : 'M6 9l6 6 6-6'} /></svg></button>
+      }}><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={vertical ? 'M15 6l-6 6 6 6' : 'M6 9l6 6 6-6'} /></svg></button>
   </div>;
 }

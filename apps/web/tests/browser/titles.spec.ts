@@ -1,3 +1,4 @@
+import { readerStage } from './display-controls-helpers';
 import { expect, test } from '@playwright/test';
 test.use({ timezoneId: 'Asia/Tokyo' });
 
@@ -12,7 +13,7 @@ test('blank and whitespace titles use local time, and renaming a saved browser d
   await expect(page.locator('.document-heading h1')).toHaveText('2026/10/06 19:20:30');
   await page.getByRole('button', { name: '1つ進む', exact: true }).click();
   const phrase = await page.getByTestId('current-phrase').innerText();
-  const position = await page.locator('.playback-position-label').innerText();
+  const position = await readerStage(page).getAttribute('data-unit-index');
   await page.getByRole('button', { name: '端末に保存', exact: true }).click();
   await page.getByRole('button', { name: '本の操作', exact: true }).click();
   await page.getByLabel('タイトルを変更', { exact: true }).fill('自作の読書記録');
@@ -20,7 +21,7 @@ test('blank and whitespace titles use local time, and renaming a saved browser d
   await expect(page.locator('.title-status')).toContainText('名前を変更');
   await page.getByRole('button', { name: '閉じる', exact: true }).click();
   await expect(page.locator('.document-heading h1')).toHaveText('自作の読書記録');
-  await expect(page.getByTestId('current-phrase')).toHaveText(phrase); await expect(page.locator('.playback-position-label')).toHaveText(position);
+  await expect(page.getByTestId('current-phrase')).toHaveText(phrase); await expect(readerStage(page)).toHaveAttribute('data-unit-index', position!);
   await page.reload(); await page.getByRole('button', { name: '続きから開く', exact: true }).click();
   await expect(page.locator('.document-heading h1')).toHaveText('自作の読書記録');
   await expect(page.getByTestId('current-phrase')).toHaveText(phrase); await expect(page.getByRole('button', { name: '再生', exact: true })).toBeVisible();
