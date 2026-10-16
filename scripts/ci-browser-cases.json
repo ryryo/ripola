@@ -2760,5 +2760,32 @@
       "audio",
       "layout"
     ]
+  },
+  {
+    "project": "pages-chromium",
+    "file": "pages-smoke.spec.ts",
+    "title": "配布版の続きを読むは保存位置と全幅バーを表示し音声を停止して再開する",
+    "lane": "normal",
+    "domains": [
+      "distribution"
+    ]
+  },
+  {
+    "project": "pages-chromium",
+    "file": "pages-smoke.spec.ts",
+    "title": "配布版の続きを読むは一覧取得の再試行と別タブの保存位置変更に対応する",
+    "lane": "normal",
+    "domains": [
+      "distribution"
+    ]
+  },
+  {
+    "project": "pages-chromium",
+    "file": "pages-smoke.spec.ts",
+    "title": "配布本棚の続きを読むは保存済みの本を優先しサンプル障害時も再開できる",
+    "lane": "normal",
+    "domains": [
+      "distribution"
+    ]
   }
 ]

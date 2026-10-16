@@ -6,7 +6,7 @@
 .bookshelf-progress-percent { margin-inline-start: auto; color: var(--accent-ink); }
 .bookshelf-progress-track { position: absolute; inset: auto 0 0; height: 4px; overflow: hidden; border-radius: 2px; background: var(--line); }
 .bookshelf-progress-track > span { display: block; height: 100%; background: var(--accent); border-radius: inherit; }
-.bookshelf .bookshelf-progress-note { min-width: 0; margin: 0; overflow: hidden; text-overflow: ellipsis; font-size: inherit; line-height: inherit; }
+.bookshelf-progress-note { min-width: 0; margin: 0; overflow: hidden; text-overflow: ellipsis; font-size: inherit; line-height: inherit; }
 .bookshelf-view { display: flex; gap: 4px; padding: 3px; border: 1px solid var(--line); border-radius: var(--radius-control); background: var(--panel); }
 .bookshelf-view .bookshelf-view-button { min-height: 44px; padding-inline: 14px; font-size: 13px; }
 .bookshelf .bookshelf-items { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0; margin: 0; padding: 0; list-style: none; border-top: 1px solid var(--line); }

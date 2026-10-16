@@ -84,7 +84,12 @@ test('トップは保存音声と途中本を3冊まで表示し、1クリック
   await expect(partialCard).toContainText('生成途中');
   await expect(partialCard).toContainText('0分14秒');
   await expect(partialCard).toContainText('0分05秒から再開');
-  expect((await partialCard.boundingBox())!.height).toBeLessThanOrEqual(70);
+  await expect(partialCard.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '35');
+  await expect(section.getByRole('article').filter({ hasText: '保存音声 4' }).getByRole('progressbar')).toHaveAttribute('aria-valuenow', '0');
+  await expect(section).not.toContainText('保存位置なし');
+  expect((await partialCard.boundingBox())!.height).toBeLessThanOrEqual(94);
+  const track = await partialCard.locator('.bookshelf-progress-track').boundingBox();
+  expect(track!.width).toBeCloseTo((await partialCard.boundingBox())!.width, 0);
   await expect(section).not.toContainText('音声がまだない本');
   await expect(section).not.toContainText('除外されるデモ');
   await expect(section.getByRole('link', { name: '本棚ですべて見る' })).toHaveAttribute('href', '/library');
