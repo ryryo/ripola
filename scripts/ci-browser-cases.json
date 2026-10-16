@@ -3330,5 +3330,43 @@
       "audio",
       "layout"
     ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "reading-options.spec.ts",
+    "title": "silent vertical markers cover combined number and punctuation cells with continuous backgrounds",
+    "lane": "related",
+    "domains": [
+      "layout"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "reading-options.spec.ts",
+    "title": "audio vertical markers cover combined number and punctuation cells with continuous backgrounds",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "reading-options.spec.ts",
+    "title": "silent vertical markers cover combined number and punctuation cells with continuous backgrounds",
+    "lane": "related",
+    "domains": [
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "reading-options.spec.ts",
+    "title": "audio vertical markers cover combined number and punctuation cells with continuous backgrounds",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
   }
 ]

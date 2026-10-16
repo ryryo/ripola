@@ -2,6 +2,7 @@ import { useLayoutEffect, useRef, type ReactNode } from 'react';
 import type { ReadingUnit } from '../model';
 import type { ReadingMarker } from '../display-sets';
 import { uprightRuns } from '../vertical-typography';
+import { mergeMarkerRects } from '../marker-rects';
 import './reading-typography.css';
 
 function TypographyText({ text, vertical }: { text: string; vertical: boolean }) {
@@ -32,7 +33,7 @@ export function RubyText({ unit, show, marker, layoutKey, vertical = false }: { 
     const node = element.current; const layer = background.current;
     const surface = node?.closest<HTMLElement>('.display-set-text');
     if (!node || !layer || !surface || !active) return;
-    const ranges: Range[] = [];
+    const ranges: (Range | HTMLElement)[] = [];
     const walker = document.createTreeWalker(node, NodeFilter.SHOW_TEXT);
     let child: Node | null; let offset = 0;
     while ((child = walker.nextNode())) {
@@ -40,13 +41,19 @@ export function RubyText({ unit, show, marker, layoutKey, vertical = false }: { 
       const length = child.textContent?.length ?? 0;
       const begin = Math.max(0, from - offset); const end = Math.min(length, to - offset);
       if (begin < end) {
-        const range = document.createRange(); range.setStart(child, begin); range.setEnd(child, end); ranges.push(range);
+        // A text range reports the narrow horizontal glyphs inside tate-chu-yoko.
+        // Paint its full vertical cell, including when a cue selects only one digit.
+        const combined = vertical ? child.parentElement?.closest<HTMLElement>('.reading-combined') : undefined;
+        if (combined) ranges.push(combined);
+        else {
+          const range = document.createRange(); range.setStart(child, begin); range.setEnd(child, end); ranges.push(range);
+        }
       }
       offset += length;
     }
     const paint = () => {
       const origin = surface.getBoundingClientRect();
-      const rectangles = ranges.flatMap(range => [...range.getClientRects()]).filter(rect => rect.width > .1 && rect.height > .1);
+      const rectangles = mergeMarkerRects(ranges.flatMap(range => [...range.getClientRects()]).map(({ left, top, width, height }) => ({ left, top, width, height })), vertical, Math.max(0, parseFloat(getComputedStyle(surface).letterSpacing) || 0) + .5);
       layer.replaceChildren(...rectangles.map(rect => {
         const box = document.createElement('span');
         box.style.cssText = `left:${rect.left - origin.left - surface.clientLeft + surface.scrollLeft}px;top:${rect.top - origin.top - surface.clientTop + surface.scrollTop}px;width:${rect.width}px;height:${rect.height}px`;

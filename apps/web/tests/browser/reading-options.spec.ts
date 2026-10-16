@@ -1561,6 +1561,76 @@ test('multiline navigation keeps the accepted page while destination audio metad
 });
 
 
+for (const kind of ['silent', 'audio'] as const) {
+  test(`${kind} vertical markers cover combined number and punctuation cells with continuous backgrounds`, async ({ page }) => {
+    test.setTimeout(60000);
+    const sample = '4つの記号!?12月!!７冊を読む。';
+    if (kind === 'audio') await audioFixture(page, 12, sample);
+    else await read(page, sample.repeat(5));
+    await adjustReaderDisplay(page, '本文の向き', 'vertical-rl');
+    await adjustReaderDisplay(page, 'フォントサイズ', '32');
+    await page.getByRole('slider', { name: '表示量', exact: true }).fill('3');
+    const text = page.getByTestId('display-set-text');
+    const inspect = () => text.evaluate(element => {
+      const marker = element.querySelector<HTMLElement>('[data-testid="reading-marker"]')!;
+      const from = Number(marker.dataset.markerStart) - Number(element.dataset.sourceStart);
+      const to = Number(marker.dataset.markerEnd) - Number(element.dataset.sourceStart);
+      const boxes = [...marker.querySelectorAll('.reading-marker-layer>span')].map(box => box.getBoundingClientRect());
+      const walker = document.createTreeWalker(marker, NodeFilter.SHOW_TEXT);
+      let offset = 0, node: Node | null;
+      const cells: { text: string; covered: boolean }[] = [];
+      while ((node = walker.nextNode())) {
+        if (node.parentElement?.closest('rt')) continue;
+        const end = offset + (node.textContent?.length ?? 0);
+        const combined = node.parentElement?.closest('.reading-combined');
+        if (combined && offset < to && end > from) {
+          const rect = combined.getBoundingClientRect();
+          cells.push({ text: node.textContent!, covered: boxes.some(box => box.left <= rect.left + .5 && box.right >= rect.right - .5 && box.top <= rect.top + .5 && box.bottom >= rect.bottom - .5) });
+        }
+        offset = end;
+      }
+      return { cells, overlaps: boxes.some((a, i) => boxes.slice(i + 1).some(b => Math.min(a.right, b.right) - Math.max(a.left, b.left) > .5 && Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top) > .5)),
+        // The initial "4つの" is one continuous rectangle, including the digit's full cell.
+        firstFragment: boxes.filter(box => Math.abs(box.left - boxes[0].left) < .5).length };
+    });
+    const seen = new Set<string>();
+    for (const font of ['noto-sans-jp', 'noto-serif-jp', 'biz-udpgothic', 'system']) {
+      await settings(page);
+      await page.getByLabel('本文の書体', { exact: true }).selectOption(font);
+      await expect(page.locator('.font-status')).toHaveAttribute('data-state', 'ready');
+      await close(page);
+      const actual = await inspect();
+      expect(actual.overlaps).toBe(false);
+      for (const cell of actual.cells) expect(cell.covered, `${font}: ${cell.text}`).toBe(true);
+      if (kind === 'silent') expect(await text.locator('.reading-marker-layer>span').count(), font).toBe(1);
+    }
+    for (const fullscreen of [false, true]) {
+      if (fullscreen) await page.getByRole('button', { name: '全画面で読む', exact: true }).click();
+      if (kind === 'silent' && fullscreen) {
+        await page.getByRole('slider', { name: '読書の再生位置', exact: true }).fill('0');
+      }
+      const first = await inspect();
+      expect(first.cells.some(cell => cell.text === '4')).toBe(true);
+      expect(first.firstFragment).toBe(1);
+      for (let step = 0; step < (kind === 'silent' ? 8 : 1); step++) {
+        const actual = await inspect();
+        expect(actual.overlaps).toBe(false);
+        for (const cell of actual.cells) { expect(cell.covered, cell.text).toBe(true); seen.add(cell.text); }
+        if (kind === 'silent') {
+          if (fullscreen) {
+            const seek = page.getByRole('slider', { name: '読書の再生位置', exact: true });
+            await seek.fill(String(Number(await seek.getAttribute('aria-valuenow')) + 1));
+          } else await page.getByRole('button', { name: '1つ進む', exact: true }).click();
+        }
+      }
+      if (fullscreen) await page.keyboard.press('Escape');
+    }
+    expect([...seen].some(value => /[!?]/.test(value))).toBe(true);
+    expect([...seen].some(value => /\d/.test(value))).toBe(true);
+    await page.screenshot({ path: test.info().outputPath('continuous-vertical-marker.png') });
+  });
+}
+
 test('vertical upright punctuation and short numbers fit mobile phrase, sets and guide without changing source text', async ({ page }) => {
   test.setTimeout(60000);
   await page.setViewportSize({ width: 320, height: 740 });
