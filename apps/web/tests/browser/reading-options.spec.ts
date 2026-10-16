@@ -292,7 +292,7 @@ for (const kind of ['silent', 'audio'] as const) {
         const position = () => kind === 'audio' ? page.getByRole('slider', { name: '音声の再生位置', exact: true }).inputValue() : readerStage(page).getAttribute('data-unit-index');
         const beforePosition = await position();
         for (const highlightColor of ['blue', 'yellow']) {
-          for (const [highlightIntensity, opacity] of [['light', .16], ['normal', .28], ['strong', .42]] as const) {
+          for (const [highlightIntensity, opacity] of [['light', .10], ['normal', .28], ['strong', .42]] as const) {
             await settings(page);
             await color.getByText(highlightColor === 'blue' ? '青系' : '黄色系', { exact: true }).click();
             await page.getByRole('group', { name: 'ハイライトの濃さ', exact: true }).getByRole('button', { name: { light: '薄い', normal: '標準', strong: '濃い' }[highlightIntensity], exact: true }).click();

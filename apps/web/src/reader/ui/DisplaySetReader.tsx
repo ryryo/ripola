@@ -171,7 +171,7 @@ export function DisplaySetReader({ session, lines, fontSize, family, ruby, writi
     '--reading-font': family,
     '--display-line-height': lineHeight,
     '--reading-highlight-color': highlightColor === 'yellow' ? '#f2c94c' : 'var(--mantine-primary-color-filled,#d09b46)',
-    '--reading-highlight-intensity': `${{ light: 16, normal: 28, strong: 42 }[highlightIntensity]}%`,
+    '--reading-highlight-intensity': `${{ light: 10, normal: 28, strong: 42 }[highlightIntensity]}%`,
   } as CSSProperties}>
     <div ref={viewport} className="display-set-viewport" aria-label="本文">
       <div className="display-set-text" data-testid="display-set-text" data-block-id={set?.ranges[0]?.blockId} data-source-start={set?.ranges[0]?.start} data-source-end={set?.ranges.at(-1)?.end} data-source-ranges={JSON.stringify(set?.ranges)} data-lines={set?.lines} data-set-id={set?.id} style={{ fontSize: layout?.fontSize ?? fontSize, fontFamily: family, writingMode }}>
