@@ -163,6 +163,7 @@ test('grouping is a view; Guide and Flash share position, ruby and static text',
   await page.getByLabel('本文を検索').fill('最後'); await page.getByRole('button', { name: '検索して移動' }).click();
   await expect(page.locator('.guide-unit[aria-current="location"]').first()).toContainText('最後');
   await expect(page.getByRole('button', { name: '再生', exact: true })).toBeVisible();
+  await expect(page.getByLabel('コピーする全文')).toHaveCount(0);
   await page.getByText('全文を静止表示・コピー', { exact: true }).click();
   await expect(page.getByLabel('コピーする全文')).toHaveValue(manuscript.replace('<ruby>図書館<rt>としょかん</rt></ruby>', '図書館'));
   await page.getByRole('button', { name: 'フレーズ表示', exact: true }).click();

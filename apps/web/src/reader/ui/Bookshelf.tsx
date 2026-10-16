@@ -1,6 +1,7 @@
 import { Button, NativeSelect } from '@mantine/core';
-import { useEffect, useState, type ReactNode } from 'react';
-import { audioPositionKey, loadAudioPosition, type AudioPosition } from '../audio-position';
+import { useMemo, type ReactNode } from 'react';
+import { audioPositionKey, type AudioPosition } from '../audio-position';
+import { useAudioPositions } from './useAudioPositions';
 import { selectBookshelfBooks, type BookshelfBook, type BookshelfFilter, type BookshelfOptions } from '../bookshelf';
 import './bookshelf.css';
 
@@ -9,20 +10,10 @@ export function bookDurationLabel(seconds: number): string {
   return `${Math.floor(total / 60)}分${String(total % 60).padStart(2, '0')}秒`;
 }
 
-export function Bookshelf<T extends BookshelfBook>({ books, options, onChange, children }: { books: readonly T[]; options: BookshelfOptions; onChange: (options: BookshelfOptions) => void; children: (book: T) => ReactNode }) {
+export function Bookshelf<T extends BookshelfBook>({ books, options, onChange, children }: { books: readonly T[]; options: BookshelfOptions; onChange: (options: BookshelfOptions) => void; children: (book: T, position: AudioPosition | undefined) => ReactNode }) {
   const { view, sort, filter } = options;
-  const [positions, setPositions] = useState<ReadonlyMap<string, AudioPosition>>(new Map());
-  useEffect(() => {
-    const refresh = () => setPositions(new Map(books.map(book => [audioPositionKey(book), loadAudioPosition(book)])));
-    const changed = (event: StorageEvent) => { if (event.key === null || event.key.startsWith('rsvp-audio-position:') && !event.key.endsWith(':source')) refresh(); };
-    const visible = () => { if (!document.hidden) refresh(); };
-    refresh();
-    window.addEventListener('storage', changed);
-    window.addEventListener('pageshow', refresh);
-    document.addEventListener('visibilitychange', visible);
-    return () => { window.removeEventListener('storage', changed); window.removeEventListener('pageshow', refresh); document.removeEventListener('visibilitychange', visible); };
-  }, [books]);
-  const listed = selectBookshelfBooks(books, positions, sort, filter);
+  const positions = useAudioPositions(books);
+  const listed = useMemo(() => selectBookshelfBooks(books, positions, sort, filter), [books, positions, sort, filter]);
   return <section className="bookshelf" aria-label="本棚一覧">
     <div className="bookshelf-toolbar">
       <p className="bookshelf-count" role="status">{listed.length === books.length ? `${books.length}本` : `${listed.length} / ${books.length}本`}</p>
@@ -43,7 +34,7 @@ export function Bookshelf<T extends BookshelfBook>({ books, options, onChange, c
       </div>
     </div>
     {!listed.length && <div className="bookshelf-empty"><p>条件に合う本はありません。</p><Button variant="subtle" onClick={() => onChange({ ...options, filter: 'all' })}>絞り込みを解除</Button></div>}
-    <ul className="library-grid bookshelf-items" data-view={view} aria-label="本の一覧">{listed.map(children)}</ul>
+    <ul className="library-grid bookshelf-items" data-view={view} aria-label="本の一覧">{listed.map(book => children(book, positions.get(audioPositionKey(book))))}</ul>
   </section>;
 }
 

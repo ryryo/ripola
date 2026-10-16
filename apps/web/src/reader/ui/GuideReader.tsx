@@ -15,6 +15,8 @@ export function GuideReader({ blocks, units, currentIndices, playing, ruby, fami
   const [follow, setFollow] = useState(true);
   const [query, setQuery] = useState('');
   const [message, setMessage] = useState('');
+  const [copyOpen, setCopyOpen] = useState(false);
+  const copyText = useMemo(() => copyOpen ? blocks.map(block => block.text).join('\n\n') : '', [blocks, copyOpen]);
   const [measurements, setMeasurements] = useState<Map<string, number>>(() => new Map());
   const lastCurrent = useRef(-1);
   const rows = useMemo(() => {
@@ -144,7 +146,7 @@ export function GuideReader({ blocks, units, currentIndices, playing, ruby, fami
       </GuideScrollAnchor>
     </div>
     <p className="guide-status" role="status">{message || (follow ? '読んでいる位置を追います。' : '自由にスクロールできます。')}</p>
-    <details className="guide-static-text" onToggle={onPause}><summary>全文を静止表示・コピー</summary><textarea aria-label="コピーする全文" value={blocks.map(block => block.text).join('\n\n')} readOnly rows={8} /></details>
+    <details className="guide-static-text" onToggle={event => { setCopyOpen(event.currentTarget.open); onPause(); }}><summary>全文を静止表示・コピー</summary>{copyOpen && <textarea aria-label="コピーする全文" value={copyText} readOnly rows={8} />}</details>
   </div>;
 }
 

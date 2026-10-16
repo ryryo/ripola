@@ -1,4 +1,5 @@
 import { resolveDocumentTitle } from '../../reader/document-title';
+import { LibraryCatalog } from './library-catalog';
 import { setTimeout as pause } from 'node:timers/promises';
 import { inspectAudioPresentation, requireAudioPresentation } from '../../reader/audio-presentation';
 import { DEFAULT_SETTINGS, type ReadingDocument } from '../../reader/model';
@@ -137,6 +138,7 @@ function executionOrder(chunks: Array<{ id: string }>, priority: unknown): strin
 export class GenerationService {
   private readonly interruptedCompressionJobs: string[] = [];
   private readonly disk: LibraryDisk;
+  private readonly catalog: LibraryCatalog;
   private readonly adapters: Partial<Record<SpeechProvider, SpeechAdapter>> & Record<'voicevox' | 'gemini', SpeechAdapter>;
   private readonly activeRequests = new Map<string, AbortController>();
   private readonly running = new Map<string, Promise<void>>();
@@ -144,6 +146,7 @@ export class GenerationService {
   private readonly alignment: AlignmentService;
   constructor(readonly config: GenerationServerConfig, private readonly dependencies: ServiceDependencies = {}) {
     this.disk = new LibraryDisk(config.libraryDir);
+    this.catalog = new LibraryCatalog(this.disk);
     this.adapters = { voicevox: dependencies.voicevox ?? voicevoxAdapter(), gemini: dependencies.gemini ?? geminiAdapter(config.geminiApiKey, config.gateway), ...dependencies.providers };
     this.alignment = new AlignmentService(this.disk, config, { getBook: (bookId, revision) => this.getBook(bookId, revision), getAudio: (key, requested) => this.getAudio(key, requested) }, dependencies.alignment);
     this.initialized = Promise.all([this.recoverInterruptedJobs(), this.alignment.ready]).then(() => {
@@ -671,9 +674,7 @@ export class GenerationService {
   }
   async listLibrary(): Promise<AudioBookSummary[]> {
     await this.ready();
-    const books = await Promise.all((await this.disk.list('books')).map((file) => this.disk.read<AudioBookManifest>(['books', file])));
-    const summaries = await Promise.all(books.filter((book): book is AudioBookManifest => Boolean(book)).map(async book => ({ id: book.id, revision: book.revision, title: await this.displayName(book), updatedAt: book.updatedAt, completedChunks: book.completedChunks, totalChunks: book.totalChunks, durationSeconds: book.durationSeconds, precision: book.precision })));
-    return summaries.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+    return this.catalog.list();
   }
   async getBook(bookId: string, revision?: string): Promise<AudioBookManifest> {
     await this.ready(); requireId(bookId);

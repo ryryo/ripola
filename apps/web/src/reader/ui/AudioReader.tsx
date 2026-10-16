@@ -8,6 +8,7 @@ import { audioSentenceIndexAt, audioSentenceTargets } from '../audio-sentences';
 import { MULTILINE_SPACING, type ReaderSettings, type TextBlock } from '../model';
 import { inspectAudioPresentation, requireAudioPresentation } from '../audio-presentation';
 import { audioPositionKey, loadAudioPosition } from '../audio-position';
+import { notifyAudioPositionChanged } from '../audio-position-store';
 import { ShareLink } from '../../sharing/ShareLink';
 import '../../generation-ui/generation.css';
 import { NavigationLayout } from './NavigationLayout';
@@ -124,6 +125,7 @@ export function AudioReader({ book, onClose, attribution, localTools, demo = fal
     try {
       localStorage.setItem(storageKey, String(seconds));
       if (anchor.current) localStorage.setItem(`${storageKey}:source`, serializePlaybackAnchor(anchor.current));
+      notifyAudioPositionChanged(storageKey);
     } catch { /* Playback remains usable without browser storage. */ }
   }, [storageKey]);
 

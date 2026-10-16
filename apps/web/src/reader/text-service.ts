@@ -42,5 +42,7 @@ export function processText(raw: string, format: 'txt' | 'md' | 'aozora', title:
 }
 
 export function processDraft(draft: DraftDocument, options: ProcessingOptions = {}): Promise<ReadingDocument> {
-  return process({ type: 'draft', draft }, options);
+  // Restored readings also have units; the worker rebuilds them from the draft.
+  const { title, format, rawText, blocks, warnings, pages, provenance } = draft;
+  return process({ type: 'draft', draft: { title, format, rawText, blocks, warnings, pages, provenance } }, options);
 }

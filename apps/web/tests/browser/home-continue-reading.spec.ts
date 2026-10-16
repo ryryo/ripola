@@ -98,12 +98,15 @@ test('トップは保存音声と途中本を3冊まで表示し、1クリック
   expect(requests).toEqual([]);
   const open = partialCard.getByRole('link', { name: `${full.title}の続きを読む`, exact: true });
   expect((await open.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+  // A selected book must not depend on loading the rest of the catalog.
+  await page.route('**/_serverFn/**', route => rpcId(route.request().url()) === rpcIds.listLibrary ? route.fulfill({ status: 503, body: 'catalog unavailable' }) : route.continue());
   await open.focus(); await page.keyboard.press('Enter');
   await expect(page.getByTestId('audio-stage')).toBeVisible();
   expect(new URL(page.url()).searchParams.get('book')).toBe(full.id);
   expect(new URL(page.url()).searchParams.get('revision')).toBe(full.revision);
   await expect.poll(() => page.locator('audio').evaluate((media: HTMLAudioElement) => media.currentTime)).toBeCloseTo(3, 1);
   expect(await page.locator('audio').evaluate((media: HTMLAudioElement) => media.paused)).toBe(true);
+  await page.unroute('**/_serverFn/**');
   await page.getByRole('link', { name: 'Ripola ホーム' }).click();
   await expect(section.locator('article')).toHaveCount(3);
   await expect(page.getByLabel('読む文章', { exact: true })).toBeVisible();
@@ -213,10 +216,11 @@ test('本棚の読書位置はバーで表示し、途中生成・再開・別�
   });
   await partial.getByRole('button', { name: '保存音声を読む', exact: true }).click();
   await expect(page.getByLabel('本棚を読み込み中', { exact: true })).toBeVisible();
-  const refreshed = page.waitForResponse(response => rpcId(response.url()) === rpcIds.listLibrary && response.status() === 200);
+  const catalogRequests: string[] = [];
+  page.on('request', request => { if (rpcId(request.url()) === rpcIds.listLibrary) catalogRequests.push(request.url()); });
   await page.evaluate(key => window.dispatchEvent(new StorageEvent('storage', { key })), `rsvp-audio-position:${full.id}:${full.revision}`);
-  await (await refreshed).finished();
   await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+  expect(catalogRequests).toEqual([]);
   await expect(page.getByRole('button', { name: '保存音声を読む', exact: true })).toHaveCount(0);
   const openedBook = page.waitForResponse(response => rpcId(response.url()) === rpcIds.getBook && response.status() === 200);
   releaseBook();
@@ -232,11 +236,24 @@ test('本棚の読書位置はバーで表示し、途中生成・再開・別�
   await expect(partial).toContainText('生成途中');
   await expect(partial).not.toContainText('読了');
   await page.getByRole('button', { name: 'グリッド', exact: true }).click();
+  const beforePositionChange = catalogRequests.length;
+  await page.evaluate(({ id, revision }) => {
+    const key = `rsvp-audio-position:${id}:${revision}`;
+    localStorage.setItem(key, '7');
+    window.dispatchEvent(new CustomEvent('rsvp-audio-position-changed', { detail: key }));
+    window.dispatchEvent(new StorageEvent('storage', { key: `${key}:source` }));
+  }, { id: full.id, revision: full.revision });
+  await expect(partial.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '50');
+  expect(catalogRequests.length).toBe(beforePositionChange);
   await publish([0, 1, 2]);
   const otherTab = await page.context().newPage();
   await otherTab.goto(`${origin}/library`);
   await otherTab.evaluate(({ id, revision }) => localStorage.setItem(`rsvp-audio-position:${id}:${revision}`, '13'), { id: full.id, revision: full.revision });
   await otherTab.close();
+  // Positions update independently; newly generated audio is discovered on lifecycle refresh.
+  const refreshed = page.waitForResponse(response => rpcId(response.url()) === rpcIds.listLibrary && response.status() === 200);
+  await page.evaluate(() => window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true })));
+  await (await refreshed).finished();
   await expect(partial.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '50');
   await expect(partial).not.toContainText('生成途中');
   await expect(partial).toContainText('0分13秒から再開');

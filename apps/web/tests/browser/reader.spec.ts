@@ -141,6 +141,10 @@ test('横書きテキストPDFの抽出プレビューと元ページ、保存�
   await expect(page.getByRole('status')).toContainText('保存しました');
   await page.reload(); await page.getByRole('button', { name: '続きから開く', exact: true }).click();
   await expect(page.getByTestId('current-phrase')).toBeVisible();
+  // PDF restoration opens its source preview automatically.
+  await expect(page.getByRole('heading', { name: '原文を確認', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: '閉じる', exact: true }).click();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
   await page.getByRole('button', { name: '本の操作', exact: true }).click(); await page.getByRole('button', { name: '原文', exact: true }).click(); await expect(page.getByRole('dialog', { name: '本の操作', exact: true })).toHaveCount(0);
   await expect(page.locator('.pdf-canvas canvas')).toBeVisible();
   expect(errors).toEqual([]);
@@ -179,7 +183,7 @@ test('10万文字を貼り付けてWorkerで処理し、原文のDOMを現在位
   await page.getByRole('button', {name:'変更', exact:true}).click();
   const format = page.getByRole('combobox', { name: '貼り付け形式', exact: true });
   await format.click();
-  await format.press('ArrowDown'); await format.press('ArrowDown'); await format.press('Enter');
+  await page.getByRole('option', { name: 'テキスト', exact: true }).click();
   await expect(format).toHaveValue('テキスト');
   await context.grantPermissions(['clipboard-read', 'clipboard-write']);
   await page.evaluate(value => navigator.clipboard.writeText(value), text);

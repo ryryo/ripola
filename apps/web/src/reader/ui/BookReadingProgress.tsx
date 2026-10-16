@@ -1,20 +1,7 @@
-import { useEffect, useState } from 'react';
-import { audioPositionKey, audioPositionPercent, loadAudioPosition, type AudioPosition } from '../audio-position';
+import { audioPositionPercent, type AudioPosition } from '../audio-position';
 import { bookDurationLabel } from './Bookshelf';
 
-export function BookReadingProgress({ book, incomplete = false, catalogStatus = 'ready' }: { book: { id: string; revision: string; title: string; durationSeconds: number }; incomplete?: boolean; catalogStatus?: 'loading' | 'ready' | 'failed' }) {
-  const [position, setPosition] = useState<AudioPosition>();
-  const key = audioPositionKey(book);
-  useEffect(() => {
-    const refresh = () => setPosition(loadAudioPosition(book));
-    const storage = (event: StorageEvent) => { if (event.key === key || event.key === null) refresh(); };
-    const visible = () => { if (!document.hidden) refresh(); };
-    refresh();
-    window.addEventListener('storage', storage);
-    window.addEventListener('pageshow', refresh);
-    document.addEventListener('visibilitychange', visible);
-    return () => { window.removeEventListener('storage', storage); window.removeEventListener('pageshow', refresh); document.removeEventListener('visibilitychange', visible); };
-  }, [key]);
+export function BookReadingProgress({ book, position, incomplete = false, catalogStatus = 'ready' }: { book: { id: string; revision: string; title: string; durationSeconds: number }; position?: AudioPosition; incomplete?: boolean; catalogStatus?: 'loading' | 'ready' | 'failed' }) {
 
   const seconds = position?.status === 'saved' ? position.seconds : 0;
   const available = Number.isFinite(book.durationSeconds) && book.durationSeconds > 0;
