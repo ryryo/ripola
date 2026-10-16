@@ -8,6 +8,7 @@ test('upright typography preserves source offsets and keeps long numbers intact'
   const runs = uprightRuns(text);
   assert.deepEqual(runs.map(run => [text.slice(run.start, run.end), run.combined]), [['!?', true], ['7', true], ['12', true], ['１２', true], ['！', true], ['??', true], ['!!!', false]]);
   assert.equal(runs[0].start, 2);
+  assert.deepEqual(uprightRuns('1️⃣ 2\uFE0F !\u0301'), []);
 });
 
 test('fallback page boundaries keep combined glyphs together in both directions', () => {
