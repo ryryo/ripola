@@ -45,24 +45,24 @@ async function fixture(page: Page, split: boolean) {
   await expect.poll(() => page.locator('audio').evaluate((audio: HTMLAudioElement) => audio.readyState)).toBeGreaterThan(0);
 }
 
-test('三文が一音声でも前後ボタン・Shift矢印・文一覧は原文の文単位で移動する', async ({ page }, info) => {
+test('三文が一音声でもShift矢印・文一覧は原文の文単位で移動する', async ({ page }, info) => {
   await fixture(page, false);
   const position = page.getByRole('slider', { name: '音声の再生位置', exact: true });
   const source = await page.locator('audio').getAttribute('src');
   await page.locator('audio').evaluate(audio => { audio.dataset.identity = 'same-file'; });
-  await expect(page.getByRole('button', { name: '一文戻る', exact: true })).toBeDisabled();
-  await expect(page.getByRole('button', { name: '一文進む', exact: true })).toBeEnabled();
-  await page.getByRole('button', { name: '一文進む', exact: true }).click();
+  await expect(page.getByRole('button', { name: '一文戻る', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: '一文進む', exact: true })).toHaveCount(0);
+  await page.locator('.generation-title h1').click(); await page.keyboard.press('Shift+ArrowRight');
   await expect.poll(async () => Number(await position.inputValue())).toBeCloseTo(3, 2);
   await expect(page.getByTestId('audio-phrase')).toHaveText('窓を');
-  await expect(page.locator('.playback-position-label')).toContainText('2 / 3 文');
+  await expect(page.getByTestId('audio-stage')).toHaveAttribute('data-sentence-index', '1');
   await page.locator('.generation-title h1').click(); await page.keyboard.press('Shift+ArrowRight');
   await expect.poll(async () => Number(await position.inputValue())).toBeCloseTo(7, 2);
   await expect(page.getByTestId('audio-phrase')).toHaveText('最後です。');
-  await expect(page.getByRole('button', { name: '一文進む', exact: true })).toBeDisabled();
+  await expect(page.getByRole('button', { name: '一文進む', exact: true })).toHaveCount(0);
   await page.keyboard.press('Shift+ArrowLeft');
   await expect.poll(async () => Number(await position.inputValue())).toBeCloseTo(3, 2);
-  await page.getByRole('button', { name: '一文戻る', exact: true }).click();
+  await page.locator('.generation-title h1').click(); await page.keyboard.press('Shift+ArrowLeft');
   await expect.poll(async () => Number(await position.inputValue())).toBeCloseTo(0, 2);
   await page.getByRole('button', { name: '文一覧を開く', exact: true }).click();
   await expect(page.getByTestId('sentence-count')).toContainText('1 / 3 文');
@@ -77,7 +77,7 @@ test('三文が一音声でも前後ボタン・Shift矢印・文一覧は原文
   expect(await page.locator('audio').evaluate((audio: HTMLAudioElement) => audio.paused)).toBe(true);
   await page.reload();
   await expect.poll(async () => Number(await page.getByRole('slider', { name: '音声の再生位置', exact: true }).inputValue())).toBeCloseTo(3, 2);
-  await expect(page.locator('.playback-position-label')).toContainText('2 / 3 文');
+  await expect(page.getByTestId('audio-stage')).toHaveAttribute('data-sentence-index', '1');
 });
 
 test('一文が二音声でも文一覧は一項目で、後半から次の原文文へ移動する', async ({ page }) => {
@@ -85,8 +85,8 @@ test('一文が二音声でも文一覧は一項目で、後半から次の原�
   const position = page.getByRole('slider', { name: '音声の再生位置', exact: true });
   await position.fill('10');
   await expect(page.getByTestId('audio-phrase')).toHaveText('読みます。');
-  await expect(page.locator('.playback-position-label')).toContainText('1 / 2 文');
-  await page.getByRole('button', { name: '一文進む', exact: true }).click();
+  await expect(page.getByTestId('audio-stage')).toHaveAttribute('data-sentence-index', '0');
+  await page.locator('.generation-title h1').click(); await page.keyboard.press('Shift+ArrowRight');
   await expect.poll(async () => Number(await position.inputValue())).toBeCloseTo(12, 2);
   await expect(page.getByTestId('audio-phrase')).toHaveText('次です。');
   await page.getByRole('button', { name: '文一覧を開く', exact: true }).click();

@@ -1,3 +1,4 @@
+import { adjustReaderDisplay, readerStage } from './display-controls-helpers';
 import { createHash } from 'node:crypto';
 import { expect, test, type Page } from '@playwright/test';
 import { chooseTheme } from './theme-helpers';
@@ -90,7 +91,7 @@ test('optional fonts load from the same origin only, keep anchor paused and fit 
   });
   await read(page);
   expect(fonts).toEqual([]);
-  await page.getByRole('button', { name: '原文', exact: true }).click();
+  await page.getByRole('button', { name: '本の操作', exact: true }).click(); await page.getByRole('button', { name: '原文', exact: true }).click(); await expect(page.getByRole('dialog', { name: '本の操作', exact: true })).toHaveCount(0);
   await page.locator('.source-unit').filter({ hasText: '図書館' }).first().click(); await close(page);
   const anchor = await page.getByTestId('current-phrase').innerText();
   for (const id of ['noto-sans-jp', 'noto-serif-jp', 'biz-udpgothic']) {
@@ -101,7 +102,7 @@ test('optional fonts load from the same origin only, keep anchor paused and fit 
     expect(fonts.slice(first).every(url => url.includes(id))).toBe(true);
     expect(fonts.slice(first).every(url => url.includes('400-normal'))).toBe(true);
     for (const size of ['24', '72']) {
-      await page.getByLabel('文字サイズ', { exact: true }).fill(size); await close(page);
+      await adjustReaderDisplay(page, 'フォントサイズ', size); await close(page);
       await expect(page.getByTestId('current-phrase')).toHaveText(anchor);
       await expect(page.getByRole('button', { name: '再生', exact: true })).toBeEnabled();
       const result = await inspectGuides(page, '[data-testid="reader-stage"]');
@@ -151,12 +152,12 @@ test('font failures and stale A→B→system results leave the same anchor pause
 
 test('grouping is a view; Guide and Flash share position, ruby and static text', async ({ page }) => {
   await read(page); await settings(page);
-  await page.getByRole('dialog').getByLabel('一度に表示する量').selectOption('phrase');
+  await adjustReaderDisplay(page, '表示量', '1');
   await close(page);
-  const position = await page.locator('.playback-position-label').innerText();
+  const position = await readerStage(page).getAttribute('data-unit-index');
   await page.getByRole('button', { name: '全文表示', exact: true }).click();
   await expect(page.getByTestId('guide-reader')).toBeVisible();
-  await expect(page.locator('.playback-position-label')).toHaveText(position);
+  await expect(readerStage(page)).toHaveAttribute('data-unit-index', position!);
   await expect(page.locator('.guide-unit rt')).toContainText(['としょかん']);
   await page.getByLabel('本文を検索').fill('最後'); await page.getByRole('button', { name: '検索して移動' }).click();
   await expect(page.locator('.guide-unit[aria-current="location"]').first()).toContainText('最後');
@@ -165,10 +166,9 @@ test('grouping is a view; Guide and Flash share position, ruby and static text',
   await expect(page.getByLabel('コピーする全文')).toHaveValue(manuscript.replace('<ruby>図書館<rt>としょかん</rt></ruby>', '図書館'));
   await page.getByRole('button', { name: 'フレーズ表示', exact: true }).click();
   await expect(page.getByTestId('current-phrase')).toContainText('最後');
-  const context = await page.getByTestId('stopped-context').textContent();
+  await expect(page.getByTestId('stopped-context')).toHaveCount(0);
   await page.getByRole('button', { name: '再生', exact: true }).click();
-  await expect(page.getByTestId('stopped-context')).toBeHidden();
-  expect(await page.getByTestId('stopped-context').textContent()).toBe(context);
+  await expect(page.getByTestId('stopped-context')).toHaveCount(0);
 });
 
 test('Guide bounds long-document DOM; manual scrolling keeps the reading anchor and disables following', async ({ page }) => {
@@ -177,10 +177,10 @@ test('Guide bounds long-document DOM; manual scrolling keeps the reading anchor 
   await read(page, text);
   await page.getByRole('button', { name: '全文表示', exact: true }).click();
   expect(await page.locator('.guide-unit').count()).toBeLessThan(250);
-  const position = await page.locator('.playback-position-label').innerText();
+  const position = await readerStage(page).getAttribute('data-unit-index');
   await page.getByTestId('guide-viewport').hover(); await page.mouse.wheel(0, 5000);
   await expect(page.getByRole('button', { name: '現在位置を追従', exact: true })).toBeVisible();
-  expect(await page.locator('.playback-position-label').innerText()).toBe(position);
+  expect(await readerStage(page).getAttribute('data-unit-index')).toBe(position);
   const scrolled = await page.getByTestId('guide-viewport').evaluate(element => element.scrollTop);
   expect(scrolled).toBeGreaterThan(0);
   expect(await page.locator('.guide-unit').count()).toBeLessThan(250);
@@ -205,7 +205,7 @@ test('shortcuts follow the proposal without stealing native slider/input or comp
   await read(page); await page.locator('.document-heading h1').click();
   await page.keyboard.press('Shift+ArrowRight');
   await expect(page.getByTestId('current-phrase')).toContainText('次に');
-  await page.keyboard.press('Home'); await expect(page.locator('.playback-position-label')).toContainText('1 /');
+  await page.keyboard.press('Home'); await expect(readerStage(page)).toHaveAttribute('data-unit-index', '0');
   const first = await page.getByTestId('current-phrase').innerText();
   await page.keyboard.press('End'); expect(await page.getByTestId('current-phrase').innerText()).not.toBe(first);
   await page.keyboard.press('Home');
@@ -322,7 +322,7 @@ test('audio uses original ±5 seconds across chunks, retains play intent, suppor
   const position = Number(await slider.inputValue()); await page.getByRole('button', { name: '全文表示', exact: true }).click();
   await expect(page.getByTestId('guide-reader')).toBeVisible(); expect(Number(await slider.inputValue())).toBeCloseTo(position, 2);
   await page.getByRole('button', { name: 'フレーズ表示', exact: true }).click(); await settings(page);
-  await page.getByRole('dialog').getByLabel('一度に表示する量').selectOption('phrase'); await page.getByLabel('本文の書体', { exact: true }).selectOption('noto-sans-jp');
+  await adjustReaderDisplay(page, '表示量', '1'); await page.getByLabel('本文の書体', { exact: true }).selectOption('noto-sans-jp');
   await expect(page.locator('.font-status')).toHaveAttribute('data-state', 'ready'); await close(page);
   expect(Number(await slider.inputValue())).toBeCloseTo(position, 2); await expect(page.getByRole('button', { name: '再生', exact: true })).toBeEnabled();
   expect((await inspectGuides(page, '[data-testid="audio-stage"]')).overlap).toBe(false);
@@ -393,7 +393,7 @@ test('audio fullscreen keeps the media clock, remembers rate and shares display 
   await expect(full.locator('.guide-bottom')).toBeVisible();
   await expect(full.locator('.guide-top')).not.toHaveCSS('opacity', '0');
   await expect(full.locator('.guide-bottom')).not.toHaveCSS('opacity', '0');
-  await expect(full.getByTestId('stopped-context')).toBeHidden();
+  await expect(full.getByTestId('stopped-context')).toHaveCount(0);
   await expect(full.locator('.fullscreen-seek')).toBeVisible();
   if (!info.project.name.startsWith('mobile')) {
     await full.locator('.fullscreen-footer').hover();
@@ -410,38 +410,38 @@ test('audio fullscreen keeps the media clock, remembers rate and shares display 
   await page.getByRole('button', { name: '閉じる', exact: true }).click();
   await chooseTheme(page, 'ダーク');
   await page.getByRole('button', { name: '表示設定', exact: true }).click();
-  await page.getByLabel('文字サイズ', { exact: true }).fill('72');
+  await adjustReaderDisplay(page, 'フォントサイズ', '72');
   await close(page);
   await page.reload();
   await expect(page.getByRole('combobox', { name: '音声の速さ', exact: true })).toHaveValue('1.25倍');
   await expect.poll(async () => Number(await page.getByRole('slider', { name: '音声の再生位置', exact: true }).inputValue())).toBeCloseTo(14, 2);
   await settings(page);
   await expect(page.locator('html')).toHaveAttribute('data-mantine-color-scheme', 'dark');
-  await expect(page.getByLabel('文字サイズ', { exact: true })).toHaveValue('72');
+  await expect(page.getByLabel('フォントサイズ', { exact: true })).toHaveValue('72');
   await page.getByRole('button', { name: '表示設定をリセット', exact: true }).click();
-  await expect(page.getByLabel('文字サイズ', { exact: true })).toHaveValue('56');
+  await expect(page.getByLabel('フォントサイズ', { exact: true })).toHaveValue('56');
   await close(page);
   await expect(page.getByRole('combobox', { name: '音声の速さ', exact: true })).toHaveValue('1.25倍');
   await page.goto('/');
   await read(page);
   await settings(page);
-  await expect(page.getByLabel('文字サイズ', { exact: true })).toHaveValue('56');
+  await expect(page.getByLabel('フォントサイズ', { exact: true })).toHaveValue('56');
   await expect(page.locator('html')).toHaveAttribute('data-mantine-color-scheme', 'dark');
 });
 
 test('vertical phrases fit ruby and guides, retain position and restore/reset the writing direction', async ({ page }) => {
   await read(page);
-  await page.getByRole('button', { name: '原文', exact: true }).click();
+  await page.getByRole('button', { name: '本の操作', exact: true }).click(); await page.getByRole('button', { name: '原文', exact: true }).click(); await expect(page.getByRole('dialog', { name: '本の操作', exact: true })).toHaveCount(0);
   await page.locator('.source-unit').filter({ hasText: '図書館' }).first().click(); await close(page);
   const anchor = await page.getByTestId('current-phrase').innerText();
-  const position = await page.locator('.playback-position-label').innerText();
-  await settings(page); await page.getByLabel('本文の向き', { exact: true }).selectOption('vertical-rl');
+  const position = await readerStage(page).getAttribute('data-unit-index');
+  await settings(page); await adjustReaderDisplay(page, '本文の向き', 'vertical-rl');
   await page.getByLabel('本文の書体', { exact: true }).selectOption('noto-serif-jp');
   await expect(page.locator('.font-status')).toHaveAttribute('data-state', 'ready');
   for (const size of ['24', '96']) {
-    await page.getByLabel('文字サイズ', { exact: true }).fill(size); await close(page);
+    await adjustReaderDisplay(page, 'フォントサイズ', size); await close(page);
     await expect(page.getByTestId('current-phrase')).toHaveText(anchor);
-    await expect(page.locator('.playback-position-label')).toHaveText(position);
+    await expect(readerStage(page)).toHaveAttribute('data-unit-index', position!);
     await expect(page.getByTestId('current-phrase')).toHaveCSS('writing-mode', 'vertical-rl');
     await expect.poll(() => verticalGlyphsFit(page, 'reader-stage')).toBe(true);
     await settings(page);
@@ -461,9 +461,9 @@ test('vertical phrases fit ruby and guides, retain position and restore/reset th
   await expect(page.getByTestId('current-phrase')).toHaveText(anchor);
   await expect(page.getByTestId('current-phrase')).toHaveCSS('writing-mode', 'horizontal-tb');
   await settings(page);
-  await page.getByLabel('本文の向き', { exact: true }).selectOption('vertical-rl');
-  await page.getByRole('dialog').getByLabel('一度に表示する量').selectOption('phrase');
-  await page.getByLabel('文字サイズ', { exact: true }).fill('96'); await close(page);
+  await adjustReaderDisplay(page, '本文の向き', 'vertical-rl');
+  await adjustReaderDisplay(page, '表示量', '1');
+  await adjustReaderDisplay(page, 'フォントサイズ', '96'); await close(page);
   await expect.poll(() => verticalGlyphsFit(page, 'reader-stage')).toBe(true);
   await page.getByLabel('読む速さ（字/分）', { exact: true }).fill('100');
   await page.getByRole('button', { name: '全画面で読む', exact: true }).click();
@@ -502,7 +502,7 @@ async function verticalGlyphsFit(page: Page, stage: string) {
 test('vertical Guide virtualizes right-to-left columns, follows search and preserves the anchor on manual scroll', async ({ page }) => {
   const text = '静かな<ruby>図書館<rt>としょかん</rt></ruby>で記録を読む。'.repeat(14) + '現在位置の目印です。' + '続きをゆっくり読む。'.repeat(25) + '\n\n' + '朝に本を読み、原文を確かめる。\n\n'.repeat(1200) + '末尾の標識です。';
   await read(page, text); await settings(page);
-  await page.getByLabel('本文の向き', { exact: true }).selectOption('vertical-rl'); await close(page);
+  await adjustReaderDisplay(page, '本文の向き', 'vertical-rl'); await close(page);
   await page.getByRole('button', { name: /^(Guide全文|全文表示)$/ }).click();
   const viewport = page.getByTestId('guide-viewport');
   await expect(viewport).toHaveCSS('writing-mode', 'vertical-rl');
@@ -519,12 +519,12 @@ test('vertical Guide virtualizes right-to-left columns, follows search and prese
     })).toBe(true);
     expect(await page.locator('.guide-unit').count()).toBeLessThan(250);
   }
-  const position = await page.locator('.playback-position-label').innerText();
+  const position = await readerStage(page).getAttribute('data-unit-index');
   const before = await viewport.evaluate(element => element.scrollLeft);
   await page.getByTestId('guide-viewport').hover(); await page.mouse.wheel(0, -2000);
   await expect(page.getByRole('button', { name: '現在位置を追従', exact: true })).toBeVisible();
   await expect.poll(() => viewport.evaluate(element => element.scrollLeft)).toBeGreaterThan(before);
-  await expect(page.locator('.playback-position-label')).toHaveText(position);
+  await expect(readerStage(page)).toHaveAttribute('data-unit-index', position!);
   await page.getByRole('button', { name: '現在位置を追従', exact: true }).click();
   await expect.poll(() => viewport.evaluate(element => {
     const target = element.querySelector('.guide-unit[aria-current="location"]');
@@ -548,7 +548,7 @@ test('audio vertical layout keeps timing, works fullscreen and restores directio
   await audioFixture(page, 60);
   const slider = page.getByRole('slider', { name: '音声の再生位置', exact: true });
   await slider.fill('6');
-  await settings(page); await page.getByLabel('本文の向き', { exact: true }).selectOption('vertical-rl'); await close(page);
+  await settings(page); await adjustReaderDisplay(page, '本文の向き', 'vertical-rl'); await close(page);
   await expect(page.getByTestId('audio-sentence')).toHaveCSS('writing-mode', 'vertical-rl');
   await expect(page.locator('.audio-sentence rt')).toHaveText('としょかん');
   expect(Number(await slider.inputValue())).toBeCloseTo(6, 2);
@@ -583,7 +583,7 @@ test('audio vertical layout keeps timing, works fullscreen and restores directio
   await expect(full.locator('.guide-bottom')).toHaveCSS('opacity', '0');
   await full.getByTestId('audio-phrase').click();
   await full.getByRole('button', { name: '全画面を終了', exact: true }).click();
-  await settings(page); await page.getByLabel('本文の向き', { exact: true }).selectOption('horizontal-tb'); await close(page);
+  await settings(page); await adjustReaderDisplay(page, '本文の向き', 'horizontal-tb'); await close(page);
   await expect(page.getByTestId('audio-sentence')).toHaveCSS('writing-mode', 'horizontal-tb');
 });
 
@@ -620,7 +620,7 @@ test('黙読ペース評価は同じ速度で比較でき、停止・seek・下�
   await expect(page.getByTestId('current-phrase')).toHaveText(position);
   await page.locator('.document-heading h1').click(); await page.keyboard.press('Home');
   await expect(page.getByTestId('current-phrase')).toContainText('あいうえ');
-  await page.getByRole('button', { name: '原文', exact: true }).click();
+  await page.getByRole('button', { name: '本の操作', exact: true }).click(); await page.getByRole('button', { name: '原文', exact: true }).click(); await expect(page.getByRole('dialog', { name: '本の操作', exact: true })).toHaveCount(0);
   await page.locator('.source-unit').filter({ hasText: '1234' }).first().click(); await close(page);
   await expect(page.getByTestId('current-phrase')).toContainText('1234');
   expect(await fraction()).toBeGreaterThan(0);
@@ -679,13 +679,14 @@ for (const kind of ['silent', 'audio'] as const) {
     await expect(phrase).toHaveText(anchor!);
     await toolbar.getByRole('button', { name: '表示設定', exact: true }).click();
     const appearance = page.getByRole('dialog');
+    for (const name of ['本文の向き', '表示量', 'フォントサイズ', '停止時に前後の文脈を表示']) await expect(appearance.getByLabel(name, { exact: true })).toHaveCount(0);
     await appearance.getByRole('switch', { name: 'ルビを表示', exact: true }).uncheck();
     await appearance.getByRole('switch', { name: '全画面で進行バーを表示', exact: true }).uncheck();
-    await expect(appearance.getByLabel('文字サイズ', { exact: true })).toHaveValue('56');
+    await expect(page.getByLabel('フォントサイズ', { exact: true })).toHaveValue('56');
     await expect(appearance.getByLabel('タイトルを変更', { exact: true })).toHaveCount(0);
     await expect(appearance.getByRole('button', { name: '保存を削除', exact: true })).toHaveCount(0);
     await expect(appearance.getByRole('switch', { name: '句読点で間をとる', exact: true })).toHaveCount(0);
-    await appearance.getByLabel('文字サイズ', { exact: true }).fill('96');
+    await adjustReaderDisplay(page, 'フォントサイズ', '96');
     await close(page);
     await toolbar.getByRole('button', { name: '表示設定', exact: true }).click();
     await expect(appearance.getByRole('switch', { name: 'ルビを表示', exact: true })).not.toBeChecked();
@@ -711,17 +712,17 @@ for (const kind of ['silent', 'audio'] as const) {
       return Math.abs((frame.left + frame.right) / 2 - (play.left + play.right) / 2);
     })).toBeLessThan(1);
     if (kind === 'audio') {
-      await expect(page.getByRole('group', { name: '文の先頭へ移動', exact: true }).getByRole('button', { name: '一文進む', exact: true })).toBeVisible();
+      await expect(page.getByRole('group', { name: '文の先頭へ移動', exact: true })).toHaveCount(0);
+      await expect(page.getByRole('slider', { name: '表示量', exact: true })).toBeVisible();
+      await expect(page.getByRole('slider', { name: 'フォントサイズ', exact: true })).toBeVisible();
       await expect(page.getByRole('group', { name: '文の中の短い区切りへ移動', exact: true })).toHaveCount(0);
     }
-    const context = page.getByTestId('stopped-context');
-    const next = context.getByRole('button', { name: /^次の文へ：/ });
-    const sentence = (await next.getAttribute('aria-label'))!.replace('次の文へ：', '');
-    const label = await page.locator('.playback-position-label').textContent();
-    await next.click();
-    await expect(page.locator('.playback-position-label')).not.toHaveText(label!);
-    await expect(context.getByRole('button', { name: /^前の文/ })).toBeEnabled();
-    expect(sentence).toContain((await phrase.textContent())!);
+    await expect(page.getByTestId('stopped-context')).toHaveCount(0);
+    await expect(page.locator('.playback-position-label')).toHaveCount(0);
+    const unit = await readerStage(page).getAttribute('data-unit-index');
+    await page.locator('.reader-book-heading h1').click();
+    await page.keyboard.press('Shift+ArrowRight');
+    await expect(readerStage(page)).not.toHaveAttribute('data-unit-index', unit!);
     await page.getByRole('button', { name: '再生', exact: true }).click();
     await page.getByRole('button', { name: '本の操作', exact: true }).click();
     await expect(page.getByRole('dialog').getByRole('button', { name: '先頭へ戻る', exact: true })).toBeVisible();
@@ -738,7 +739,7 @@ test('vertical fullscreen touch scrolling keeps visible text stable across virtu
   test.setTimeout(90000);
   const text = Array.from({ length: 150 }, (_, index) => `第${index + 1}段落です。` + '静かな図書館で記録を読み進めます。窓の向こうに青い空が広がっています。'.repeat(2 + index % 7)).join('\n\n');
   await read(page, text);
-  await settings(page); await page.getByLabel('本文の向き', { exact: true }).selectOption('vertical-rl'); await close(page);
+  await settings(page); await adjustReaderDisplay(page, '本文の向き', 'vertical-rl'); await close(page);
   await page.getByRole('button', { name: '全文表示', exact: true }).click();
   await page.evaluate(() => { Element.prototype.requestFullscreen = () => Promise.reject(new Error('mobile fallback')); });
   await page.getByRole('button', { name: '全画面で読む', exact: true }).click();
@@ -751,7 +752,7 @@ test('vertical fullscreen touch scrolling keeps visible text stable across virtu
   await full.getByLabel('本文を検索', { exact: true }).fill('第80段落');
   await full.getByRole('button', { name: '検索して移動', exact: true }).click();
   await expect.poll(visibleCurrent).toBe(true);
-  const position = await full.locator('.playback-position-label').innerText();
+  const position = await readerStage(page).getAttribute('data-unit-index');
   await viewport.evaluate(element => {
     const state = { running: true, direction: -1, samples: 0, reversals: [] as number[], anchor: undefined as { node: Element; fragment: number; right: number } | undefined };
     const target = window as typeof window & { guideSwipe: typeof state }; target.guideSwipe = state;
@@ -812,7 +813,7 @@ test('vertical fullscreen touch scrolling keeps visible text stable across virtu
   expect(result.samples).toBeGreaterThan(50);
   expect(result.reversals).toEqual([]);
   await expect(full).toHaveAttribute('data-playing', 'false');
-  await expect(full.locator('.playback-position-label')).toHaveText(position);
+  await expect(readerStage(page)).toHaveAttribute('data-unit-index', position!);
   await expect(full.getByRole('button', { name: '現在位置を追従', exact: true })).toBeVisible();
   expect(await full.locator('.guide-unit').count()).toBeLessThan(250);
   await full.getByRole('button', { name: '現在位置を追従', exact: true }).click();
@@ -835,11 +836,11 @@ test('multiline sets cover paragraph remainders and fill every requested amount 
   const paragraph = '朝の静かな図書館で、新しい本を開いて読み始めます。窓の向こうには青い空が広がり、ゆっくり流れる雲を眺めながらページをめくります。知らなかった世界に出会い、言葉の意味を確かめていきます。';
   const paragraphs = [paragraph, '次の短い段落です。', paragraph];
   await page.setViewportSize({ width: 390, height: 844 }); await read(page, paragraphs.join('\n\n'));
-  await settings(page); await page.getByLabel('文字サイズ', { exact: true }).fill('56'); await close(page);
-  const amount = page.locator('.reader-display-toolbar').getByLabel('一度に表示する量');
+  await settings(page); await adjustReaderDisplay(page, 'フォントサイズ', '56'); await close(page);
+  const amount = page.getByRole('slider', { name: '表示量', exact: true });
   const visible = page.getByTestId('display-set-text');
   await expect(amount.getByRole('option', { name: '1文', exact: true })).toHaveCount(1);
-  await amount.selectOption('2');
+  await amount.fill('2');
   const collected = new Map<string, string>(); const ends = new Map<string, number>();
   for (let i = 0; i < 50; i++) {
     const ranges = JSON.parse((await visible.getAttribute('data-source-ranges'))!) as { blockId: string; start: number; end: number }[];
@@ -854,20 +855,20 @@ test('multiline sets cover paragraph remainders and fill every requested amount 
     if (test.info().project.use.hasTouch) await next.tap(); else await next.click(); await expect(visible).not.toHaveAttribute('data-set-id', id!);
   }
   expect([...collected.values()]).toEqual(paragraphs);
-  await amount.selectOption('phrase'); await expect(page.getByTestId('current-phrase')).toBeVisible();
+  await amount.fill('1'); await expect(page.getByTestId('current-phrase')).toBeVisible();
 });
 
 test('multiline requested rows determine normal and fullscreen layout instead of being a loose upper bound', async ({ page }) => {
   test.setTimeout(120000);
   await read(page, Array.from({ length: 100 }, (_, i) => i % 2 ? '短い段落も続けて表示します。' : '朝の静かな<ruby>図書館<rt>としょかん</rt></ruby>で新しい本を開き、窓辺で文章の意味をゆっくり確かめながら読み進めます。'.repeat(5)).join('\n\n'));
-  await settings(page); await page.getByLabel('文字サイズ', { exact: true }).fill('96'); await close(page);
-  const amount = page.locator('.reader-display-toolbar').getByLabel('一度に表示する量');
+  await settings(page); await adjustReaderDisplay(page, 'フォントサイズ', '96'); await close(page);
+  const amount = page.getByRole('slider', { name: '表示量', exact: true });
   for (const size of [{ width: 390, height: 844 }, { width: 844, height: 390 }]) {
     await page.setViewportSize(size);
     for (const mode of ['horizontal-tb', 'vertical-rl']) {
-      await settings(page); await page.getByLabel('本文の向き').selectOption(mode); await close(page);
+      await settings(page); await adjustReaderDisplay(page, '本文の向き', mode); await close(page);
       for (let rows = 2; rows <= 10; rows++) {
-        await amount.selectOption(String(rows));
+        await amount.fill(String(rows));
         for (const fullscreen of [false, true]) {
           if (fullscreen) await page.getByRole('button', { name: '全画面で読む', exact: true }).click();
           const visible = page.getByTestId('display-set-text');
@@ -886,30 +887,39 @@ test('multiline requested rows determine normal and fullscreen layout instead of
             const rect = element.getBoundingClientRect(); const slot = element.parentElement!.getBoundingClientRect();
             const stage = element.closest('section')!;
             const status = stage.querySelector('.stage-topline')!.getBoundingClientRect();
-            const next = stage.querySelector('.display-set-next')!.getBoundingClientRect();
+            const nextButton = stage.querySelector('.display-set-next')!;
+            const next = nextButton.getBoundingClientRect();
+            const nextStyle = getComputedStyle(nextButton);
             const enter = stage.querySelector('.fullscreen-enter')?.getBoundingClientRect();
             const intersects = (a: DOMRect, b: DOMRect) => a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
-            return { next: { width: next.width, height: next.height, after: vertical ? next.right <= slot.left : next.top >= slot.bottom, centered: vertical ? Math.abs((next.top + next.bottom - slot.top - slot.bottom) / 2) < 1 : Math.abs((next.left + next.right - slot.left - slot.right) / 2) < 1, overlapsText: intersects(next, rect), overlapsEnter: Boolean(enter && intersects(next, enter)) }, belowStatus: rect.top >= status.bottom - 1, bounds: [rect.x, rect.y, rect.width, rect.height], slot: [slot.x, slot.y, slot.width, slot.height], rows: bands.length, inside: rect.left >= slot.left - 1 && rect.right <= slot.right + 1 && rect.top >= slot.top - 1 && rect.bottom <= slot.bottom + 1, font };
+            return { next: { text: nextButton.textContent?.trim(), icon: Boolean(nextButton.querySelector('svg')), border: nextStyle.borderTopWidth, background: nextStyle.backgroundColor, width: next.width, height: next.height, after: vertical ? next.right <= slot.left : next.top >= slot.bottom, centered: vertical ? Math.abs((next.top + next.bottom - slot.top - slot.bottom) / 2) < 1 : Math.abs((next.left + next.right - slot.left - slot.right) / 2) < 1, overlapsText: intersects(next, rect), overlapsEnter: Boolean(enter && intersects(next, enter)) }, stageHeight: stage.getBoundingClientRect().height, belowStatus: rect.top >= status.bottom - 1, bounds: [rect.x, rect.y, rect.width, rect.height], slot: [slot.x, slot.y, slot.width, slot.height], rows: bands.length, inside: rect.left >= slot.left - 1 && rect.right <= slot.right + 1 && rect.top >= slot.top - 1 && rect.bottom <= slot.bottom + 1, font };
           }, mode === 'vertical-rl');
           expect(actual.rows, JSON.stringify({ size, mode, rows, fullscreen, actual })).toBe(rows); expect(actual.inside, JSON.stringify({ size, mode, rows, fullscreen, actual })).toBe(true); expect(actual.font).toBeLessThanOrEqual(96); expect(actual.belowStatus).toBe(true);
           expect(actual.next.after).toBe(true); expect(actual.next.centered).toBe(true);
+          expect(actual.next.text).toBe(''); expect(actual.next.icon).toBe(true);
+          expect(actual.next.border).toBe('0px'); expect(actual.next.background).toBe('rgba(0, 0, 0, 0)');
           expect(actual.next.width).toBeGreaterThanOrEqual(44); expect(actual.next.height).toBeGreaterThanOrEqual(44);
           expect(actual.next.width).toBeLessThan(150); expect(actual.next.overlapsText).toBe(false); expect(actual.next.overlapsEnter).toBe(false);
+          if (!fullscreen && mode === 'vertical-rl') expect(actual.stageHeight).toBeGreaterThanOrEqual(460);
+          if (fullscreen) expect(actual.stageHeight).toBeCloseTo(size.height, 0);
           if (fullscreen) await page.getByRole('button', { name: '全画面を終了', exact: true }).click();
         }
       }
     }
   }
+  await page.getByRole('button', { name: '全文表示', exact: true }).click();
+  await expect(page.getByTestId('guide-reader')).toBeVisible();
+  expect(await readerStage(page).evaluate(element => parseFloat(getComputedStyle(element).minHeight))).toBeLessThan(460);
 });
 
 test('multiline mobile portrait and landscape keep ruby, text selection and fullscreen pause controls separate from advance', async ({ page }) => {
   await read(page, '朝に<ruby>図書館<rt>としょかん</rt></ruby>を訪ね、静かな窓辺で新しい本を開きます。知らなかった世界に出会い、次の頁の言葉を確かめます。');
-  await settings(page); await page.getByLabel('文字サイズ', { exact: true }).fill('32'); await close(page);
-  await page.locator('.reader-display-toolbar').getByLabel('一度に表示する量').selectOption('3');
+  await settings(page); await adjustReaderDisplay(page, 'フォントサイズ', '32'); await close(page);
+  await page.getByRole('slider', { name: '表示量', exact: true }).fill('3');
   for (const size of [{ width: 390, height: 844 }, { width: 844, height: 390 }]) {
     await page.setViewportSize(size);
     for (const mode of ['horizontal-tb', 'vertical-rl']) {
-      await settings(page); await page.getByLabel('本文の向き').selectOption(mode); await close(page);
+      await settings(page); await adjustReaderDisplay(page, '本文の向き', mode); await close(page);
       await page.getByRole('button', { name: '全画面で読む', exact: true }).click();
       const full = page.locator('.fullscreen-reader[data-fullscreen=true]');
       const text = full.getByTestId('display-set-text');
@@ -938,8 +948,8 @@ test('multiline mobile portrait and landscape keep ruby, text selection and full
 
 test('multiline audio markers follow original cues and advance seeks media while preserving play intent and rate', async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 740 }); await audioFixture(page, 12, true);
-  await settings(page); await page.getByLabel('文字サイズ', { exact: true }).fill('72'); await close(page);
-  await page.locator('.reader-display-toolbar').getByLabel('一度に表示する量').selectOption('2');
+  await settings(page); await adjustReaderDisplay(page, 'フォントサイズ', '72'); await close(page);
+  await page.getByRole('slider', { name: '表示量', exact: true }).fill('2');
   const text = page.getByTestId('display-set-text'); const audio = page.locator('audio');
   await expect(text.getByTestId('reading-marker')).toHaveAttribute('data-precision', 'spoken');
   const initialSource = await audio.getAttribute('src');
@@ -968,7 +978,7 @@ test('multiline long words advance automatically with no scrolling and tapping r
   await page.setViewportSize({ width: 320, height: 740 });
   const text = 'https://example.com/abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz';
   await read(page, text);
-  await page.locator('.reader-display-toolbar').getByLabel('一度に表示する量').selectOption('2');
+  await page.getByRole('slider', { name: '表示量', exact: true }).fill('2');
   const visible = page.getByTestId('display-set-text');
   const first = await visible.getAttribute('data-set-id');
   const end = Number(await visible.getAttribute('data-source-end'));
@@ -987,8 +997,8 @@ test('multiline long words advance automatically with no scrolling and tapping r
 test('multiline reduced ruby still respects two actual lines and full text remembers a separate font size', async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 740 });
   await read(page, '<ruby>国際情報通信技術研究開発機構<rt>こくさいじょうほうつうしんぎじゅつけんきゅうかいはつきこう</rt></ruby>で新しい本を開いて文章の意味を確かめます。次の頁もゆっくり読み進めていきます。');
-  await settings(page); await page.getByLabel('文字サイズ', { exact: true }).fill('96'); await close(page);
-  await page.locator('.reader-display-toolbar').getByLabel('一度に表示する量').selectOption('2');
+  await settings(page); await adjustReaderDisplay(page, 'フォントサイズ', '96'); await close(page);
+  await page.getByRole('slider', { name: '表示量', exact: true }).fill('2');
   const actual = await page.getByTestId('display-set-text').evaluate(element => {
     const size = parseFloat(getComputedStyle(element).fontSize); const bands: number[] = [];
     const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT); let node: Node | null;
@@ -1001,16 +1011,16 @@ test('multiline reduced ruby still respects two actual lines and full text remem
   });
   expect(actual.size).toBeLessThan(96); expect(actual.lines).toBeLessThanOrEqual(2);
   await page.getByRole('button', { name: '全文表示', exact: true }).click();
-  await settings(page); await page.getByLabel('文字サイズ', { exact: true }).fill('28'); await close(page);
+  await settings(page); await adjustReaderDisplay(page, 'フォントサイズ', '28'); await close(page);
   await expect(page.locator('.guide-row').first()).toHaveCSS('font-size', '28px');
   await page.getByRole('button', { name: 'フレーズ表示', exact: true }).click();
-  await settings(page); await expect(page.getByLabel('文字サイズ', { exact: true })).toHaveValue('96'); await close(page);
+  await settings(page); await expect(page.getByLabel('フォントサイズ', { exact: true })).toHaveValue('96'); await close(page);
 });
 
 test('multiline paused audio advances across fractional cue and internal subdivision boundaries', async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 740 }); await audioFixture(page, 12, true, true);
-  await settings(page); await page.getByLabel('文字サイズ', { exact: true }).fill('72'); await close(page);
-  await page.locator('.reader-display-toolbar').getByLabel('一度に表示する量').selectOption('2');
+  await settings(page); await adjustReaderDisplay(page, 'フォントサイズ', '72'); await close(page);
+  await page.getByRole('slider', { name: '表示量', exact: true }).fill('2');
   const text = page.getByTestId('display-set-text');
   for (let i = 0; i < 8; i++) {
     const end = Number(await text.getAttribute('data-source-end'));
@@ -1024,7 +1034,7 @@ test('multiline paused audio advances across fractional cue and internal subdivi
 
 test('audio highlight changes keep glyph positions fixed and remain visible between speech cues', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 }); await audioFixture(page, 12, true);
-  await page.locator('.reader-display-toolbar').getByLabel('一度に表示する量').selectOption('10');
+  await page.getByRole('slider', { name: '表示量', exact: true }).fill('10');
   const text = page.getByTestId('display-set-text');
   const positions = () => text.evaluate(element => {
     const result: number[][] = []; const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT); let node: Node | null;
@@ -1038,7 +1048,7 @@ test('audio highlight changes keep glyph positions fixed and remain visible betw
     return result;
   });
   for (const mode of ['horizontal-tb', 'vertical-rl']) {
-    await settings(page); await page.getByLabel('本文の向き').selectOption(mode); await close(page);
+    await settings(page); await adjustReaderDisplay(page, '本文の向き', mode); await close(page);
     await page.getByRole('slider', { name: '音声の再生位置', exact: true }).fill('0');
     const before = await positions(); const id = await text.getAttribute('data-set-id');
     await text.evaluate(element => {
@@ -1062,23 +1072,23 @@ test('audio highlight changes keep glyph positions fixed and remain visible betw
   for (const font of ['noto-sans-jp', 'system']) {
     await settings(page); await page.getByLabel('本文の書体', { exact: true }).selectOption(font);
     await expect(page.locator('.font-status')).toHaveAttribute('data-state', 'ready'); await close(page);
-    const geometry = await page.getByTestId('reading-marker').first().evaluate(element => {
-      const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT); let node: Node | null;
-      const expected: DOMRect[] = [];
-      while ((node = walker.nextNode())) {
-        if (node.parentElement?.closest('rt')) continue;
-        const range = document.createRange(); range.selectNodeContents(node); expected.push(...range.getClientRects());
-      }
-      const actual = [...element.querySelectorAll('.reading-marker-layer>span')].map(box => box.getBoundingClientRect());
-      return { count: actual.length, error: Math.max(...actual.flatMap((rect, index) => ['x', 'y', 'width', 'height'].map(key => Math.abs(rect[key as keyof DOMRect] as number - (expected[index]?.[key as keyof DOMRect] as number ?? Infinity))))) };
+    await expect(page.getByTestId('reading-marker')).toHaveCount(0);
+    const active = page.locator('.guide-unit.active').first();
+    await expect(active).toBeVisible();
+    const style = await active.evaluate(element => {
+      const style = getComputedStyle(element);
+      return { background: style.backgroundColor, highlight: style.getPropertyValue('--guide-active').trim(), shadow: style.boxShadow };
     });
-    expect(geometry.count).toBeGreaterThan(0); expect(geometry.error).toBeLessThan(.1);
+    expect(style.highlight).not.toBe('');
+    expect(style.background).not.toBe('rgba(0, 0, 0, 0)');
+    expect(style.shadow).toContain(style.background);
   }
 });
 
 test('five-times audio retains a painted highlight through cue gaps and display page changes', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 }); await audioFixture(page, 12, true, false, true);
-  await page.locator('.reader-display-toolbar').getByLabel('一度に表示する量').selectOption('2');
+  await page.getByRole('slider', { name: '表示量', exact: true }).fill('2');
+  await page.getByRole('slider', { name: 'フォントサイズ', exact: true }).fill('96');
   await page.getByRole('combobox', { name: '音声の速さ', exact: true }).click();
   await page.getByRole('option', { name: '5倍', exact: true }).click();
   await page.getByRole('button', { name: '再生', exact: true }).click();
@@ -1102,7 +1112,95 @@ test('five-times audio retains a painted highlight through cue gaps and display 
     requestAnimationFrame(tick);
   });
   await expect.poll(() => page.evaluate(() => (window as typeof window & { markerFrames: { total: number } }).markerFrames.total), { timeout: 10000 }).toBeGreaterThan(190);
+  await expect.poll(() => page.evaluate(() => (window as typeof window & { markerFrames: { pages: string[] } }).markerFrames.pages.length), { timeout: 10000 }).toBeGreaterThan(2);
   await page.getByRole('button', { name: '一時停止', exact: true }).click();
   const frames = await page.evaluate(() => (window as typeof window & { markerFrames: { total: number; empty: number; pages: string[] } }).markerFrames);
   expect(frames.empty).toBe(0); expect(frames.pages.length).toBeGreaterThan(2);
+});
+
+for (const kind of ['silent', 'audio'] as const) test(`${kind} reader uses display sliders below playback and centers the unframed mode switch`, async ({ page }) => {
+  if (kind === 'silent') await read(page, manuscript.repeat(20)); else await audioFixture(page, 60, true);
+  const player = page.getByRole('region', { name: '再生操作', exact: true });
+  const amount = page.getByRole('slider', { name: '表示量', exact: true });
+  const size = page.getByRole('slider', { name: 'フォントサイズ', exact: true });
+  const direction = player.getByRole('combobox', { name: '本文の向き', exact: true });
+  await expect(direction).toBeVisible();
+  await direction.selectOption('vertical-rl');
+  await expect(page.getByTestId(kind === 'audio' ? 'audio-phrase' : 'current-phrase')).toHaveCSS('writing-mode', 'vertical-rl');
+  await direction.selectOption('horizontal-tb');
+  await expect(player.getByRole('button', { name: /^(原文|一文戻る|一文進む|前の文|次の文)$/ })).toHaveCount(0);
+  await expect(amount).toHaveAttribute('aria-valuetext', '1文');
+  await expect(size).toHaveValue('56');
+  for (const width of [320, 390, 768, 1280]) {
+    await page.setViewportSize({ width, height: 900 });
+    const geometry = await page.locator('.reader-display-toolbar').evaluate(toolbar => {
+      const modes = toolbar.querySelector('.reading-mode-controls')!;
+      const parent = toolbar.getBoundingClientRect(), group = modes.getBoundingClientRect();
+      return { centered: Math.abs((parent.left + parent.right - group.left - group.right) / 2), border: getComputedStyle(modes).borderTopWidth, overflow: document.documentElement.scrollWidth > innerWidth + 1 };
+    });
+    expect(geometry.centered).toBeLessThan(1);
+    expect(geometry.border).toBe('0px'); expect(geometry.overflow).toBe(false);
+    expect((await amount.boundingBox())!.width).toBeGreaterThan(100);
+    const fields = await player.evaluate(element => {
+      const speed = element.querySelector('.reader-player-speed label')!;
+      const direction = element.querySelector('.writing-mode-setting label > span')!;
+      const labels = [speed, direction, element.querySelector('.display-amount > span')!, element.querySelector('.font-size-setting > span')!];
+      const labelStyles = labels.map(label => { const style = getComputedStyle(label); return `${style.fontFamily}:${style.fontSize}:${style.lineHeight}:${style.fontWeight}`; });
+      const select = element.querySelector('.writing-mode-setting select')!;
+      return { labelStyles, speed: speed.getBoundingClientRect().toJSON(), direction: direction.getBoundingClientRect().toJSON(), select: select.getBoundingClientRect().toJSON() };
+    });
+    expect(new Set(fields.labelStyles).size).toBe(1);
+    expect(fields.direction.left).toBeGreaterThan(fields.speed.left);
+    expect(fields.direction.top).toBeCloseTo(fields.speed.top, 0);
+    expect(fields.select.top).toBeGreaterThanOrEqual(fields.direction.bottom);
+    expect(fields.select.height).toBeGreaterThanOrEqual(44);
+    if (kind === 'audio') {
+      const arrows = await player.evaluate(element => ['.reader-player-speed .mantine-Select-input', '.writing-mode-setting select'].map(selector => {
+        const control = element.querySelector(selector)!;
+        const icon = control.closest('.mantine-Input-wrapper')!.querySelector('[data-position="right"] svg')!;
+        const input = control.getBoundingClientRect(), arrow = icon.getBoundingClientRect();
+        return { color: getComputedStyle(icon).color, width: arrow.width, height: arrow.height, right: input.right - arrow.right,
+          center: Math.abs((input.top + input.bottom - arrow.top - arrow.bottom) / 2), controlHeight: input.height };
+      }));
+      expect(arrows[1].color).toBe(arrows[0].color);
+      for (const property of ['width', 'height', 'right'] as const) expect(arrows[1][property]).toBeCloseTo(arrows[0][property], 0);
+      for (const arrow of arrows) { expect(arrow.center).toBeLessThan(.5); expect(arrow.controlHeight).toBeGreaterThanOrEqual(44); }
+    }
+  }
+  await amount.focus(); await page.keyboard.press('ArrowRight');
+  await expect(amount).toHaveValue('2');
+  await expect(page.getByTestId('display-set-reader')).toBeVisible();
+  await size.fill('96');
+  await expect(size).toHaveAttribute('aria-valuetext', '上限 96ピクセル');
+  await amount.fill('10');
+  await expect(amount).toHaveAttribute('aria-valuetext', '10行');
+  if (kind === 'silent') await expect(page.getByTestId('display-set-text')).toHaveAttribute('data-lines', '10');
+  await amount.fill('1');
+  const before = await readerStage(page).getAttribute('data-unit-index');
+  await page.getByRole('button', { name: '全画面で読む', exact: true }).click();
+  const full = page.getByRole('region', { name: '全画面の読書', exact: true });
+  await expect(page.getByRole('combobox', { name: '本文の向き', exact: true })).toHaveCount(1);
+  await full.getByRole('combobox', { name: '本文の向き', exact: true }).selectOption('vertical-rl');
+  await expect(full.getByTestId(kind === 'audio' ? 'audio-phrase' : 'current-phrase')).toHaveCSS('writing-mode', 'vertical-rl');
+  await full.getByRole('combobox', { name: '本文の向き', exact: true }).selectOption('horizontal-tb');
+  await full.getByRole('slider', { name: '表示量', exact: true }).fill('3');
+  await expect(full.getByRole('slider', { name: '表示量', exact: true })).toHaveAttribute('aria-valuetext', '3行');
+  await full.getByRole('slider', { name: '表示量', exact: true }).fill('1');
+  await expect(readerStage(page)).toHaveAttribute('data-unit-index', before!);
+  await full.getByRole('button', { name: '全文表示', exact: true }).click();
+  await expect(full.getByRole('slider', { name: '表示量', exact: true })).toBeDisabled();
+  await expect(full.getByRole('slider', { name: '表示量', exact: true })).toHaveAttribute('aria-valuetext', '全文');
+  await full.getByRole('slider', { name: 'フォントサイズ', exact: true }).fill('32');
+  await expect(full.locator('.guide-row').first()).toHaveCSS('font-size', '32px');
+  await full.getByRole('button', { name: 'フレーズ表示', exact: true }).click();
+  await expect(full.getByRole('slider', { name: 'フォントサイズ', exact: true })).toHaveValue('96');
+  await expect(readerStage(page)).toHaveAttribute('data-unit-index', before!);
+  await full.getByRole('button', { name: '全画面を終了', exact: true }).click();
+  await expect(direction).toHaveValue('horizontal-tb');
+  await expect(player.getByRole('slider', { name: '表示量', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: '再生', exact: true }).click();
+  await expect(page.getByRole('button', { name: '一時停止', exact: true })).toBeVisible();
+  await size.fill('72');
+  await expect(page.getByRole('button', { name: '再生', exact: true })).toBeVisible();
+  if (kind === 'audio') expect(await page.locator('audio').evaluate((audio: HTMLAudioElement) => audio.paused)).toBe(true);
 });

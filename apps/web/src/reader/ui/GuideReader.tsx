@@ -1,11 +1,10 @@
 import { Component, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from 'react';
 import type { ReadingUnit, TextBlock, WritingMode } from '../model';
 import { RubyText } from './ReadingText';
-import type { ReadingMarker } from '../display-sets';
 
 interface GuideRow { id: string; block: TextBlock; units: Array<{ unit: ReadingUnit; index: number }>; length: number }
-export function GuideReader({ blocks, units, currentIndices, playing, ruby, family, onJump, onPause, writingMode = 'horizontal-tb', fontSize = 20, marker }: {
-  blocks: TextBlock[]; units: ReadingUnit[]; currentIndices: number[]; playing: boolean; ruby: boolean; family: string; onJump: (index: number) => void; onPause: () => void; writingMode?: WritingMode; fontSize?: number; marker?: ReadingMarker;
+export function GuideReader({ blocks, units, currentIndices, playing, ruby, family, onJump, onPause, writingMode = 'horizontal-tb', fontSize = 20 }: {
+  blocks: TextBlock[]; units: ReadingUnit[]; currentIndices: number[]; playing: boolean; ruby: boolean; family: string; onJump: (index: number) => void; onPause: () => void; writingMode?: WritingMode; fontSize?: number;
 }) {
   const vertical = writingMode === 'vertical-rl';
   const viewport = useRef<HTMLDivElement>(null);
@@ -140,7 +139,7 @@ export function GuideReader({ blocks, units, currentIndices, playing, ruby, fami
         if (element) setScroll(vertical ? -element.scrollLeft : element.scrollTop);
       }}>
       <div style={{ blockSize: prefix[first] }} aria-hidden="true" />
-      {rows.slice(first, end).map(row => <MeasuredRow key={row.id} row={row} onMeasure={measure} vertical={vertical}>{row.units.map(({ unit, index }) => <button key={unit.id} type="button" className={`guide-unit ${active.has(index) ? 'active' : ''}`} aria-current={active.has(index) ? 'location' : undefined} data-unit-id={unit.id} onClick={() => { setFollow(true); onJump(index); }} title="ここへ移動して停止"><RubyText unit={unit} show={ruby} layoutKey={`${family}:${fontSize}:${writingMode}`} marker={marker ?? (active.has(index) ? { blockId: unit.blockId, start: unit.start, end: unit.end, precision: 'position' } : undefined)} /></button>)}</MeasuredRow>)}
+      {rows.slice(first, end).map(row => <MeasuredRow key={row.id} row={row} onMeasure={measure} vertical={vertical}>{row.units.map(({ unit, index }) => <button key={unit.id} type="button" className={`guide-unit ${active.has(index) ? 'active' : ''}`} aria-current={active.has(index) ? 'location' : undefined} data-unit-id={unit.id} onClick={() => { setFollow(true); onJump(index); }} title="ここへ移動して停止"><RubyText unit={unit} show={ruby} /></button>)}</MeasuredRow>)}
       <div style={{ blockSize: (prefix.at(-1) ?? 0) - (prefix[end] ?? 0) }} aria-hidden="true" />
       </GuideScrollAnchor>
     </div>

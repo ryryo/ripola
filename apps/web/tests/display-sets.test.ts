@@ -15,6 +15,12 @@ test('v3 display settings migrate legacy amounts without changing clocks, anchor
   assert.equal(settings.mode, 'guide'); assert.equal(settings.cpm, 900); assert.equal(settings.fontSize, 72);
   assert.equal('groupTarget' in settings, false); assert.equal('groupMinimum' in settings, false);
   for (let lines = 2; lines <= 10; lines++) assert.equal(validReaderSettings(migrateReaderSettings({ ...settings, focusedDisplay: { kind: 'multiline', maxLines: lines } })), true);
+  for (const context of [true, false]) {
+    const legacy = { ...settings, context };
+    assert.equal(validReaderSettings(legacy), true);
+    assert.deepEqual(migrateReaderSettings(legacy), settings);
+    assert.equal('context' in migrateReaderSettings(legacy), false);
+  }
   for (const maxLines of [1, 11, 2.5, '2', NaN]) assert.deepEqual(migrateReaderSettings({ focusedDisplay: { kind: 'multiline', maxLines } }).focusedDisplay, { kind: 'phrase' });
 });
 

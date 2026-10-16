@@ -22,7 +22,6 @@ import { silentSetSource } from '../display-sets';
 import { DisplaySetReader, type DisplaySetSession } from './DisplaySetReader';
 import { shortcutBlocked, repeatedArrowAllowed } from '../shortcuts';
 import { GuideReader } from './GuideReader';
-import { StoppedContext } from './StoppedContext';
 import { MAX_TITLE_LENGTH, resolveDocumentTitle } from '../document-title';
 import { TitleEditor } from './TitleEditor';
 import { InputFormatControl } from './InputFormatControl';
@@ -35,7 +34,7 @@ import { useScreenWakeLock } from './useScreenWakeLock';
 import { hasStoredPreferences } from '../preferences';
 import { resolveInputFormat, type InputFormat } from '../input-format';
 import { readerCapabilities } from '../environment';
-import { ReaderDisplaySettings, ReaderDisplayToolbar, ReaderTransport } from './ReaderWorkspace';
+import { ReaderDisplayControls, ReaderDisplaySettings, ReaderDisplayToolbar, ReaderTransport } from './ReaderWorkspace';
 import { initialReadingDraft, PAGES_DEMO } from '../pages-demo';
 
 
@@ -67,6 +66,7 @@ export function ReaderApp() {
   historyDraft.current = { title, text: input, format };
   const [importOpen, setImportOpen] = useState(false);
   const [sourceOpen, setSourceOpen] = useState(false);
+  const bookActionRef = useRef<HTMLButtonElement>(null);
   const [helpOpen, setHelpOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [bookOpen, setBookOpen] = useState(false);
@@ -336,20 +336,20 @@ export function ReaderApp() {
           <button type="button" className="text-link" disabled={saving} onClick={() => void removeSaved()}>保存を削除</button>
         </> : <NavigationLayout key={document.id} entries={sentences} current={sentenceIndex} playing={playback.status === 'playing'} chapters={chapters} onPause={() => controller.pause()} onResume={() => { if (font.busy) return; if (playback.status === 'completed') controller.seek(0); controller.play(); }} onJump={index => controller.seek(index)}
           heading={<div className="document-heading"><div><span className="eyebrow">テキストの読書</span><h1>{document.title}</h1></div></div>}
-          actions={<><Button variant="subtle" onClick={() => void save()} loading={saving} disabled={font.busy}>端末に保存</Button><Button variant="subtle" onClick={() => { controller.pause(); setBookOpen(true); }}>本の操作</Button></>}>
+          actions={<><Button variant="subtle" onClick={() => void save()} loading={saving} disabled={font.busy}>端末に保存</Button><Button ref={bookActionRef} variant="subtle" onClick={() => { controller.pause(); setBookOpen(true); }}>本の操作</Button></>}>
           {document.warnings.length > 0 && <details className="warnings"><summary>取り込み時の確認事項（{document.warnings.length}）</summary><ul>{document.warnings.map((warning, i) => <li key={i}>{warning}</li>)}</ul></details>}
           {migrationNotice && <p className="notice" role="status">{migrationNotice}</p>}
           <ReaderDisplayToolbar settings={settings} onChange={patch => { controller.pause(); update(patch); }} onSettings={openSettings} />
           {(font.busy || font.error) && <p className="font-stage-status" role="status">{font.error || '書体と文字の配置を準備しています。停止したままお待ちください。'}</p>}
           <FullscreenReader fullscreen={fullscreen} playing={playback.status === 'playing'} pause={pauseReading} disabled={loading || font.busy} showProgress={settings.fullscreenProgress ?? true} multiline={multiline}
-            context={!multiline && (settings.mode ?? 'flash') === 'flash' && <StoppedContext entries={sentences} blocks={document.blocks} current={sentenceIndex} playing={playback.status === 'playing'} enabled={settings.context ?? true} ruby={settings.ruby} onJump={index => controller.seek(index)} />}
             playLabel={completed ? 'もう一度' : current?.kind === 'static' ? '次のフレーズへ' : '再生'}
             toggle={() => { if (playback.status === 'playing') controller.pause(); else { if (completed) controller.seek(0); controller.play(); } }}
             seek={<label><span>読書の再生位置</span><input aria-label="読書の再生位置" type="range" min="0" max={Math.max(0, document.units.length - 1)} step="1" value={playback.index} disabled={document.units.length < 2} onChange={event => controller.seek(Number(event.target.value))} /></label>}
             modes={<ReadingModeControls mode={settings.mode} onChange={mode => { controller.pause(); update({ mode }); }} />}
+            displayControls={<ReaderDisplayControls settings={settings} onChange={patch => { controller.pause(); update(patch); }} />}
             speed={<label>読む速さ（字/分）<input aria-label="読む速さ（字/分）" type="number" min="100" max="3000" step="50" value={cpmInput} onChange={event => { setCpmInput(event.target.value); const value = Number(event.target.value); if (Number.isFinite(value) && value >= 100 && value <= 3000) update({ cpm: Math.round(value) }); }} onBlur={() => setCpmInput(String(settings.cpm))} /></label>}>
-          <section className={`reader-stage ${settings.mode === 'guide' ? 'guide-mode' : multiline ? 'multiline-mode' : ''} ${settings.guide ? 'with-guide' : ''}`} aria-label="フレーズ表示" data-testid="reader-stage" style={{ '--reader-font-size': `${settings.fontSize}px`, '--display-lines': settings.focusedDisplay?.kind === 'multiline' ? settings.focusedDisplay.maxLines : 1 } as CSSProperties}>
-            <div className="stage-topline"><span>{completed ? '読了' : current?.kind === 'static' ? '原文で確認' : playback.status === 'playing' ? '再生中' : '一時停止'}</span><span className="playback-position-label">{playback.status === 'playing' ? '\u00a0' : `${playback.index + 1} / ${document.units.length} フレーズ`}</span></div>
+          <section className={`reader-stage ${settings.mode === 'guide' ? 'guide-mode' : multiline ? 'multiline-mode' : ''} ${settings.guide ? 'with-guide' : ''}`} aria-label="フレーズ表示" data-testid="reader-stage" data-unit-index={playback.index} data-sentence-index={sentenceIndex} style={{ '--reader-font-size': `${settings.fontSize}px`, '--display-lines': settings.focusedDisplay?.kind === 'multiline' ? settings.focusedDisplay.maxLines : 1 } as CSSProperties}>
+            <div className="stage-topline"><span>{completed ? '読了' : current?.kind === 'static' ? '原文で確認' : playback.status === 'playing' ? '再生中' : '一時停止'}</span></div>
             {settings.mode === 'guide' ? <GuideReader key={settings.writingMode} writingMode={settings.writingMode} blocks={document.blocks} units={document.units} currentIndices={[playback.index]} fontSize={settings.documentFontSize ?? 20} playing={playback.status === 'playing'} ruby={settings.ruby} family={READING_FONTS[font.applied].family} onJump={index => controller.seek(index)} onPause={pauseReading} /> : current?.kind === 'static' ? <div className="static-notice"><h2>コード・表は原文で。</h2><p>内容を確認してから、次のフレーズへ進めます。</p><Button variant="light" onClick={openSource}>原文を開く</Button></div> : multiline ? <DisplaySetReader session={displaySession} lines={settings.focusedDisplay?.kind === 'multiline' ? settings.focusedDisplay.maxLines : 2} fontSize={settings.fontSize} family={READING_FONTS[font.applied].family} ruby={settings.ruby} writingMode={settings.writingMode} playing={playback.status === 'playing'} /> : <PhraseDisplay writingMode={settings.writingMode} unit={current} sourceUnits={current ? [current] : undefined} activeUnit={current} playing={playback.status === 'playing'} getProgress={() => { const timing = controller.getProgress(); return timing.unitDurationMs > 0 ? timing.unitElapsedMs / timing.unitDurationMs : 0; }} fontSize={settings.fontSize} ruby={settings.ruby} family={READING_FONTS[font.applied].family} />}
 
             {fullscreen.active && !multiline && settings.mode !== 'guide' && <ReaderPlayButton playing={playback.status === 'playing'} disabled={loading || font.busy}
@@ -364,21 +364,20 @@ export function ReaderApp() {
             previous={<Button variant="light" onClick={() => controller.step(-1)} disabled={loading || playback.index === 0} aria-keyshortcuts="ArrowLeft" aria-label="1つ戻る">戻る</Button>}
             next={<Button variant="light" onClick={() => controller.step(1)} disabled={loading || playback.index === document.units.length - 1} aria-keyshortcuts="ArrowRight" aria-label="1つ進む">進む</Button>}
             speed={<div className="speed-controls"><label htmlFor="cpm">読む速さ<span>文字/分</span></label><input id="cpm" aria-label="読む速さのスライダー" type="range" min="100" max="3000" step="50" value={settings.cpm} onChange={e => update({ cpm: Number(e.target.value) })} /><div className="speed-adjust"><button aria-label="100字遅く" onClick={() => update({ cpm: Math.max(100, settings.cpm - 100) })}>−</button><input aria-label="読む速さ（字/分）" type="number" min="100" max="3000" step="50" value={cpmInput} onChange={e => { setCpmInput(e.target.value); const value = Number(e.target.value); if (Number.isFinite(value) && value >= 100 && value <= 3000) update({ cpm: Math.round(value) }); }} onBlur={() => setCpmInput(String(settings.cpm))} /><button aria-label="100字速く" onClick={() => update({ cpm: Math.min(3000, settings.cpm + 100) })}>＋</button></div><Switch className="reader-rhythm-control" label="句読点で間をとる" checked={settings.punctuationPause} onChange={event => update({ punctuationPause: event.currentTarget.checked })} /></div>}
-            secondary={<><div role="group" aria-label="文の移動"><Button variant="subtle" disabled={sentenceIndex <= 0} onClick={() => controller.seek(sentences[sentenceIndex - 1].target)}>前の文</Button><Button variant="subtle" disabled={sentenceIndex >= sentences.length - 1} onClick={() => controller.seek(sentences[sentenceIndex + 1].target)}>次の文</Button></div><div><Button variant="subtle" onClick={openSource}>原文</Button></div></>} />
-          {!fullscreen.active && !multiline && (settings.mode ?? 'flash') === 'flash' && <StoppedContext entries={sentences} blocks={document.blocks} current={sentenceIndex} playing={playback.status === 'playing'} enabled={settings.context ?? true} ruby={settings.ruby} onJump={index => controller.seek(index)} />}
+            secondary={!fullscreen.active && <ReaderDisplayControls settings={settings} onChange={patch => { controller.pause(); update(patch); }} />} />
         </NavigationLayout>}
       </div>
     </main>
     {!document && <footer className="app-footer"><span>BudouXでフレーズ分割。厳密な文法的文節とは異なります。</span><span>速さより、読みやすさを。</span><details onToggle={() => controller.pause()}><summary>ページURLを共有</summary><ShareLink title="リーダー" /></details></footer>}
     <Drawer className="reader-drawer" closeButtonProps={{ 'aria-label': '閉じる' }} opened={importOpen} onClose={() => setImportOpen(false)} title="別の文章を開く" position="right" size="lg">{error && <Alert color="red" role="alert" mb="md">{error}</Alert>}{error && fallbackRaw && <Textarea label="処理前の原文・抽出本文" value={fallbackRaw} readOnly rows={8} mb="md" />}{loading && <div role="status"><p>{phase}</p><Button onClick={cancel}>読み込みを取り消す</Button></div>}{importPanel}</Drawer>
-    <Drawer className="reader-drawer" closeButtonProps={{ 'aria-label': '閉じる' }} opened={sourceOpen} onClose={() => setSourceOpen(false)} title="原文を確認" position="right" size="xl">{document && <SourceView document={document} current={current} index={playback.index} pdfData={pdfData} onSeek={index => controller.seek(index)} />}</Drawer>
+    <Drawer className="reader-drawer" closeButtonProps={{ 'aria-label': '閉じる' }} opened={sourceOpen} onClose={() => setSourceOpen(false)} returnFocus={false} onExitTransitionEnd={() => bookActionRef.current?.focus({ preventScroll: true })} title="原文を確認" position="right" size="xl">{document && <SourceView document={document} current={current} index={playback.index} pdfData={pdfData} onSeek={index => controller.seek(index)} />}</Drawer>
     <Drawer className="reader-drawer" closeButtonProps={{ 'aria-label': '閉じる' }} opened={settingsOpen} onClose={() => setSettingsOpen(false)} title="表示設定" position="right" size="md">
       <ReaderDisplaySettings settings={settings} onChange={patch => { controller.pause(); update(patch); }} font={font} />
     </Drawer>
     <Drawer className="reader-drawer reader-book-panel" opened={bookOpen} onClose={() => setBookOpen(false)} title="本の操作" position="right" size="lg" closeButtonProps={{ 'aria-label': '閉じる' }}><div className="settings-panel">
       {document && <section className="settings-section"><h2>タイトル</h2><TitleEditor title={document.title} onRename={renameDocument} /></section>}
       <section className="settings-section"><h2>読書位置</h2><div className="reader-book-actions"><Button variant="light" onClick={() => { controller.seek(0); setBookOpen(false); }}>先頭へ戻る</Button><Button variant="subtle" onClick={() => { controller.seek(Math.max(0, (document?.units.length ?? 1) - 1)); setBookOpen(false); }}>末尾へ</Button></div></section>
-      <section className="settings-section"><h2>文章と保存</h2><Button variant="light" onClick={() => { setBookOpen(false); setImportOpen(true); setError(''); }}>別の文章を開く</Button><p className="muted">本文と読書位置を残すには「端末に保存」を押してください。</p><Button variant="subtle" color="red" disabled={saving || !saved} onClick={() => void removeSaved()}>保存を削除</Button></section>
+      <section className="settings-section"><h2>文章と保存</h2><Button variant="light" onClick={() => { setBookOpen(false); setImportOpen(true); setError(''); }}>別の文章を開く</Button><Button variant="subtle" onClick={() => { setBookOpen(false); openSource(); }}>原文</Button><p className="muted">本文と読書位置を残すには「端末に保存」を押してください。</p><Button variant="subtle" color="red" disabled={saving || !saved} onClick={() => void removeSaved()}>保存を削除</Button></section>
       <section className="settings-section"><h2>黙読のペース</h2><ReadingPaceControls value={settings.readingPace} summary={controller.getTimingSummary()} onChange={readingPace => { controller.pause(); update({ readingPace }); }} /></section>
       <section className="settings-section"><ShortcutHelp /></section>
       {document?.provenance && <section className="settings-section"><h2>作品情報</h2><AozoraInfo value={document.provenance} /></section>}

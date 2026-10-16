@@ -140,6 +140,6 @@ export function DisplaySetReader({ session, lines, fontSize, family, ruby, writi
         if (event.detail > 0 && (!value?.valid || value.id !== current.current?.set.id || performance.now() - value.time > 500 || window.getSelection()?.toString())) return;
         const target = current.current?.set.next;
         if (target) clock.current.seek(target);
-      }}><span>次へ</span><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={vertical ? 'M15 6l-6 6 6 6' : 'M6 9l6 6 6-6'} /></svg></button>
+      }}><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={vertical ? 'M15 6l-6 6 6 6' : 'M6 9l6 6 6-6'} /></svg></button>
   </div>;
 }

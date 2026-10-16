@@ -50,7 +50,7 @@ test('時間ゲージは停止・再開・速度変更・戻る・シーク・�
   await page.getByRole('button', { name: '1つ進む', exact: true }).click();
   await expect(page.getByRole('button', { name: '再生', exact: true })).toBeVisible();
   await page.getByRole('button', { name: '1つ戻る', exact: true }).click(); expect(await value(page)).toBe(0);
-  await page.getByRole('button', { name: '原文', exact: true }).click();
+  await page.getByRole('button', { name: '本の操作', exact: true }).click(); await page.getByRole('button', { name: '原文', exact: true }).click(); await expect(page.getByRole('dialog', { name: '本の操作', exact: true })).toHaveCount(0);
   await page.locator('.source-unit').filter({ hasText: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ' }).click();
   await page.getByRole('button', { name: '閉じる', exact: true }).click();
   expect(await value(page)).toBeGreaterThan(0);
@@ -84,12 +84,14 @@ test('黙読再生中は本文だけが切り替わり、滑らかなゲージ�
   await read(page, '静かな朝に窓を開きます。図書館で一冊の本を読みます。頁をめくり、言葉を確かめます。次の文をゆっくり読み進めます。');
   await page.getByLabel('読む速さ（字/分）').fill('800');
   await page.getByRole('button', { name: '文一覧を開く', exact: true }).click();
+  if (page.viewportSize()!.width <= 900) await page.getByRole('button', { name: '文一覧を閉じる', exact: true }).click();
   await page.getByRole('button', { name: '再生', exact: true }).click();
   const observed = await inspectCalmPlayback(page);
   expect(observed.changedOutsideBody).toBe(false); expect(observed.bodyChanges).toBeGreaterThanOrEqual(2);
   expect(observed.progressIncreases).toBeGreaterThan(20); expect(observed.maxLayoutShift).toBeLessThan(1);
   await page.getByRole('button', { name: '一時停止', exact: true }).click();
-  await expect(page.locator('.stage-topline')).toContainText('フレーズ');
+  await expect(page.locator('.playback-position-label')).toHaveCount(0);
+  await expect(page.getByTestId('reader-stage')).toHaveAttribute('data-unit-index', /\d+/);
   await expect(page.locator('.progress-percentage')).toHaveText(/\d+%/);
   await expect(page.locator('.progress-caption')).toContainText('残り 約');
 });

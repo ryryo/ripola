@@ -2128,7 +2128,7 @@
   {
     "project": "desktop-chromium",
     "file": "audio-sentences.spec.ts",
-    "title": "三文が一音声でも前後ボタン・Shift矢印・文一覧は原文の文単位で移動する",
+    "title": "三文が一音声でもShift矢印・文一覧は原文の文単位で移動する",
     "lane": "related",
     "domains": [
       "audio",
@@ -2158,7 +2158,7 @@
   {
     "project": "mobile-chromium",
     "file": "audio-sentences.spec.ts",
-    "title": "三文が一音声でも前後ボタン・Shift矢印・文一覧は原文の文単位で移動する",
+    "title": "三文が一音声でもShift矢印・文一覧は原文の文単位で移動する",
     "lane": "related",
     "domains": [
       "audio",
@@ -2817,6 +2817,46 @@
     "lane": "related",
     "domains": [
       "distribution"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "reading-options.spec.ts",
+    "title": "silent reader uses display sliders below playback and centers the unframed mode switch",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "reading-options.spec.ts",
+    "title": "audio reader uses display sliders below playback and centers the unframed mode switch",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "reading-options.spec.ts",
+    "title": "silent reader uses display sliders below playback and centers the unframed mode switch",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "reading-options.spec.ts",
+    "title": "audio reader uses display sliders below playback and centers the unframed mode switch",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
     ]
   }
 ]
