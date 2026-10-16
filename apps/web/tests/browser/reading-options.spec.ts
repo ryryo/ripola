@@ -1261,7 +1261,7 @@ test('multiline audio keeps the spoken marker on screen when short cues use esti
 
 test('five-times multiline markers track dense speech cues independently of transport repaint', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  const clock = await denseAudioFixture(page);
+  const clock = await denseAudioFixture(page, '12日!?の記録を読む。');
   await page.getByRole('slider', { name: '表示量', exact: true }).fill('5');
   await page.getByRole('slider', { name: 'フォントサイズ', exact: true }).fill('56');
   await page.getByRole('combobox', { name: '音声の速さ', exact: true }).click();
@@ -1391,4 +1391,82 @@ test('multiline navigation keeps the accepted page while destination audio metad
   await expect.poll(() => audio.evaluate((media: HTMLAudioElement) => media.readyState >= 2 && !media.seeking)).toBe(true);
   const end = Number(await text.getAttribute('data-source-start'));
   await page.keyboard.press('ArrowUp'); await expect(text).toHaveAttribute('data-source-end', String(end));
+});
+
+
+test('vertical upright punctuation and short numbers fit mobile phrase, sets and guide without changing source text', async ({ page }) => {
+  test.setTimeout(60000);
+  await page.setViewportSize({ width: 320, height: 740 });
+  const sample = '驚き!? 7月12日!! 2026年の記録。';
+  await read(page, (sample + '静かな窓辺で続きを読む。').repeat(8));
+  await adjustReaderDisplay(page, '本文の向き', 'vertical-rl');
+  await page.getByRole('slider', { name: '表示量', exact: true }).fill('2');
+  const text = page.getByTestId('display-set-text');
+  const content = await text.textContent();
+  expect(content).toBeTruthy();
+  expect((sample + '静かな窓辺で続きを読む。').repeat(8)).toContain(content!);
+  await expect(text.locator('.reading-combined').filter({ hasText: '12' }).first()).toBeVisible();
+  const check = async () => {
+    const geometry = await text.evaluate(element => {
+      const frame = element.parentElement!.getBoundingClientRect();
+      const range = document.createRange(); range.selectNodeContents(element); const rect = range.getBoundingClientRect();
+      return { inside: rect.left >= frame.left - 1 && rect.right <= frame.right + 1 && rect.top >= frame.top - 1 && rect.bottom <= frame.bottom + 1,
+        groups: [...element.querySelectorAll<HTMLElement>('.reading-combined')].map(node => ({ text: node.textContent, combine: getComputedStyle(node).textCombineUpright, height: node.getBoundingClientRect().height, size: parseFloat(getComputedStyle(node).fontSize) })) };
+    });
+    expect(geometry.inside).toBe(true);
+    for (const group of geometry.groups) { expect(group.combine).toBe('all'); expect(group.height).toBeLessThanOrEqual(group.size * 1.1); expect(group.text).not.toBe('2026'); }
+  };
+  await check();
+  await page.getByRole('button', { name: '全画面で読む', exact: true }).click(); await check();
+  await page.getByRole('button', { name: '再生', exact: true }).click();
+  await expect(page.locator('.fullscreen-reader[data-fullscreen=true]')).toHaveAttribute('data-playing', 'true');
+  await page.getByRole('button', { name: '一時停止', exact: true }).click(); await check();
+  await page.screenshot({ path: test.info().outputPath('vertical-upright-mobile.png') });
+  await page.keyboard.press('Escape');
+  await page.getByRole('button', { name: '全文表示', exact: true }).click();
+  await expect(page.getByTestId('guide-viewport').locator('.reading-combined').first()).toBeVisible();
+  await page.getByRole('button', { name: 'フレーズ表示', exact: true }).click();
+  await page.getByRole('slider', { name: '表示量', exact: true }).fill('1');
+  await page.locator('.document-heading h1').click(); await page.keyboard.press('Home');
+  await expect(page.getByTestId('current-phrase').locator('.reading-combined').first()).toBeVisible();
+  await adjustReaderDisplay(page, '本文の向き', 'horizontal-tb');
+  await expect(page.locator('.reading-combined')).toHaveCount(0);
+});
+
+test('vertical upright typography follows native audio cues and seek through mobile fullscreen and writing mode changes', async ({ page }) => {
+  test.setTimeout(60000);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await audioFixture(page, 12, '驚き!?7月12日!!2026年の記録を読む。');
+  const audio = page.locator('audio'); const source = await audio.getAttribute('src');
+  await audio.evaluate((media: HTMLAudioElement) => { media.muted = true; });
+  await adjustReaderDisplay(page, '本文の向き', 'vertical-rl');
+  await page.getByRole('slider', { name: '表示量', exact: true }).fill('2');
+  const text = page.getByTestId('display-set-text');
+  await expect(text.locator('.reading-combined').filter({ hasText: '12' }).first()).toBeVisible();
+  const initialStart = await text.getAttribute('data-source-start');
+  await expect(text.getByTestId('reading-marker').first()).toHaveAttribute('data-marker-start', '0');
+  await page.getByRole('button', { name: '全画面で読む', exact: true }).click();
+  await page.getByRole('button', { name: '再生', exact: true }).click();
+  await expect.poll(() => audio.evaluate((media: HTMLAudioElement) => media.currentTime)).toBeGreaterThan(.1);
+  await page.getByRole('button', { name: '一時停止', exact: true }).click();
+  await expect(text).toHaveAttribute('data-source-start', initialStart!);
+  await expect(text.getByTestId('reading-marker').first()).toHaveAttribute('data-marker-start', '0');
+  await page.keyboard.press('Escape');
+  await page.getByRole('slider', { name: '音声の再生位置', exact: true }).fill('6.1');
+  await expect(text.getByTestId('reading-marker').first()).toHaveAttribute('data-marker-start', String('驚き!?7月12日!!2026年の記録を読む。'.length));
+  await expect(text.getByTestId('reading-marker').first()).toHaveAttribute('data-precision', 'spoken');
+  expect(await text.getByTestId('reading-marker').first().locator('.reading-marker-layer>span').count()).toBeGreaterThan(0);
+  const time = await audio.evaluate((media: HTMLAudioElement) => media.currentTime);
+  await adjustReaderDisplay(page, '本文の向き', 'horizontal-tb');
+  await expect(text.locator('.reading-combined')).toHaveCount(0);
+  await expect(audio).toHaveAttribute('src', source!);
+  expect(await audio.evaluate((media: HTMLAudioElement) => media.currentTime)).toBeCloseTo(time, 1);
+  expect(await audio.evaluate((media: HTMLAudioElement) => media.paused)).toBe(true);
+  await adjustReaderDisplay(page, '本文の向き', 'vertical-rl');
+  await page.getByRole('slider', { name: '音声の再生位置', exact: true }).fill('0');
+  await expect(text.locator('.reading-combined').first()).toBeVisible();
+  await expect(text.getByTestId('reading-marker').first()).toHaveAttribute('data-marker-start', '0');
+  await page.getByRole('slider', { name: '表示量', exact: true }).fill('1');
+  await expect(page.getByTestId('audio-phrase').locator('.reading-combined').first()).toBeVisible();
+  await expect(audio).toHaveAttribute('src', source!);
 });

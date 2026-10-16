@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from
 import type { ReadingUnit, WritingMode } from '../model';
 import { phrasePageAt, planPhrasePages, type PhrasePage } from '../phrase-layout';
 import { PhraseFrame } from './PhraseFrame';
+import { appendReadingText } from './reading-typography';
 
 import { RubyText } from './ReadingText';
 export { RubyText } from './ReadingText';
@@ -71,16 +72,7 @@ export function PhraseDisplay({ unit, sourceUnits, activeUnit, getProgress, play
         const planned = planPhrasePages(unit, sourceUnits ?? [unit], desired, (value, size, wrap) => {
           const width = wrap ? expandedWidth : availableWidth;
           const height = wrap ? expandedHeight : availableHeight;
-          probe.replaceChildren();
-          let offset = 0;
-          for (const span of ruby ? value.ruby : []) {
-            probe.append(document.createTextNode(value.text.slice(offset, span.start)));
-            const annotation = document.createElement('ruby');
-            annotation.append(document.createTextNode(value.text.slice(span.start, span.end)));
-            const reading = document.createElement('rt'); reading.textContent = span.reading;
-            annotation.append(reading); probe.append(annotation); offset = span.end;
-          }
-          probe.append(document.createTextNode(value.text.slice(offset)));
+          appendReadingText(probe, value, ruby, vertical);
           probe.style.setProperty('font-size', `${size}px`, 'important');
           probe.style.setProperty('white-space', wrap ? 'pre-wrap' : 'nowrap', 'important');
           probe.style.setProperty('max-width', wrap && !vertical ? `${width}px` : 'none');
@@ -105,6 +97,6 @@ export function PhraseDisplay({ unit, sourceUnits, activeUnit, getProgress, play
     style={{ fontSize: `${page?.fontSize ?? fontSize}px`, '--phrase-size': `${page?.fontSize ?? fontSize}px`, fontFamily: family, fontWeight: 400, writingMode } as CSSProperties}
     data-testid={audio ? 'audio-sentence' : 'current-phrase'} data-precision={audio ? precision : undefined} data-method={estimated ? 'estimated' : timingMethod} data-score={estimated ? undefined : timingScore}
     data-source-start={visible?.start} data-source-end={visible?.end} data-pages={pages?.length ?? 1} aria-live="off">
-    {audio ? <span data-testid="audio-phrase" data-unit-id={visibleIds}><RubyText unit={visible} show={ruby} /></span> : <RubyText unit={visible} show={ruby} />}
+    {audio ? <span data-testid="audio-phrase" data-unit-id={visibleIds}><RubyText unit={visible} show={ruby} vertical={vertical} /></span> : <RubyText unit={visible} show={ruby} vertical={vertical} />}
   </div></PhraseFrame>;
 }

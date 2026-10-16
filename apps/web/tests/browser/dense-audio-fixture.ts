@@ -3,7 +3,7 @@ import { expect, type Page } from '@playwright/test';
 import { browserMp3 } from '../helpers/browser-media';
 
 /** Self-authored text and one synthetic tone; no speech or private library access. */
-export async function denseAudioFixture(page: Page) {
+export async function denseAudioFixture(page: Page, phrase = '静かな窓辺で本を読む。') {
   const seconds = 60, sampleRate = 8000, samples = sampleRate * seconds;
   const wave = Buffer.alloc(44 + samples * 2);
   wave.write('RIFF'); wave.writeUInt32LE(wave.length - 8, 4); wave.write('WAVEfmt ', 8);
@@ -14,7 +14,7 @@ export async function denseAudioFixture(page: Page) {
   const media = browserMp3(wave), id = 'dense-reader-fixture', revision = 'd'.repeat(64), cueSeconds = .12;
   let offset = 0;
   const units = Array.from({ length: 500 }, (_, index) => {
-    const text = '静かな窓辺で本を読む。', start = offset; offset += text.length;
+    const text = phrase, start = offset; offset += text.length;
     return { id: `u${index}`, blockId: 'b', kind: 'text', text, start, end: offset, ruby: [], sources: [{ kind: 'text', start, end: offset }], mapping: 'exact', characters: text.length, cumulativeCharacters: start, pause: 'sentence' };
   });
   const chunk = { id: 'c', audioUrl: `library/books/${id}/${revision}/media/${media.sha256}.mp3`, mimeType: 'audio/mpeg', sha256: media.sha256, bytes: media.bytes.length, durationSeconds: seconds, timing: { verification: 'pcm-correlated' },
