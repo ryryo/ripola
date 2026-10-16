@@ -12,7 +12,7 @@
 .sentence-navigation-buttons button { flex: 1; min-height: 44px; }
 .sentence-jump { display: flex; align-items: flex-end; gap: 8px; margin: 14px 0; }
 .sentence-jump label, .chapter-jump { display: block; font-size: 12px; font-weight: 600; flex: 1; }
-.sentence-jump input, .chapter-jump select { display: block; width: 100%; height: 44px; margin-top: 6px; border: 1px solid var(--line, #dbe5e9); border-radius: 8px; background: var(--panel, #fff); color: inherit; padding: 0 10px; }
+.sentence-jump input { display: block; width: 100%; height: 44px; margin-top: 6px; border: 1px solid var(--line, #dbe5e9); border-radius: 8px; background: var(--panel, #fff); color: inherit; padding: 0 10px; }
 .chapter-jump { margin-top: 14px; }
 .sentence-jump button { min-height: 44px; }
 .sentence-list { overflow-y: auto; overscroll-behavior: contain; border-top: 1px solid var(--line, #dbe5e9); }
@@ -26,3 +26,5 @@
 .aozora-provenance pre { white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; max-height: 320px; overflow: auto; }
 @media (max-width: 900px) { .navigation-layout[data-expanded="true"] { grid-template-columns: minmax(0, 1fr); } .sentence-list { max-height: 50dvh; } .navigation-toolbar { margin-bottom: 8px; } }
 @container (max-width: 720px) { .reader-controls { grid-template-columns: 1fr !important; } .secondary-controls { grid-column: auto !important; } }
+
+.chapter-jump .mantine-NativeSelect-root { margin-top: 6px; }

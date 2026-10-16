@@ -94,29 +94,25 @@ export function ReaderPlayButton({ playing, disabled = false, label = '再生', 
   </button>;
 }
 
-export function FullscreenReader({ fullscreen, playing, children, context, seek, speed, modes, toggle, pause, disabled = false, playLabel = '再生', showProgress = true }: {
-  fullscreen: ReturnType<typeof useFullscreenReader>; playing: boolean; children: ReactNode; context?: ReactNode; seek: ReactNode; speed: ReactNode; modes: ReactNode;
-  toggle: () => void; pause: () => void; disabled?: boolean; playLabel?: string; showProgress?: boolean;
+export function FullscreenReader({ fullscreen, playing, children, seek, speed, modes, displayControls, toggle, pause, disabled = false, playLabel = '再生', showProgress = true, multiline = false }: {
+  fullscreen: ReturnType<typeof useFullscreenReader>; playing: boolean; children: ReactNode; seek: ReactNode; speed: ReactNode; modes: ReactNode; displayControls?: ReactNode;
+  toggle: () => void; pause: () => void; disabled?: boolean; playLabel?: string; showProgress?: boolean; multiline?: boolean;
 }) {
   const footerRef = useRef<HTMLDivElement>(null);
-  const hasContext = Boolean(context);
   useEffect(() => {
     const element = fullscreen.containerRef.current; const footer = footerRef.current;
     if (!fullscreen.active || !element || !footer) return;
-    // Equal insets keep the body centered between the top context and bottom controls.
-    const preview = element.querySelector<HTMLElement>(':scope > .stopped-context');
     const selector = '.guide-viewport, .phrase-container';
     let surface = element.querySelector<HTMLElement>(selector);
     const measure = () => {
       element.style.setProperty('--fullscreen-footer-height', `${footer.getBoundingClientRect().height}px`);
-      element.style.setProperty('--fullscreen-context-height', `${preview?.getBoundingClientRect().height ?? 0}px`);
       if (surface) {
         const bounds = surface.getBoundingClientRect();
         element.style.setProperty('--fullscreen-play-top', `${bounds.top - element.getBoundingClientRect().top + bounds.height / 2}px`);
       } else element.style.removeProperty('--fullscreen-play-top');
     };
     measure();
-    const observer = new ResizeObserver(measure); observer.observe(footer); if (preview) observer.observe(preview); if (surface) observer.observe(surface);
+    const observer = new ResizeObserver(measure); observer.observe(footer); if (surface) observer.observe(surface);
     const mutations = new MutationObserver(() => {
       if (surface && element.contains(surface) && surface.matches(selector)) return;
       const next = element.querySelector<HTMLElement>(selector);
@@ -127,23 +123,22 @@ export function FullscreenReader({ fullscreen, playing, children, context, seek,
       measure();
     });
     mutations.observe(element, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
-    return () => { mutations.disconnect(); observer.disconnect(); element.style.removeProperty('--fullscreen-footer-height'); element.style.removeProperty('--fullscreen-context-height'); element.style.removeProperty('--fullscreen-play-top'); };
-  }, [fullscreen.active, fullscreen.containerRef, hasContext]);
+    return () => { mutations.disconnect(); observer.disconnect(); element.style.removeProperty('--fullscreen-footer-height'); element.style.removeProperty('--fullscreen-play-top'); };
+  }, [fullscreen.active, fullscreen.containerRef]);
   return <div ref={fullscreen.containerRef} className="fullscreen-reader" data-fullscreen={fullscreen.active} data-playing={playing} tabIndex={-1} role={fullscreen.active ? 'region' : undefined} aria-label={fullscreen.active ? '全画面の読書' : undefined}
     onClick={event => {
-      if (!fullscreen.active || !playing || !(event.target instanceof HTMLElement) || !event.target.closest('.reader-stage, .audio-stage') || event.target.closest('button, input, select, a')) return;
+      if (multiline || !fullscreen.active || !playing || !(event.target instanceof HTMLElement) || !event.target.closest('.reader-stage, .audio-stage') || event.target.closest('button, input, select, a')) return;
       pause(); fullscreen.containerRef.current?.focus({ preventScroll: true });
     }}>
     {fullscreen.active && <div className="fullscreen-mode-controls" hidden={playing}>{modes}</div>}
     {children}
-    {fullscreen.active && context}
     {fullscreen.active && <div ref={footerRef} className="fullscreen-footer">
       <div className="fullscreen-seek" hidden={!showProgress} inert={!showProgress}>{seek}</div>
-      <div className="fullscreen-actions" hidden={playing}>
-        <Button disabled={disabled} onClick={() => { toggle(); fullscreen.containerRef.current?.focus({ preventScroll: true }); }} aria-keyshortcuts="Space">{playLabel}</Button>
-        {speed}
+      <div className="fullscreen-display-controls" hidden={playing} inert={playing}><div className="fullscreen-settings-grid"><div className="fullscreen-speed-control">{speed}</div>{displayControls}</div></div>
+      <div className="fullscreen-actions" hidden={playing && !multiline}>
+        <Button disabled={disabled} onClick={() => { toggle(); fullscreen.containerRef.current?.focus({ preventScroll: true }); }} aria-keyshortcuts="Space">{playing && multiline ? '一時停止' : playLabel}</Button>
       </div>
-      <button type="button" className="fullscreen-enter" hidden={playing} aria-label="全画面を終了" title="全画面を終了" onClick={fullscreen.exit}><FullscreenIcon exiting /></button>
+      <button type="button" className="fullscreen-enter" hidden={playing && !multiline} aria-label="全画面を終了" title="全画面を終了" onClick={fullscreen.exit}><FullscreenIcon exiting /></button>
     </div>}
   </div>;
 }

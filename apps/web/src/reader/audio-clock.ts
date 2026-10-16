@@ -3,6 +3,8 @@ import { applyAcousticTiming } from './audio-acoustic';
 import { audioSourceUnits, unitsInAudioRange } from './audio-units';
 import type { AozoraProvenance, ReadingUnit, TextBlock } from './model';
 
+export const AUDIO_CLOCK_TOLERANCE = 2e-6;
+
 export interface PlayableAlignment {
   precision: 'phrase' | 'sentence';
   method: 'forced-alignment' | 'voicevox-mora' | 'sentence-fallback';
@@ -188,7 +190,7 @@ export function audioDisplayAt(segment: AudioSegment | undefined, localSeconds: 
   // Chromium media seeks can truncate to microseconds; adding/subtracting chunk
   // offsets adds float noise too. 2 μs is below a 24 kHz PCM sample (41.7 μs)
   // and changes clock comparisons only, never an alignment cue or its confidence.
-  const clockTolerance = 2e-6;
+  const clockTolerance = AUDIO_CLOCK_TOLERANCE;
   let low = 0;
   let high = cues.length;
   while (low < high) {

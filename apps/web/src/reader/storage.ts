@@ -1,5 +1,4 @@
-import { MAX_INPUT_BYTES, MAX_TEXT_LENGTH, migrateReaderSettings, type ReaderSettings, type ReadingDocument, type SourceAnchor } from './model.ts';
-import { isReadingFont } from './reading-fonts';
+import { MAX_INPUT_BYTES, MAX_TEXT_LENGTH, migrateReaderSettings, validReaderSettings, type ReaderSettings, type ReadingDocument, type SourceAnchor } from './model.ts';
 
 export interface SavedReading {
   schemaVersion: 1;
@@ -57,23 +56,9 @@ function mapping(value: unknown): boolean {
   return value === 'exact' || value === 'transformed' || value === 'approximate';
 }
 
-function settings(value: unknown): value is ReaderSettings {
-  return record(value) && integer(value.cpm, 100, 3000) && integer(value.fontSize, 24, 96)
-    && typeof value.punctuationPause === 'boolean' && typeof value.ruby === 'boolean'
-    && typeof value.guide === 'boolean'
-    && (value.settingsVersion === undefined || value.settingsVersion === 2)
-    && (value.fontFamily === undefined || isReadingFont(value.fontFamily))
-    && (value.groupTarget === undefined || integer(value.groupTarget, 0, 24))
-    && (value.groupMinimum === undefined || integer(value.groupMinimum, 0, 12))
-    && (value.context === undefined || typeof value.context === 'boolean')
-    && (value.writingMode === undefined || value.writingMode === 'horizontal-tb' || value.writingMode === 'vertical-rl')
-    && (value.readingPace === undefined || value.readingPace === 'legacy' || value.readingPace === 'text-load')
-    && (value.mode === undefined || value.mode === 'flash' || value.mode === 'guide');
-}
-
 /** Validate local data before use. Invalid records remain deletable without being rendered. */
 export function validateSavedReading(value: unknown): asserts value is SavedReading {
-  if (!record(value) || value.schemaVersion !== 1 || !settings(value.settings)
+  if (!record(value) || value.schemaVersion !== 1 || !validReaderSettings(value.settings)
     || !text(value.savedAt, 64) || !Number.isFinite(Date.parse(value.savedAt))
     || !record(value.anchor) || !text(value.anchor.blockId, 256) || !integer(value.anchor.offset)
     || !record(value.document)) invalid();

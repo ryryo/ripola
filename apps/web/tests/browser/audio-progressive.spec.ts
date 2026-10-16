@@ -1,3 +1,4 @@
+import { adjustReaderDisplay } from './display-controls-helpers';
 import { expect, test, type Page } from '@playwright/test';
 import { spawn, type ChildProcess } from 'node:child_process';
 import { createHash } from 'node:crypto';
@@ -236,5 +237,24 @@ test('閉じている間の前方chunk完成後も、保存したchunk内位置�
   await expect.poll(() => page.getByRole('slider', { name: '音声の再生位置', exact: true }).inputValue()).toBe('17');
   await expect(page.locator('audio')).toHaveAttribute('src', new RegExp(full.chunks[2].speechKey));
   await expect.poll(() => page.locator('audio').evaluate((media: HTMLAudioElement) => media.currentTime)).toBeCloseTo(3, 1);
+  expect(await page.locator('audio').evaluate((media: HTMLAudioElement) => media.paused)).toBe(true);
+});
+
+test('複数行は追加chunkで本文を組み替えず次セットだけを有効にする', async ({ page }) => {
+  await publish([0]); await open(page);
+  await page.getByRole('button', { name: '表示設定', exact: true }).click();
+  await adjustReaderDisplay(page, 'フォントサイズ', '24');
+  await page.getByRole('button', { name: '閉じる', exact: true }).click();
+  await page.getByRole('slider', { name: '表示量', exact: true }).fill('2');
+  const text = page.getByTestId('display-set-text'); const next = page.getByRole('button', { name: '次へ', exact: true });
+  await expect(next).toBeDisabled();
+  const id = await text.getAttribute('data-set-id'); const content = await text.textContent();
+  const end = await text.getAttribute('data-source-end');
+  await publish([0, 1]);
+  await expect(next).toBeEnabled({ timeout: 20000 });
+  await expect(text).toHaveAttribute('data-set-id', id!); await expect(text).toHaveText(content!);
+  await next.click();
+  await expect(text).toHaveAttribute('data-source-start', end!);
+  await expect(page.locator('audio')).toHaveAttribute('src', new RegExp(full.chunks[1].speechKey));
   expect(await page.locator('audio').evaluate((media: HTMLAudioElement) => media.paused)).toBe(true);
 });

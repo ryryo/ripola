@@ -2,13 +2,15 @@ import { useAppNavigation } from '../navigation/AppNavigation';
 import { AudioSampleReader } from '../reader/ui/AudioSampleReader';
 import { Brand } from '../ui/Brand';
 import { ThemeControl } from '../ui/ThemeControl';
-import { Alert, Badge, Button, Popover, Stack, Text, Title } from '@mantine/core';
+import { Alert, Badge, Button, Stack, Text, Title } from '@mantine/core';
 import { useEffect, useState } from 'react';
 import { distributionLoadError, loadDistributedBook, loadDistributionLibrary, type PublicAudioBookManifest, type PublicBookEntry } from '../distribution/library';
 import { AudioReader } from '../reader/ui/AudioReader';
 import { ShareLink } from '../sharing/ShareLink';
 import { Bookshelf } from '../reader/ui/Bookshelf';
 import { BookReadingProgress } from '../reader/ui/BookReadingProgress';
+import { readerCapabilities } from '../reader/environment';
+import { DEFAULT_BOOKSHELF_OPTIONS } from '../reader/bookshelf';
 import '../generation-ui/generation.css';
 
 export function DistributedBooks() {
@@ -22,6 +24,7 @@ function DistributedLibrary() {
   const revision = navigation.search.get('revision');
   const [books, setBooks] = useState<PublicBookEntry[]>([]);
   const [book, setBook] = useState<PublicAudioBookManifest>();
+  const [shelfOptions, setShelfOptions] = useState(DEFAULT_BOOKSHELF_OPTIONS);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const demo = import.meta.env.VITE_RSVP_PROFILE === 'pages' || (books.length > 0 && books.every(entry => entry.publicDemo));
@@ -49,10 +52,10 @@ function DistributedLibrary() {
     {error && <Alert color="red" role="alert">{error}</Alert>}
     {!loading && !error && !books.length && <Text>音声付きの本はまだ配置されていません。</Text>}
     {loading && <Text role="status">読み込んでいます…</Text>}
-    {!loading && books.length > 0 && <Bookshelf count={books.length}>{books.map(entry => <li key={`${entry.id}/${entry.revision}`}><article className="generation-card bookshelf-book" aria-labelledby={`shelf-${entry.id}-${entry.revision}`}>
-      <div className="bookshelf-book-content"><h2 id={`shelf-${entry.id}-${entry.revision}`} title={entry.title}>{entry.title}</h2><BookReadingProgress book={entry} /></div>
-      <div className="bookshelf-book-actions"><Button variant="light" onClick={() => void open(entry)} disabled={loading} aria-label="音声付きで読む" aria-describedby={`shelf-${entry.id}-${entry.revision}`}>読む</Button><Popover position="bottom-end" width={300} shadow="md" trapFocus returnFocus><Popover.Target><Button variant="subtle" className="bookshelf-book-menu" aria-label="著者・音声" aria-describedby={`shelf-${entry.id}-${entry.revision}`}><span aria-hidden="true">•••</span></Button></Popover.Target><Popover.Dropdown style={{ maxWidth: 'calc(100vw - 32px)' }}><Text size="sm">{entry.attribution}</Text></Popover.Dropdown></Popover></div>
-    </article></li>)}</Bookshelf>}
+    {!loading && books.length > 0 && <Bookshelf books={books} options={shelfOptions} onChange={setShelfOptions}>{entry => <li key={`${entry.id}/${entry.revision}`}><article className="generation-card bookshelf-book" aria-labelledby={`shelf-${entry.id}-${entry.revision}`}>
+      <div className="bookshelf-book-content"><h2 id={`shelf-${entry.id}-${entry.revision}`} title={entry.title}><a href={`${import.meta.env.BASE_URL}${readerCapabilities(import.meta.env.VITE_RSVP_PROFILE).audioRoute}?${new URLSearchParams({ book: entry.id, revision: entry.revision })}`} onClick={event => { if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return; event.preventDefault(); if (!loading) void open(entry); }}>{entry.title}</a></h2><BookReadingProgress book={entry} /></div>
+      <div className="bookshelf-book-actions"><Button variant="light" onClick={() => void open(entry)} disabled={loading} aria-label="音声付きで読む" aria-describedby={`shelf-${entry.id}-${entry.revision}`}>読む</Button></div>
+    </article></li>}</Bookshelf>}
     <ShareLink title={demo ? '音声デモ' : '音声ライブラリー'} />
   </Stack></main></div>;
 }

@@ -1,3 +1,4 @@
+import { NativeSelect } from '@mantine/core';
 import { useId } from 'react';
 import type { PaceTimeline, ReadingPace } from '../pace';
 
@@ -7,13 +8,13 @@ export function ReadingPaceControls({ value = 'legacy', summary, onChange }: {
   const id = useId();
   return <div className="group-settings" data-testid="reading-pace-controls">
     <label htmlFor={id}>黙読ペース
-      <select id={id} style={{ minHeight: 44 }} value={value} onChange={event => {
+      <NativeSelect id={id} style={{ minHeight: 44 }} value={value} onChange={event => {
         const next = event.currentTarget.value;
         if (next === 'legacy' || next === 'text-load') onChange(next);
       }}>
         <option value="legacy">従来（文字数に比例）</option>
         <option value="text-load">本文の負荷に配分（評価）</option>
-      </select>
+      </NativeSelect>
     </label>
     <p className="muted">評価モードは数字・英字・括弧・長い句へ時間を配分します。ルビや読み辞書は不要です。重みは仮説で、理解度の向上は未検証です。</p>
     <p className="muted" data-testid="pace-budget">両モードの予定総時間 {(summary.totalMs / 1000).toFixed(1)}秒（休止込み約{Math.round(summary.effectiveCpm)}字/分）。</p>

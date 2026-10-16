@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useLocation, useRouter } from '@tanstack/react-router';
-import type { ReadingDocument } from '../reader/model';
+import type { ReadingDocument, SourceAnchor } from '../reader/model';
 import type { InputFormat } from '../reader/input-format';
 
 declare module '@tanstack/react-router' {
@@ -13,7 +13,7 @@ export interface ReadingDraft {
 }
 export interface ReadingSession {
   draft: ReadingDraft;
-  reading?: { document: ReadingDocument; pdfData?: ArrayBuffer; index: number; sourceOpen?: boolean };
+  reading?: { document: ReadingDocument; pdfData?: ArrayBuffer; index: number; anchor?: SourceAnchor; sourceOpen?: boolean };
 }
 interface SessionStore { sessions: Map<string, ReadingSession>; draft?: ReadingDraft }
 interface NavigationLocation { searchStr: string; state: { __TSR_key?: string } }

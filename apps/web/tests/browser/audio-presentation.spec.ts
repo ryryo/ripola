@@ -72,9 +72,14 @@ test('新規保存を実local APIで再開・seek・有音再生し、AAC静的�
     await page.reload(); await expect(page.locator('.generation-title h1')).toHaveText('読書画面で変更した名前');
     await expect(page.getByTestId('audio-phrase')).toHaveAttribute('data-unit-id', resumed!);
     await page.getByRole('button', { name: '本棚へ戻る', exact: true }).click();
-    await page.locator('summary').filter({ hasText: '名前を変更' }).click();
+    await expect(page.getByRole('button', { name: '名前を変更', exact: true })).toHaveCount(0);
+    await page.getByRole('link', { name: '読書画面で変更した名前', exact: true }).click();
+    await page.getByRole('button', { name: '本の操作', exact: true }).click();
     await page.getByLabel('タイトルを変更', { exact: true }).fill('本棚で変更した名前');
     await page.getByRole('button', { name: '名前を変更', exact: true }).click();
+    await expect(page.locator('.title-status')).toContainText('名前を変更');
+    await page.getByRole('button', { name: '閉じる', exact: true }).click();
+    await page.getByRole('button', { name: '本棚へ戻る', exact: true }).click();
     await expect(page.locator('.library-grid h2')).toHaveText('本棚で変更した名前');
     await page.reload(); await expect(page.locator('.library-grid h2')).toHaveText('本棚で変更した名前');
     expect(await readFile(savedManifestPath)).toEqual(originalManifest);

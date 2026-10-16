@@ -77,17 +77,6 @@
 .fullscreen-reader[data-fullscreen='true'] .phrase-container { min-height: 0; flex: 1; padding: 28px max(16px, env(safe-area-inset-right)) 28px max(16px, env(safe-area-inset-left)); }
 .fullscreen-reader[data-fullscreen='true'] .static-notice { min-height: 0; overflow: auto; justify-content: safe center; padding-top: 64px; }
 .fullscreen-reader[data-fullscreen='true'] .static-notice > * { flex-shrink: 0; }
-.fullscreen-reader[data-fullscreen='true'] > .stopped-context {
-  position: absolute;
-  left: 50%;
-  top: calc(max(12px, env(safe-area-inset-top)) + 48px);
-  transform: translateX(-50%);
-  width: min(800px, 100%);
-  margin: 0;
-  padding: 8px 24px;
-  height: 108px;
-  background: var(--panel);
-}
 /* Keep fixation guides governed by the reader's guide setting during playback. */
 .fullscreen-reader[data-fullscreen='true'][data-playing='true'] .stage-topline { visibility: hidden; }
 .fullscreen-reader[data-fullscreen='true'] .guide-reader { flex: 1; min-height: 0; padding-top: 64px; padding-bottom: calc(var(--fullscreen-footer-height, 170px) + 12px); }
@@ -101,13 +90,16 @@
 .fullscreen-seek label { display: flex; flex-direction: column; gap: 8px; font-size: 12px; }
 .fullscreen-seek input { width: 100%; min-height: 28px; accent-color: var(--accent); }
 .fullscreen-actions { display: flex; justify-content: center; align-items: center; gap: 16px; flex-wrap: wrap; padding-right: 56px; }
+.fullscreen-display-controls { max-width: 760px; margin: 0 auto 8px; }
+.fullscreen-display-controls[hidden] { display: block; visibility: hidden; pointer-events: none; }
+.fullscreen-settings-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); align-items: end; gap: 16px; }
+.fullscreen-speed-control label { display: flex; flex-direction: column; gap: 2px; font-size: 12px; line-height: 1.5; }
+.fullscreen-speed-control input { width: 100%; min-width: 0; min-height: 44px; border: 1px solid var(--line); border-radius: var(--radius-control); background: var(--panel); color: var(--ink); padding: 8px; font-size: 13px; }
 /* Retain the paused controls' space so playback/hover never moves the body. */
 .fullscreen-actions[hidden] { display: flex; visibility: hidden; pointer-events: none; }
-.fullscreen-actions label { font-size: 12px; display: flex; align-items: center; gap: 8px; }
-.fullscreen-actions input, .fullscreen-actions select { width: 100px; min-height: 44px; border: 1px solid var(--line); border-radius: var(--radius-control); background: var(--panel); color: var(--ink); padding: 8px; }
-.fullscreen-reader[data-fullscreen='true'] > .reader-stage:not(.guide-mode),
-.fullscreen-reader[data-fullscreen='true'] > .audio-stage:not(.guide-mode) {
-  --fullscreen-reading-inset: max(calc(var(--fullscreen-footer-height, 170px) + 12px), calc(max(12px, env(safe-area-inset-top)) + 48px + var(--fullscreen-context-height, 0px) + 12px));
+.fullscreen-reader[data-fullscreen='true'] > .reader-stage:not(.guide-mode):not(.multiline-mode),
+.fullscreen-reader[data-fullscreen='true'] > .audio-stage:not(.guide-mode):not(.multiline-mode) {
+  --fullscreen-reading-inset: max(calc(var(--fullscreen-footer-height, 170px) + 12px), calc(max(12px, env(safe-area-inset-top)) + 48px + 12px));
   padding-block: var(--fullscreen-reading-inset);
 }
 @media (max-width: 600px), (max-height: 650px) {
@@ -116,18 +108,25 @@
   .fullscreen-seek label > span { flex-shrink: 0; }
   .fullscreen-seek input { flex: 1; min-width: 0; }
   .fullscreen-actions { gap: 8px; }
-  .fullscreen-actions input, .fullscreen-actions select { width: 80px; }
 }
-@media (max-height: 650px) {
-  .fullscreen-reader[data-fullscreen='true'] > .stopped-context { height: 64px; padding-block: 4px; }
-  .fullscreen-reader[data-fullscreen='true'] .stopped-context-link { padding-block: 0; gap: 4px; }
-  .fullscreen-reader[data-fullscreen='true'] .stopped-context-text { -webkit-line-clamp: 1; }
+@media (max-width: 600px) {
+  .fullscreen-settings-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 12px; }
+}
+
+@media (max-height: 650px) and (max-width: 600px) {
+  .fullscreen-reader[data-fullscreen='true'] > .reader-stage:not(.guide-mode):not(.multiline-mode),
+  .fullscreen-reader[data-fullscreen='true'] > .audio-stage:not(.guide-mode):not(.multiline-mode) {
+    padding-top: calc(max(12px, env(safe-area-inset-top)) + 48px + 12px);
+    padding-bottom: calc(var(--fullscreen-footer-height, 120px) + 12px);
+  }
 }
 @media (max-height: 520px) {
+  .fullscreen-reader[data-fullscreen='true'] > .reader-stage:not(.guide-mode):not(.multiline-mode),
+  .fullscreen-reader[data-fullscreen='true'] > .audio-stage:not(.guide-mode):not(.multiline-mode) {
+    padding-top: calc(max(12px, env(safe-area-inset-top)) + 48px + 12px);
+    padding-bottom: calc(var(--fullscreen-footer-height, 120px) + 12px);
+  }
   .fullscreen-reader[data-fullscreen='true'] .reader-play-overlay { width: 64px; height: 64px; }
-  .fullscreen-reader[data-fullscreen='true'] > .stopped-context { height: 40px; }
-  .fullscreen-reader[data-fullscreen='true'] .stopped-context-link { flex-direction: row; align-items: center; gap: 6px; }
-  .fullscreen-reader[data-fullscreen='true'] .stopped-context-label { flex-shrink: 0; white-space: nowrap; }
   .fullscreen-reader[data-fullscreen='true'] .phrase-container { padding: 4px 16px; gap: 4px; }
   .fullscreen-reader[data-fullscreen='true'] .phrase-container:not(.vertical-phrase-frame) > .guide { height: 8px; }
   .fullscreen-reader[data-fullscreen='true'] .static-notice { padding: 56px 16px 8px; }
@@ -139,4 +138,16 @@
   .fullscreen-reader[data-fullscreen='true'] .guide-toolbar input { flex: 1; min-width: 0; }
   .fullscreen-reader[data-fullscreen='true'] .guide-status { min-height: 0; margin-block: 4px; line-height: 1.5; }
   .fullscreen-reader[data-fullscreen='true'] .guide-static-text { display: none; }
+}
+@media (max-height: 520px) and (min-width: 540px) {
+  .fullscreen-footer { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 0 16px; }
+  .fullscreen-seek { grid-column: 1 / -1; }
+  .fullscreen-display-controls { grid-column: 2; grid-row: 2; width: 100%; max-width: none; margin: 0; padding-right: 48px; }
+  .fullscreen-settings-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+  .fullscreen-actions { grid-column: 1; grid-row: 2; flex-wrap: nowrap; padding-right: 0; }
+}
+
+.fullscreen-reader[data-fullscreen='true'] > .multiline-mode {
+  padding-top: calc(max(12px, env(safe-area-inset-top)) + 48px);
+  padding-bottom: calc(var(--fullscreen-footer-height, 120px) + 8px);
 }

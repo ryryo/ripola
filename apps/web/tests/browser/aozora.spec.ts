@@ -84,7 +84,7 @@ test('実保存ずんだもん冒頭3文は9フレーズ・ルビ・2.5倍で読
   await toggle.click();
   await page.getByLabel('移動する文番号', { exact: true }).fill('1'); await page.getByRole('button', { name: '移動', exact: true }).click();
   await expect.poll(() => page.locator('audio').evaluate((element: HTMLAudioElement) => element.paused)).toBe(true);
-  await expect(page.getByTestId('audio-stage')).toContainText('1 / 3 文');
+  await expect(page.getByTestId('audio-stage')).toHaveAttribute('data-sentence-index', '0');
   if (mobile) {
     await expect(page.getByRole('dialog')).toHaveCount(0); await expect(toggle).toBeFocused();
     await toggle.click();

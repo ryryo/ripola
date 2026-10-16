@@ -1,3 +1,4 @@
+import { adjustReaderDisplay } from './display-controls-helpers';
 import { expect, test } from '@playwright/test';
 import { inspectGuides } from './guide-inspection';
 
@@ -8,7 +9,7 @@ test('通常読書の上下ガイドは文字サイズ・ruby・再生停止に�
   for (const fontSize of ['24', '72']) {
     for (const ruby of [true, false]) {
       await page.getByRole('button', { name: '表示設定', exact: true }).click();
-      await page.getByLabel('文字サイズ', { exact: true }).fill(fontSize);
+      await adjustReaderDisplay(page, 'フォントサイズ', fontSize);
       await page.getByRole('switch', { name: 'ルビを表示', exact: true }).setChecked(ruby);
       await page.getByRole('button', { name: '閉じる', exact: true }).click();
       const paused = await inspectGuides(page, '[data-testid="reader-stage"]');

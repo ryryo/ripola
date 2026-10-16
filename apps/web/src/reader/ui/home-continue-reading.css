@@ -4,13 +4,11 @@
 .home-continue-heading > a { display: inline-flex; align-items: center; flex-shrink: 0; min-height: 44px; padding-block: 10px; color: var(--accent-ink); font-size: 12px; text-underline-offset: 3px; }
 .home-continue-books { margin: 0; padding: 0; list-style: none; }
 .home-continue-books > li { min-width: 0; }
-.home-continue-books article { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 16px; align-items: center; padding-block: 10px; }
+.home-continue-books article { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0 16px; align-items: center; padding-block: 10px; }
 .home-continue-books > li + li { border-top: 1px solid var(--line); }
-.home-continue-copy { min-width: 0; }
-.home-continue-copy h3 { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin: 0 0 3px; font-size: 15px; font-weight: 600; line-height: 1.5; overflow-wrap: anywhere; }
-.home-continue-meta { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin: 0; font-size: 12px; line-height: 1.5; color: var(--muted); font-variant-numeric: tabular-nums; }
-.home-continue-meta > span + span { margin-inline-start: 10px; }
-.home-continue-books .mantine-Button-root { min-height: 44px; padding-inline: 10px; font-size: 13px; flex-shrink: 0; }
+.home-continue-books h3 { grid-column: 1; grid-row: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin: 0; font-size: 15px; font-weight: 600; line-height: 1.5; overflow-wrap: anywhere; }
+.home-continue-books .bookshelf-progress { grid-column: 1 / -1; grid-row: 2; }
+.home-continue-books .mantine-Button-root { grid-column: 2; grid-row: 1; min-height: 44px; padding-inline: 10px; font-size: 13px; flex-shrink: 0; }
 .home-continue-note { margin: 0; font-size: 12px; line-height: 1.8; color: var(--muted); }
 .home-continue .mantine-Alert-message > p { margin: 0 0 8px; }
 @media (max-width: 600px) {
@@ -18,7 +16,7 @@
   .home-continue-heading { gap: 8px; }
   .home-continue-heading h2 { font-size: 16px; }
   .home-continue-heading > a { font-size: 11px; }
-  .home-continue-books article { gap: 8px; }
-  .home-continue-copy h3 { font-size: 14px; }
-  .home-continue-meta { font-size: 11px; }
+  .home-continue-books article { column-gap: 8px; }
+  .home-continue-books h3 { font-size: 14px; }
+  .home-continue-books .bookshelf-progress { font-size: 11px; }
 }

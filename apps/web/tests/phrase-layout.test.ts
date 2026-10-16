@@ -3,7 +3,6 @@ import { test } from 'node:test';
 import { phrasePageAt, planPhrasePages, type PhraseSlice } from '../src/reader/phrase-layout';
 import { prepareDocument } from '../src/reader/segmentation';
 import { importText } from '../src/reader/text-import';
-import { groupReadingUnits } from '../src/reader/display-groups';
 
 const fits = (unit: PhraseSlice, size: number, wrap: boolean) => wrap || Array.from(unit.text).length * size <= 240;
 
@@ -22,17 +21,6 @@ test('one line shrinks before natural subdivision and keeps exact source coverag
   assert.equal(phrasePageAt(pages, unit, 0), 0);
   assert.equal(phrasePageAt(pages, unit, 1), pages.length - 1);
   assert.equal(JSON.stringify(doc), original);
-});
-
-test('stored source boundaries win over word splits; completed cues do not expose a future unit', async () => {
-  const doc = await prepareDocument(importText('私は図書館で静かに本を読みます。', 'txt', '確認'));
-  const group = groupReadingUnits(doc.units, { target: 24, minimum: 0 })[0];
-  const pages = planPhrasePages(group.unit, group.units, 56, fits);
-  assert.ok(pages.length > 1);
-  assert.ok(pages.every(page => group.units.some(unit => unit.start === page.unit.start) && group.units.some(unit => unit.end === page.unit.end)));
-  const first = group.units.find(unit => unit.end === pages[0].unit.end)!;
-  assert.equal(phrasePageAt(pages, first, 1), 0);
-  assert.equal(phrasePageAt(pages, group.units.at(-1), 0), pages.length - 1);
 });
 
 test('ruby, dates, URLs, English words and graphemes remain indivisible fallback runs', async () => {

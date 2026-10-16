@@ -1,3 +1,4 @@
+import { adjustReaderDisplay } from './display-controls-helpers';
 import { test, expect, type Page } from '@playwright/test';
 import { fileURLToPath } from 'node:url';
 import { writeFile } from 'node:fs/promises';
@@ -19,7 +20,7 @@ test('貼付・空本文・原文シーク・Unicode・ruby・外部送信なし
   await expect(page.getByRole('alert')).toContainText('文章を入力');
   await read(page, '私は<ruby>図書館<rt>としょかん</rt></ruby>へ向かった。\n\n👩‍💻が書いたが、2026年10月5日の記録。\n\n![画像](https://example.com/private.png)');
   await expect(page.getByTestId('character-progress')).toContainText('0 /');
-  await page.getByRole('button', { name: '原文', exact: true }).click();
+  await page.getByRole('button', { name: '本の操作', exact: true }).click(); await page.getByRole('button', { name: '原文', exact: true }).click(); await expect(page.getByRole('dialog', { name: '本の操作', exact: true })).toHaveCount(0);
   await expect(page.getByLabel('抽出した全文')).toHaveValue('私は図書館へ向かった。\n\n👩‍💻が書いたが、2026年10月5日の記録。');
   const source = page.locator('.source-unit').filter({ hasText: '図書館' }).first();
   await source.click();
@@ -36,7 +37,7 @@ test('MDファイルはcode/tableで止まり、元入力と同じ本文の位�
   await expect(page.getByText(/取り込んだ本文を確認/)).toBeVisible();
   await page.getByRole('button', {name:'テキストのみ生成して読む',exact:true}).click();
   await expect(page.getByTestId('current-phrase')).toBeVisible();
-  await page.getByRole('button', { name: '原文', exact: true }).click();
+  await page.getByRole('button', { name: '本の操作', exact: true }).click(); await page.getByRole('button', { name: '原文', exact: true }).click(); await expect(page.getByRole('dialog', { name: '本の操作', exact: true })).toHaveCount(0);
   const full = await page.getByLabel('抽出した全文').inputValue();
   expect(full).toContain('試読'); expect(full).toContain('TypeScript');
   await page.locator('.source-static').first().click();
@@ -67,7 +68,7 @@ test('再生連打・速度変更・戻る・設定・背景停止は単位を�
   await page.getByRole('button', { name: '1つ戻る', exact: true }).click();
   await expect(page.getByTestId('current-phrase')).toHaveText(stopped);
   await page.getByRole('button', { name: '表示設定', exact: true }).click();
-  await page.getByLabel('文字サイズ', { exact: true }).fill('72');
+  await adjustReaderDisplay(page, 'フォントサイズ', '72');
   await page.getByRole('button', { name: '閉じる', exact: true }).click();
   await expect(page.getByRole('button', { name: '再生', exact: true })).toBeVisible();
 });
@@ -140,7 +141,7 @@ test('横書きテキストPDFの抽出プレビューと元ページ、保存�
   await expect(page.getByRole('status')).toContainText('保存しました');
   await page.reload(); await page.getByRole('button', { name: '続きから開く', exact: true }).click();
   await expect(page.getByTestId('current-phrase')).toBeVisible();
-  await page.getByRole('button', { name: '原文', exact: true }).click();
+  await page.getByRole('button', { name: '本の操作', exact: true }).click(); await page.getByRole('button', { name: '原文', exact: true }).click(); await expect(page.getByRole('dialog', { name: '本の操作', exact: true })).toHaveCount(0);
   await expect(page.locator('.pdf-canvas canvas')).toBeVisible();
   expect(errors).toEqual([]);
 });
@@ -156,7 +157,7 @@ test('PDF処理を取消して別の本文を読み、古い結果が上書き�
   await page.getByRole('button', { name: '読み込みを取り消す', exact: true }).click();
   await read(page, '新しい文章だけを読む。');
   await page.waitForTimeout(400);
-  await page.getByRole('button', { name: '原文', exact: true }).click();
+  await page.getByRole('button', { name: '本の操作', exact: true }).click(); await page.getByRole('button', { name: '原文', exact: true }).click(); await expect(page.getByRole('dialog', { name: '本の操作', exact: true })).toHaveCount(0);
   await expect(page.getByLabel('抽出した全文')).toHaveValue('新しい文章だけを読む。');
 });
 test('キーボード操作・静的原文・高速live通知なし', async ({ page }) => {
@@ -165,10 +166,10 @@ test('キーボード操作・静的原文・高速live通知なし', async ({ p
   await page.keyboard.press('Space'); await expect(page.getByRole('button', { name: '一時停止', exact: true })).toBeVisible();
   await page.keyboard.press('ArrowRight'); await expect(page.getByRole('button', { name: '再生', exact: true })).toBeVisible();
   await expect(page.getByTestId('current-phrase')).toHaveAttribute('aria-live', 'off');
-  await page.getByRole('button', { name: '原文', exact: true }).click();
+  await page.getByRole('button', { name: '本の操作', exact: true }).click(); await page.getByRole('button', { name: '原文', exact: true }).click(); await expect(page.getByRole('dialog', { name: '本の操作', exact: true })).toHaveCount(0);
   await expect(page.getByLabel('抽出した全文')).toBeVisible();
   await page.getByRole('button', { name: '閉じる', exact: true }).click();
-  await expect(page.getByRole('button', { name: '原文', exact: true })).toBeFocused();
+  await expect(page.getByRole('button', { name: '本の操作', exact: true })).toBeFocused();
 });
 
 test('10万文字を貼り付けてWorkerで処理し、原文のDOMを現在位置の前後に限定する', async ({ page, context, baseURL }) => {
@@ -176,8 +177,10 @@ test('10万文字を貼り付けてWorkerで処理し、原文のDOMを現在位
   const phrase = '朝に本を読み、原文を確かめる。\n\n';
   const text = phrase.repeat(Math.ceil(100_000 / phrase.length)).slice(0, 100_000);
   await page.getByRole('button', {name:'変更', exact:true}).click();
-  await page.getByRole('combobox', {name:'貼り付け形式'}).click();
-  await page.getByRole('option', {name:'テキスト',exact:true}).click();
+  const format = page.getByRole('combobox', { name: '貼り付け形式', exact: true });
+  await format.click();
+  await format.press('ArrowDown'); await format.press('ArrowDown'); await format.press('Enter');
+  await expect(format).toHaveValue('テキスト');
   await context.grantPermissions(['clipboard-read', 'clipboard-write']);
   await page.evaluate(value => navigator.clipboard.writeText(value), text);
   await page.getByLabel('読む文章', { exact: true }).click();
@@ -199,7 +202,7 @@ test('10万文字を貼り付けてWorkerで処理し、原文のDOMを現在位
     return { inputUtf16Length: 100_000, elapsedMs: Math.round(performance.now() - state.sample.started), intervalTicks: state.sample.ticks, maxIntervalDelayMs: Math.round(state.sample.maxDelayMs), userAgent: navigator.userAgent };
   });
   expect(metrics.intervalTicks).toBeGreaterThan(0);
-  await page.getByRole('button', { name: '原文', exact: true }).click();
+  await page.getByRole('button', { name: '本の操作', exact: true }).click(); await page.getByRole('button', { name: '原文', exact: true }).click(); await expect(page.getByRole('dialog', { name: '本の操作', exact: true })).toHaveCount(0);
   expect(await page.getByLabel('抽出した全文').inputValue()).toBe(text);
   expect(await page.locator('.source-unit').count()).toBeLessThanOrEqual(41);
   await writeFile('docs/validation/metrics.json', `${JSON.stringify({ measuredAt: new Date().toISOString(), baseURL, pasteElapsedMs, ...metrics, conditions: 'local browser; synthetic TXT; actual clipboard paste; Playwright; cold page; other tests may share host; not a device benchmark or memory measurement' }, null, 2)}\n`);
