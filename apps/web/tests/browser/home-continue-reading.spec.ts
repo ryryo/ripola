@@ -70,23 +70,29 @@ test.afterAll(async () => { server?.kill('SIGTERM'); if (root) await rm(root, { 
 
 test('トップは保存音声と途中本を3冊まで表示し、1クリックで区間内位置から停止して開く', async ({ page }, testInfo) => {
   await publish();
-  const key = `rsvp-audio-position:${full.id}:${full.revision}`;
-  await page.addInitScript(key => localStorage.setItem(key, '5'), key);
+  await page.addInitScript(({ id, revision }) => {
+    localStorage.setItem(`rsvp-audio-position:${id}:${revision}`, '5');
+    localStorage.setItem(`rsvp-audio-position:home-other-1:${revision}`, '1');
+    localStorage.setItem(`rsvp-audio-position:home-other-2:${revision}`, '24.7');
+    localStorage.setItem(`rsvp-audio-position:home-other-3:${revision}`, '24.69');
+    localStorage.setItem(`rsvp-audio-position:home-other-4:${revision}`, '13');
+  }, { id: full.id, revision: full.revision });
   const requests: string[] = [];
   page.on('request', request => { if (/\/api\/local-audio\//.test(request.url()) || /\/_serverFn\//.test(request.url()) && request.method() === 'POST') requests.push(request.url()); });
   await page.goto(origin);
   await expect(page.getByLabel('読む文章', { exact: true })).toBeVisible({ timeout: 30000 });
   const section = page.getByRole('region', { name: '続きを読む', exact: true });
   await expect(section.locator('article')).toHaveCount(3);
-  await expect(section.getByRole('heading', { level: 3 })).toHaveText([full.title, '保存音声 4', '保存音声 3']);
+  await expect(section.getByRole('heading', { level: 3 })).toHaveText(['保存音声 4', '保存音声 3', full.title]);
   const partialCard = section.getByRole('article').filter({ hasText: full.title });
   await expect(partialCard).not.toContainText('区間');
   await expect(partialCard).toContainText('生成途中');
   await expect(partialCard).toContainText('0分14秒');
   await expect(partialCard).toContainText('0分05秒から再開');
   await expect(partialCard.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '35');
-  await expect(section.getByRole('article').filter({ hasText: '保存音声 4' }).getByRole('progressbar')).toHaveAttribute('aria-valuenow', '0');
-  await expect(section).not.toContainText('保存位置なし');
+  await expect(section.getByRole('article').filter({ hasText: '保存音声 3' }).getByRole('progressbar')).toHaveAttribute('aria-valuenow', '94');
+  await expect(section).not.toContainText('保存音声 1');
+  await expect(section).not.toContainText('保存音声 2');
   expect((await partialCard.boundingBox())!.height).toBeLessThanOrEqual(94);
   const track = await partialCard.locator('.bookshelf-progress-track').boundingBox();
   expect(track!.width).toBeCloseTo((await partialCard.boundingBox())!.width, 0);
@@ -112,6 +118,45 @@ test('トップは保存音声と途中本を3冊まで表示し、1クリック
   await writeFile(resolve(evidence, `${testInfo.project.name}-resume.json`), JSON.stringify({ expectedLocalSeconds: 3, generationPosts: requests.filter(url => url.includes('/_serverFn/')).length }, null, 2));
 });
 
+test('トップは表示上0%と95%以上を除外し、該当本がなくても本棚への導線を出す', async ({ page }, testInfo) => {
+  await publish();
+  await page.addInitScript(({ id, revision }) => {
+    localStorage.setItem(`rsvp-audio-position:${id}:${revision}`, '0');
+    localStorage.setItem(`rsvp-audio-position:home-other-1:${revision}`, '0.25');
+    localStorage.setItem(`rsvp-audio-position:home-other-2:${revision}`, '24.7');
+    localStorage.setItem(`rsvp-audio-position:home-other-3:${revision}`, '26');
+    localStorage.setItem(`rsvp-audio-position:home-other-4:${revision}`, 'NaN');
+  }, { id: full.id, revision: full.revision });
+  await page.goto(origin);
+  await expect(page.getByLabel('読む文章', { exact: true })).toBeVisible({ timeout: 30000 });
+  const continueLink = page.getByRole('link', { name: '本棚へ', exact: true });
+  await expect(page.locator('.home-continue-books article')).toHaveCount(0);
+  await expect(page.getByRole('heading', { name: '続きを読む', exact: true })).toHaveCount(0);
+  await expect(page.locator('.home-continue-home-link')).toHaveCount(1);
+  await expect(page.locator('.home-continue-home-link').getByRole('link')).toHaveCount(1);
+  await expect(continueLink).toHaveAttribute('href', '/library');
+
+  const key = `rsvp-audio-position:${full.id}:${full.revision}`;
+  await page.evaluate(key => {
+    localStorage.setItem(key, '13.29');
+    window.dispatchEvent(new StorageEvent('storage', { key }));
+  }, key);
+  const section = page.getByRole('region', { name: '続きを読む', exact: true });
+  await expect(section.locator('article')).toHaveCount(1);
+  await expect(section.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '94');
+  await expect(page.locator('.home-continue-home-link')).toHaveCount(0);
+
+  const otherTab = await page.context().newPage();
+  await otherTab.goto(origin);
+  await otherTab.evaluate(key => localStorage.setItem(key, '13.3'), key);
+  await otherTab.close();
+  await expect(page.locator('.home-continue-books article')).toHaveCount(0);
+  await expect(page.getByRole('link', { name: '本棚へ', exact: true })).toBeVisible();
+  await page.screenshot({ path: resolve(evidence, `${testInfo.project.name}-home-library-link.png`), fullPage: true });
+  await page.getByRole('link', { name: '本棚へ', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'このPCの本棚', exact: true })).toBeVisible();
+});
+
 test('トップの保存一覧は再確認で回復し、保存位置が使えなくても文章入力を保つ', async ({ page }) => {
   await publish();
   await page.addInitScript(() => { Object.defineProperty(window, 'localStorage', { get() { throw new DOMException('Denied', 'SecurityError'); } }); });
@@ -123,13 +168,13 @@ test('トップの保存一覧は再確認で回復し、保存位置が使え�
   await page.getByLabel('読む文章', { exact: true }).fill('入力中の文章を残します。');
   await page.unroute('**/_serverFn/**');
   await section.getByRole('button', { name: '保存音声を再確認', exact: true }).click();
-  await expect(section.locator('article')).toHaveCount(3);
+  await expect(page.getByRole('link', { name: '本棚へ', exact: true })).toBeVisible();
   await expect(page.getByLabel('読む文章', { exact: true })).toHaveValue('入力中の文章を残します。');
-  await expect(section.getByRole('article').filter({ hasText: full.title })).toContainText('0分14秒');
-  await expect(section.getByRole('article').filter({ hasText: full.title })).not.toContainText('から再開');
   await page.setViewportSize({ width: 320, height: 844 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
-  await section.getByRole('link', { name: `${full.title}を読む`, exact: true }).click();
+  await page.getByRole('link', { name: '本棚へ', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'このPCの本棚', exact: true })).toBeVisible();
+  await page.getByRole('article').filter({ hasText: full.title }).getByRole('button', { name: '保存音声を読む', exact: true }).click();
   await expect(page.getByTestId('audio-stage')).toBeVisible();
   await expect.poll(() => page.locator('audio').evaluate((media: HTMLAudioElement) => media.readyState)).toBeGreaterThan(0);
   expect(await page.locator('audio').evaluate((media: HTMLAudioElement) => ({ seconds: media.currentTime, paused: media.paused }))).toEqual({ seconds: 0, paused: true });

@@ -2,6 +2,8 @@
 .home-continue-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 2px; }
 .home-continue-heading h2 { margin: 0; font-size: 16px; font-weight: 600; }
 .home-continue-heading > a { display: inline-flex; align-items: center; flex-shrink: 0; min-height: 44px; padding-block: 10px; color: var(--accent-ink); font-size: 12px; text-underline-offset: 3px; }
+.home-continue-home-link { display: flex; justify-content: flex-end; margin-bottom: 20px; }
+.home-continue-home-link .mantine-Button-root { min-height: 44px; }
 .home-continue-books { margin: 0; padding: 0; list-style: none; }
 .home-continue-books > li { min-width: 0; }
 .home-continue-books article { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0 16px; align-items: center; padding-block: 10px; }

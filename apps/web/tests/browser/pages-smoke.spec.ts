@@ -2,13 +2,22 @@ import { test, expect } from '@playwright/test';
 import { chooseTheme } from './theme-helpers';
 import { AUDIO_DEMOS } from '../../src/reader/audio-demo';
 
-test('完成Pagesの初期本文・読書・明示保存前の再読み込み', async ({ page, context, baseURL }) => {
+test('完成Pagesの初期本文・読書・明示保存前の再読み込み', async ({ page, context, request, baseURL }) => {
   const errors: string[] = []; const external: string[] = [];
   page.on('pageerror', error => errors.push(error.message));
   context.on('request', request => { if (/^https?:/.test(request.url()) && new URL(request.url()).origin !== new URL(baseURL!).origin) external.push(request.url()); });
   await page.emulateMedia({ colorScheme: 'dark' });
   await page.goto('./');
-  await expect(page.getByRole('region', { name: '続きを読む', exact: true })).toBeVisible();
+  const catalog = await (await request.get('library/index.json')).json();
+  if (catalog.books.length) {
+    await expect(page.locator('.home-continue-home-link')).toBeVisible();
+    await expect(page.getByRole('heading', { name: '続きを読む', exact: true })).toHaveCount(0);
+  } else {
+    const section = page.getByRole('region', { name: '続きを読む', exact: true });
+    await expect(section).toBeVisible();
+    await expect(section).toContainText('保存音声はまだありません');
+    await expect(page.locator('.home-continue-home-link')).toHaveCount(0);
+  }
   await expect(page.locator('html')).toHaveAttribute('data-mantine-color-scheme', 'dark');
   await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(20, 33, 44)');
   await chooseTheme(page, 'ライト');
@@ -85,10 +94,10 @@ test('配布本棚の続きを読むは保存済みの本を優先しサンプ�
   });
   await page.goto('./');
   const section = page.getByRole('region', { name: '続きを読む', exact: true });
-  await expect(section.getByRole('article')).toHaveCount(3);
+  await expect(section.getByRole('article')).toHaveCount(1);
   await expect(section.getByRole('heading', { level: 3 }).first()).toHaveText(entry.title);
   await expect(section.getByRole('progressbar').first()).toHaveAttribute('aria-valuenow', String(Math.floor(12 / entry.durationSeconds * 100)));
-  await expect(section.getByRole('progressbar').nth(1)).toHaveAttribute('aria-valuenow', '0');
+  await expect(section.getByRole('progressbar')).toHaveCount(1);
   const open = section.getByRole('link', { name: `${entry.title}の続きを読む`, exact: true });
   await expect(open).toHaveAttribute('href', new RegExp(`/${metadata.profile === 'pages' ? 'demo/' : 'books/'}\\?book=`));
   await open.click();
