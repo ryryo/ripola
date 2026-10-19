@@ -9,6 +9,7 @@ import { projectAlignment, validateAlignmentResult } from './alignment-projectio
 import { normalizeSpeech, prepareSpeech } from './speech-source';
 import { VOICEVOX_TIMING_VERSION, voicevoxPhraseTiming, voicevoxTimingAvailable, type CapturedVoicevoxQuery } from './voicevox-timing';
 import { requireAudioPresentation } from '../../reader/audio-presentation';
+import { cleanupSavedWavs } from './audio-cleanup';
 import { audioSegments, validVoicevoxTiming } from '../../reader/audio-clock';
 
 interface AlignmentHost { getBook(bookId: string, revision: string): Promise<AudioBookManifest>; getAudio(speechKey: string, requested?: 'wav' | 'mp3'): Promise<{ bytes: Uint8Array; mimeType?: 'audio/wav' | 'audio/mpeg'; sourceAudioHash?: string }> }
@@ -88,7 +89,19 @@ export class AlignmentService {
   }
   private launch(jobId: string): void {
     if (this.running.has(jobId)) return;
-    const task = this.run(jobId).catch(async () => {
+    const task = this.run(jobId).then(async () => {
+      const job = await this.get(jobId);
+      if (job.status !== 'completed' || this.config.automaticCompression === false) return;
+      try {
+        const report = await cleanupSavedWavs(this.disk, { bookId: job.bookId, revision: job.revision,
+          selectedChunkIds: job.selectedChunkIds, operationId: `alignment-cleanup-${digest(job.id)}`, apply: true });
+        await this.update(jobId, value => { value.wavCleanup = { status: report.status, removedFiles: report.removedFiles,
+          removedWavBytes: report.removedWavBytes, retainedWavFiles: report.retainedWavFiles }; });
+      } catch {
+        // Correction remains valid; cleanup failure never replays alignment or speech.
+        await this.update(jobId, value => { value.wavCleanup = { status: 'failed', removedFiles: 0, removedWavBytes: 0, retainedWavFiles: job.totalChunks }; });
+      }
+    }).catch(async () => {
       await this.update(jobId, (job) => { job.status = 'failed'; job.error = 'alignmentの保存処理に失敗しました。元音声は変更していません。'; }).catch(() => undefined);
     }).finally(async () => {
       this.running.delete(jobId); this.controllers.delete(jobId);

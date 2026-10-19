@@ -81,7 +81,7 @@ Readerは「表示：1区切り」と時刻の根拠を分け、「整列結果�
 
 ## キャッシュと配布
 
-整列cacheは元audio hash、正確な`spokenText`、model/aligner version、正規化versionから作ります。元WAVは変更しません。対応表更新・失敗・取消・再開・UI設定変更ではTTSを再実行しません。モデルや正規化versionが変わる時は別の整列cacheを使います。失敗しても既存の文timelineを保持します。
+整列cacheは元audio hash、正確な`spokenText`、model/aligner version、正規化versionから作ります。元WAVの波形は変更しません。補正完了後、検証済みMP3があり他の本でも元WAVを必要としない場合は、[容量削減の共通手順](audio-generation.md#保存容量の自動削減)で元WAVをクリーニングします。対応表更新・失敗・取消・再開・UI設定変更ではTTSを再実行しません。モデルや正規化versionが変わる時は別の整列cacheを使います。失敗しても既存の文timelineを保持します。
 
 AAC/M4Aへの配布時は元PCMとdecode後PCMの相関からoffset/driftを測り、確認できた場合だけcue時刻を補正して持ち出します。相関・元位置・cueの検査に通らない範囲は文fallbackです。公開assetにモデル、runtime、確定発話原稿、正規化本文、cache key、個人path、jobログを入れません。選択した表示本文の`rawText`は従来どおり配布対象です。[配布契約](../../../../docs/development/distribution.md)を参照してください。
 

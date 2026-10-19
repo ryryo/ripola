@@ -129,3 +129,10 @@ local profileだけに生成UI/API/Node coreを含めます。Pages/Workerはrou
 `startGeneration.prioritizedChunkIds`と`prioritizeJobChunks(jobId, chunkIds)`は未来の実行順だけを変えます。指定は重複のない対象IDのsubsetで、残りは本文順です。各jobのrunnerの並行数は1を維持し、進行中requestは置換しません。plan/job/manifestのchunk配列は本文順を保ちます。`GenerationJob.executionOrder`がない旧jobは従来順です。
 
 部分manifestにはoptional `plannedChunkIds`（未保存分を含む本文順）と`generation={jobId,planId,planHash,sequence}`を保存します。`sequence`はbook lock内で公開ごとに増え、音声cacheのrevisionとは別です。これはmanifest公開の識別であり、整列・圧縮の検証を代替しません。`SavedAudioChunk.sourceOrder`は全計画内の位置です。旧本でこれらが欠ける場合は既存配列の順序を使い、閲覧時に保存本や音声を書き換えません。
+
+
+### 後工程の補正とWAVクリーニング
+
+`AlignmentService`は完了した補正の対象に対して`cleanupSavedWavs`を実行し、jobの`wavCleanup`へ削除件数・bytes・保持件数を記録する。取消・失敗時と`automaticCompression: false`では実行しない。クリーニング失敗で補正を再送しない。待機APIはクリーニングまで待つ。
+
+生成直後と後工程の削除は`WavReferences`の共通参照検証を使う。speech lockとbook-references lockの下で、MP3 bytes/proof、元WAV hash、保存補正のhash、全bookの参照を照合する。未補正・異なるhash・使用中・破損は保持する。明示CLI `pnpm cleanup:audio`は同じ検証で計画と適用を行い、合成・model・再encodeは起動しない。操作IDごとの対象hashとファイル単位の削除意図を保存して、中断後の再実行にも対応する。

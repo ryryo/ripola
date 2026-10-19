@@ -259,7 +259,14 @@ export interface AlignmentJobChunk {
   reused: boolean;
   error?: string;
 }
+export interface WavCleanupSummary {
+  status: 'completed' | 'partial' | 'failed';
+  removedFiles: number;
+  removedWavBytes: number;
+  retainedWavFiles: number;
+}
 export interface AlignmentJob {
+  wavCleanup?: WavCleanupSummary;
   schemaVersion: 1;
   id: string;
   operationId: string;

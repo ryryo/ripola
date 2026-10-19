@@ -15,7 +15,8 @@ description: Ripolaで各利用者自身の個人用Cloudflare Workerへ、ロ�
 4. 新規stage directoryを使い、既存CLIでstage、個人用build、配布物監査を行う。必要時だけ[構造監査の手順](../ripola-check-audio/references/presentation-audit.md)を読む。失敗をTTS再生成で回避しない。
 5. 利用者の既存Worker設定を保持し、配布先アカウント・Worker名・asset出力・選択した全蔵書を照合する。必要ならdry-runし、設定・配布物・閲覧範囲をレビュー可能にする。
 6. 配布が承認された依頼なら既存承認に従ってdeployする。準備のみの依頼ならここで成果物を示す。閲覧制限を依頼された場合は本文JSON/manifest/音声を含む全入口を対象にする。
-7. 配布後は通常HTTPS URL、蔵書一覧、直リンク/reload、音声のHEAD/Range、seek・倍速・停止/再開を確認する。実機未確認の項目は区別する。
+7. 音声生成・補正も含む依頼では、[生成スキルの容量削減手順](../ripola-generate-audio/references/audio-generation.md#保存容量の自動削減)でローカルWAVの削除件数・削減容量・保持理由も確認する。配布だけの依頼から音声整理を始めない。
+8. 配布後は通常HTTPS URL、蔵書一覧、直リンク/reload、音声のHEAD/Range、seek・倍速・停止/再開を確認する。実機未確認の項目は区別する。
 
 個人用という名称やaudienceはHTTP認証ではない。既存のAccessやcache設定を保ち、作者の公開デモ用設定を流用しない。選択した本文の`rawText`も配布される。未配布のlocalhost本はQRだけでは移らない。
 

@@ -87,3 +87,26 @@ pnpm exec tsx scripts/generate-audio.ts resume <job-id>
 ## 保存容量の自動削減
 
 VOICEVOX／Geminiとも、新しい音声は同期補正後に自動で圧縮・検証し、圧縮済み音声で再生します。形式を指定する操作は不要です。容量が小さくなり、元音声の時計と一致することを検証したものだけ採用します。MP3は48kbps・モノラル・24kHzです。補正が完了し、他の本でも必要とされていなければ、今回生成したWAVに加え、以前の失敗で残った再利用WAVも削除して保存容量を減らします。元音声が必要な場合や圧縮に失敗した場合は保持し、生成画面に状態を表示します。圧縮や配布のために音声を再生成することはありません。
+
+
+後工程で「保存音声にフレーズ時刻を追加」した場合も、完了後に検証済みMP3がある対象WAVを自動クリーニングします。生成jobの古い`automaticAlignment`状態だけでは判断せず、保存された補正の元音声hash、全蔵書の参照、MP3の実ファイルと時刻検証情報を確認します。選択chunkだけを補正した場合はその対象だけを確認します。未補正・異なるhashの参照・検証失敗・使用中のWAVは保持し、alignment jobの`wavCleanup`に結果を記録します。補正失敗・取消時はクリーニングを実行しません。`automaticCompression: false`の利用者設定では自動クリーニングも行いません。
+
+過去の実行で残ったWAVや、クリーニングの中断・失敗は、音声生成や補正をやり直さず次のCLIで回復します。これはWAVを削除して空き容量を増やす処理です。同じディスク内の`archive-wav`への移動とは異なります。対象と削除操作が依頼で承認されている範囲だけ`--apply`します。
+
+Git対象外の`selection.json`に自分の保存元と対象を明示します。
+
+```json
+{
+  "libraryDir": "/absolute/path/to/your-library",
+  "books": [{ "id": "YOUR_BOOK_ID", "revision": "YOUR_REVISION_HASH" }]
+}
+```
+
+```sh
+# 検証と計画だけ。WAVは削除しない
+pnpm cleanup:audio --config /private/selection.json --operation cleanup-001 --report /private/cleanup-plan.json
+# 同じ条件を再検証して適用。reportには新しいpathを使う
+pnpm cleanup:audio --config /private/selection.json --operation cleanup-001 --report /private/cleanup-result.json --apply
+```
+
+中断した適用は同じ操作ID・同じ対象で再実行できます。hashに結び付けた削除意図と結果をlibrary内へ記録し、完了済み削除を重複計上しません。新たに削除が必要になった場合は別の操作IDを使います。結果の`removedWavBytes`、`retainedWavFiles`と各保持理由を確認します。保持対象を消すために参照や検証情報を書き換えません。原稿の原本・MP3・同期情報・配布物は削除対象外です。

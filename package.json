@@ -16,6 +16,7 @@
     "preview": "RSVP_LOCAL_ORIGIN=http://127.0.0.1:4174 pnpm --filter @ripola/web preview",
     "generate": "node --import tsx scripts/generate-audio.ts",
     "stage": "node --import tsx scripts/stage-library.ts",
+    "cleanup:audio": "node --import tsx scripts/cleanup-audio.ts",
     "compress:audio": "node --import tsx scripts/compress-library.ts",
     "build:pages": "node scripts/build-distribution.mjs --profile pages",
     "build:worker": "node scripts/build-distribution.mjs --profile worker",

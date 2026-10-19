@@ -203,3 +203,62 @@ test('a cache-only retry removes previously retained WAV after compression becom
   assert.deepEqual(retry.book.chunks.map(c => c.alignment), first.book.chunks.map(c => c.alignment));
   for (const c of retry.book.chunks) await assert.rejects(access(join(f.config.libraryDir, 'audio', c.speechKey + '.wav')));
 });
+
+for (const provider of ['voicevox', 'gemini'] as const) test(`deferred ${provider} correction cleans verified WAVs without speech or re-encoding and repeated cleanup is idempotent`, { skip: !available }, async t => {
+  const f = await fixture(t, provider, 3, undefined, false);
+  const first = await f.generate();
+  const before = f.calls().speechCalls;
+  const job = await f.service.startAlignment({ bookId: first.book.id, revision: first.book.revision, operationId: 'deferred-alignment' });
+  const corrected = await f.service.waitForAlignmentJob(job.id);
+  assert.equal(corrected.status, 'completed');
+  assert.equal(corrected.wavCleanup?.status, 'completed');
+  assert.equal(corrected.wavCleanup?.removedFiles, 2);
+  assert.ok(corrected.wavCleanup!.removedWavBytes > 0);
+  assert.equal(f.calls().speechCalls, before);
+  const { cleanupSavedWavs } = await import('../src/generation/core/audio-cleanup');
+  const { LibraryDisk } = await import('../src/generation/core/disk');
+  const again = await cleanupSavedWavs(new LibraryDisk(f.config.libraryDir), { bookId: first.book.id, revision: first.book.revision,
+    operationId: `alignment-cleanup-${(await import('../src/generation/core/disk')).digest(job.id)}`, apply: true });
+  assert.equal(again.removedFiles, 2);
+  assert.equal(again.removedWavBytes, corrected.wavCleanup!.removedWavBytes);
+  // A crash after unlink but before the final journal update must retain exact accounting.
+  const disk = new LibraryDisk(f.config.libraryDir);
+  const { digest } = await import('../src/generation/core/disk');
+  const operationId = `alignment-cleanup-${digest(job.id)}`;
+  const journal = ['audio-cleanup-files', `${digest(`${digest(operationId)}:${first.book.chunks[0].speechKey}`)}.json`];
+  const row = (await disk.read<Record<string, unknown>>(journal))!;
+  await disk.write(journal, { ...row, status: 'planned' });
+  const recovered = await cleanupSavedWavs(disk, { bookId: first.book.id, revision: first.book.revision, operationId, apply: true });
+  assert.equal(recovered.removedWavBytes, again.removedWavBytes);
+  await assert.rejects(cleanupSavedWavs(disk, { bookId: first.book.id, revision: first.book.revision, operationId,
+    selectedChunkIds: [first.book.chunks[0].id], apply: true }), /別の対象/);
+  for (const c of first.book.chunks) {
+    await assert.rejects(access(join(f.config.libraryDir, 'audio', c.speechKey + '.wav')));
+    assert.equal((await f.service.getAudio(c.speechKey)).mimeType, 'audio/mpeg');
+  }
+});
+
+test('deferred cleanup plans without removal, respects selection, shared references and MP3 corruption', { skip: !available }, async t => {
+  const { cleanupSavedWavs } = await import('../src/generation/core/audio-cleanup');
+  const { LibraryDisk } = await import('../src/generation/core/disk');
+  const f = await fixture(t, 'voicevox', 3, undefined, false);
+  const first = await f.generate(); const disk = new LibraryDisk(f.config.libraryDir);
+  const shared = { ...first.book, id: 'book-shared-unaligned' };
+  await disk.write(['books', `${shared.id}_${shared.revision}.json`], shared);
+  const job = await f.service.startAlignment({ bookId: first.book.id, revision: first.book.revision, selectedChunkIds: [first.book.chunks[0].id], operationId: 'partial-correction' });
+  const corrected = await f.service.waitForAlignmentJob(job.id);
+  assert.equal(corrected.status, 'completed');
+  assert.equal(corrected.wavCleanup?.retainedWavFiles, 1);
+  for (const c of first.book.chunks) await access(join(f.config.libraryDir, 'audio', c.speechKey + '.wav'));
+  const updated = await f.service.getBook(first.book.id, first.book.revision);
+  await disk.write(['books', `${shared.id}_${shared.revision}.json`], { ...updated, id: shared.id });
+  const input = { bookId: first.book.id, revision: first.book.revision, selectedChunkIds: [first.book.chunks[0].id], operationId: 'explicit-cleanup' };
+  const plan = await cleanupSavedWavs(disk, input);
+  assert.equal(plan.files[0].status, 'planned');
+  await access(join(f.config.libraryDir, 'audio', first.book.chunks[0].speechKey + '.wav'));
+  await disk.writeBytes(['audio', first.book.chunks[0].speechKey + '.mp3'], new Uint8Array([1, 2, 3]));
+  const corrupt = await cleanupSavedWavs(disk, { ...input, apply: true });
+  assert.equal(corrupt.files[0].status, 'failed');
+  assert.equal(corrupt.removedFiles, 0);
+  for (const c of first.book.chunks) await access(join(f.config.libraryDir, 'audio', c.speechKey + '.wav'));
+});
