@@ -58,7 +58,7 @@ pnpm --filter @ripola/web exec wrangler deploy --config deployment/cloudflare.wr
 権利確認flagを付けるだけで利用許諾が得られるわけではありません。公開する本文全体と選択した声の再配布条件を確認します。配布DTOの `rawText` に原文が含まれるため、元PDF/MDを配らなくても本文は公開されます。
 
 ```sh
-pnpm stage --config /absolute/path/to/allowlist.json --output staging-public/release
+pnpm run stage --config /absolute/path/to/allowlist.json --output staging-public/release
 pnpm build:worker --staging staging-public/release
 pnpm audit:audio --distribution dist/distribution/worker
 ```

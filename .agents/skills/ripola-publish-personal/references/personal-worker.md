@@ -54,7 +54,7 @@ stage/buildのcatalogはallowlistで選択した蔵書全体です。新しい�
 新規生成で検証済みの圧縮音声はそのまま配布します。旧WAVだけの音声はffmpeg/ffprobeでAACへ変換します。TTSは呼び直しません。
 
 ```sh
-pnpm stage --config staging-private/allowlist.json --output staging-private/release-001
+pnpm run stage --config staging-private/allowlist.json --output staging-private/release-001
 pnpm build:worker --audience personal --staging staging-private/release-001
 pnpm audit:audio --distribution dist/personal-worker
 ```
