@@ -44,6 +44,6 @@
 
 ## 検証範囲
 
-手動fullのnative VOICEVOX/保存済み音声4 invocationsはopt-in条件がなければskip。Windows/Linuxは別PRでLinux x64/CPython 3.13の補正setupと実WSL2の初回・再利用・CPU処理・保存・cache再利用を確認済み。Windows 11/mirrored経由のWindows VOICEVOX生成・保存・Reader再生実機E2Eは未検証。Linux補正setup成功をこの経路の成功と扱わない。[既存記録](README.md)、[setup条件](../../guides/setup.md)を参照。
+手動fullのnative VOICEVOX/保存済み音声4 invocationsはopt-in条件がなければskip。Windows/Linuxは別PRでLinux x64/CPython 3.13の補正setupと実WSL2の初回・再利用・CPU処理・保存・cache再利用を確認済み。Windows 11/mirrored経由のWindows VOICEVOX生成・保存・Reader再生実機E2Eは未検証。Linux補正setup成功をこの経路の成功と扱わない。[既存記録](README.md)、[setup条件](../../../.agents/skills/ripola-generate-audio/references/setup.md)を参照。
 
 mobile反復の一部をfullへ移したため、mobile固有のIME/focus等はfullまで発見が遅れる可能性がある。layout/font/長文関連変更では対応検査を自動追加する。

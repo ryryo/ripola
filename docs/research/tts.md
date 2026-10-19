@@ -29,7 +29,7 @@ Enterprise RESTは`https://aiplatform.googleapis.com/v1/projects/PROJECT_ID/loca
 
 [Developer API規約](https://ai.google.dev/gemini-api/terms)はprofessional／business用途の開発者向けとし、consumer用途を対象にしない条件、年齢・地域条件を含みます。有料／無料の区別はAPI keyがあるかではなくbilling等の条件で決まり、有料入力・出力は製品改善に使わない一方、安全目的の限定ログ等の条件があります。無料枠へ有料枠のデータ条件を移しません。Cloud Text-to-Speechの[ログ方針](https://docs.cloud.google.com/text-to-speech/docs/data-logging)も、別サービスの3.8へ適用しません。Enterpriseを選ぶ場合は当該Cloud契約とPreview条件を確認します。
 
-この公式調査ではAPIの実行確認をしていません。利用可能quota、Previewの利用可否、実際の音声品質・請求・credit適用・データ保持は未確認です。経路の選定で、確定したLite既定／Flash選択肢を別モデルへ置き換えません。API直接／Cloudflare AI Gatewayは別の接続方式とし、まずDirectを検証します。GatewayのGoogle provider対応だけで指定3.8 Interactions音声の成功を保証せず、Enterprise globalとGatewayの制約は[接続調査](#directとai-gatewayの対応)、実装側の設定は[音声生成ガイド](../guides/audio-generation.md)へ分けます。
+この公式調査ではAPIの実行確認をしていません。利用可能quota、Previewの利用可否、実際の音声品質・請求・credit適用・データ保持は未確認です。経路の選定で、確定したLite既定／Flash選択肢を別モデルへ置き換えません。API直接／Cloudflare AI Gatewayは別の接続方式とし、まずDirectを検証します。GatewayのGoogle provider対応だけで指定3.8 Interactions音声の成功を保証せず、Enterprise globalとGatewayの制約は[接続調査](#directとai-gatewayの対応)、実装側の設定は[音声生成ガイド](../../.agents/skills/ripola-generate-audio/references/audio-generation.md)へ分けます。
 
 ## 採用する無料ローカルと比較記録
 
@@ -126,7 +126,7 @@ Googleは[25 audio token/秒](https://ai.google.dev/gemini-api/docs/pricing)、O
 
 ## 同期を成立させる実装方針
 
-現在の実装は文timelineに加え、保存済みWAVと確定`spokenText`を日本語CTCモデルへ渡す任意のknown-transcript整列です。採用モデルは固定Reazon Wav2Vec2ForCTC 1種類です。[セットアップ・実装状況](../guides/forced-alignment.md)を参照してください。ルビ/辞書/NFKCのUTF-16対応が一致し、score 0.75以上のcueだけをBudouXフレーズへ戻し、弱い読み表記・未知字・無音/gapは文表示を保ちます。TTSとASRによる再文字起こしは呼びません。20 ms frameやCTC scoreは時刻精度の保証ではなく、人手goldによる誤差分位は未測定です。Geminiのnative timestamp、有料実音声での整列精度は未確認です。
+現在の実装は文timelineに加え、保存済みWAVと確定`spokenText`を日本語CTCモデルへ渡す任意のknown-transcript整列です。採用モデルは固定Reazon Wav2Vec2ForCTC 1種類です。[セットアップ・実装状況](../../.agents/skills/ripola-generate-audio/references/forced-alignment.md)を参照してください。ルビ/辞書/NFKCのUTF-16対応が一致し、score 0.75以上のcueだけをBudouXフレーズへ戻し、弱い読み表記・未知字・無音/gapは文表示を保ちます。TTSとASRによる再文字起こしは呼びません。20 ms frameやCTC scoreは時刻精度の保証ではなく、人手goldによる誤差分位は未測定です。Geminiのnative timestamp、有料実音声での整列精度は未確認です。
 
 以下の複数文chunk・VOICEVOX音素からの対応等は調査時の設計候補で、現CTC実装の検証済み機能とは分けます。
 
@@ -152,15 +152,17 @@ Googleは[25 audio token/秒](https://ai.google.dev/gemini-api/docs/pricing)、O
 
 無料ローカルは採用済みのデスクトップ同梱VOICEVOX Engine＋文単位fallbackから検証します。有料は**Gemini 3.8 Flash-Liteを既定**に、短い自作文の生成・ローカル保存・既知原稿alignment・文単位fallbackを先に検証し、必要な場合だけ**3.8 Flash**へ明示的に切り替えます。他社APIの導入は実装順に含めません。TTS採用はPDF／MD抽出やBudouX分割を変更する前提ではありません。
 
+<a id="directとai-gatewayの対応"></a>
+
 ## DirectとCloudflare直接実行の対応（2026-10-07追補）
 
 採用経路はGoogle Interactions直結（Googleキー・Google課金）と、Cloudflare remote AI binding（既存Wrangler認証・AI Gateway設定に従う課金）の2つです。公式[Lite](https://developers.cloudflare.com/ai/models/google/gemini-3.8-flash-lite-tts/)・[Flash](https://developers.cloudflare.com/ai/models/google/gemini-3.8-flash-tts/)ページが`google/`付きモデル名と`text`・`voice`入力を掲載しています。モデルは既定Lite／明示Flashを維持します。Cloudflare経路は独立したstyle指示が公開schemaにないため未対応と明示します。
 
-旧調査のCustom ProviderによるGoogleキー中継は今回の実装で置き換えました。CloudflareへGoogleキーは送りません。[Unified Billing](https://developers.cloudflare.com/ai-gateway/features/unified-billing/)のBYOK優先はセットアップ注記に留め、Googleのdefault BYOKがあればそちらが使われます。Gateway設定の管理API参照は通常生成に組み込みません。EnterpriseやCloud Text-to-Speechをこの経路と混同しません。詳細・制限・料金計算・実測案は[2経路ガイド](../guides/ai-gateway.md)が正本です。
+旧調査のCustom ProviderによるGoogleキー中継は今回の実装で置き換えました。CloudflareへGoogleキーは送りません。[Unified Billing](https://developers.cloudflare.com/ai-gateway/features/unified-billing/)のBYOK優先はセットアップ注記に留め、Googleのdefault BYOKがあればそちらが使われます。Gateway設定の管理API参照は通常生成に組み込みません。EnterpriseやCloud Text-to-Speechをこの経路と混同しません。詳細・制限・料金計算・実測案は[2経路ガイド](../../.agents/skills/ripola-generate-audio/references/gemini-cloudflare.md)が正本です。
 
 mockでは認証・入力・WAV形式・最小receipt・エラー・再送防止を検証します。実資源・残高・自然さ・請求・上流保持・音声URL hostは未確認です。完成音声は通信経路を変えても再利用し、結果不明の有料requestは直結へ変えても自動再送しません。経路比較には別々の一時libraryで同条件の短文を明示生成する案を使い、既存キャッシュを消しません。ログ・cache・retryの無効化ヘッダーは指定しますが、実サービスでの適用は有料検証段階の確認事項です。
 
 
 ## Wrangler既存ログインへの移行（2026-10-07）
 
-通常CF経路は公式`getPlatformProxy`のremote AI bindingへ変更しました。手動tokenは必須ではありません。以前のRESTは明示opt-in互換経路です。Gateway ID指定と既存Wranglerログインで通常実行する実装です。管理API Readや確認済みフラグは不要です。2026-10-07の承認試験でCloudflare Liteの13文実生成が完了しました。実請求額・音声品質の人手評価は未確認です。[現行設定と制約](../guides/ai-gateway.md)を正本としてください。Node保存・VOICEVOX・直Geminiは維持します。
+通常CF経路は公式`getPlatformProxy`のremote AI bindingへ変更しました。手動tokenは必須ではありません。以前のRESTは明示opt-in互換経路です。Gateway ID指定と既存Wranglerログインで通常実行する実装です。管理API Readや確認済みフラグは不要です。2026-10-07の承認試験でCloudflare Liteの13文実生成が完了しました。実請求額・音声品質の人手評価は未確認です。[現行設定と制約](../../.agents/skills/ripola-generate-audio/references/gemini-cloudflare.md)を正本としてください。Node保存・VOICEVOX・直Geminiは維持します。

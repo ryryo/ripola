@@ -1,0 +1,3 @@
+interface:
+  display_name: "Ripola 保存音声の検査"
+  short_description: "保存音声の構造と品質を検査し、試聴が必要な箇所と根拠を整理する"

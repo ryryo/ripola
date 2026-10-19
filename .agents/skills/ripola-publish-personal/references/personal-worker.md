@@ -2,6 +2,8 @@
 
 公開OSSのコード・公開デモと、利用者が自分のCloudflareアカウントで使う個人用Workerは別の配布先です。個人用の原稿をOSSや公開デモへ入れる必要はありません。PCで生成した本文・音声・フレーズ時刻を選んで、本人のWorkerへ一方向に配布できます。R2・D1・新しい環境変数は不要です。
 
+この資料はcloneした各利用者が使う手順です。以下のコマンドはrepo rootから実行します。原稿の準備・音声化は[生成手順](../../ripola-generate-audio/references/audio-generation.md)で行います。既存の設定・allowlistがある場合は保持し、例をそのまま上書きコピーしません。
+
 公開デモ・個人用Workerとも、閲覧端末内のTXT/MD/対応PDF取り込みとRSVP生成、配布済み音声の再生に対応します。Gemini・VOICEVOX・整列のサーバー処理はローカルPCだけです。個人用Workerにも音声生成API、AI binding、Google keyを配置しません。
 
 ## 配布入力を分ける
@@ -38,6 +40,15 @@
 
 rightsConfirmedは本人の利用と配布先の閲覧範囲について確認するflagです。公開OSSデモへの掲載許可を意味しません。選択本文を配布する権利や閲覧制限は利用者が確認します。
 
+### 本を追加・更新するとき
+
+stage/buildのcatalogはallowlistで選択した蔵書全体です。新しい本だけのallowlistでdeployすると、以前選択していた本が配布物から外れます。
+
+1. 前回使った個人用allowlistと配布catalogを確認し、現在のbook ID/revisionを一覧にします。保存した配布物や設定がなく、既存蔵書を特定できない場合は、確認できるまでdeployしません。
+2. 追加するbook/revisionを既存の`books`へ統合します。同じID/revisionの重複は除きます。削除や旧版置換は依頼されたものだけにし、既存の帰属も保持します。
+3. 各book/revisionがローカルlibraryで完成済みか確認します。既存本がローカルにない場合、勝手に選択から外して進めません。正本の復元または保持方針を確認します。
+4. build後のcatalogを予定一覧と照合し、追加分と保持分がそろったことを確認します。監査コマンドの成功だけでは、依頼された蔵書がすべて含まれるとは限りません。
+
 ## 2. 個人用の配布物を準備する
 
 新規生成で検証済みの圧縮音声はそのまま配布します。旧WAVだけの音声はffmpeg/ffprobeでAACへ変換します。TTSは呼び直しません。
@@ -46,7 +57,14 @@ rightsConfirmedは本人の利用と配布先の閲覧範囲について確認�
 pnpm stage --config staging-private/allowlist.json --output staging-private/release-001
 pnpm build:worker --audience personal --staging staging-private/release-001
 pnpm audit:audio --distribution dist/personal-worker
-cp deployment/personal.example.wrangler.jsonc deployment/personal.wrangler.jsonc
+```
+
+配布先設定がまだない初回だけexampleから作ります。既存設定はそのまま使います。
+
+```sh
+if [ ! -e deployment/personal.wrangler.jsonc ]; then
+  cp deployment/personal.example.wrangler.jsonc deployment/personal.wrangler.jsonc
+fi
 ```
 
 stageは新しいdirectoryを指定します。個人用の出力は公開デモ出力とは別です。設定のnameを自分の一意なWorker名にし、既存Wranglerログインのアカウントが本人の配布先であることを確認します。公開プレビュー用の設定やWorker名を流用しません。既存ログインを使える場合、新しいtokenやenv項目は不要です。
@@ -67,7 +85,7 @@ pnpm --filter @ripola/web exec wrangler deploy --dry-run --config ../../deployme
 pnpm --filter @ripola/web exec wrangler deploy --config ../../deployment/personal.wrangler.jsonc
 ```
 
-今回の修正では本人の原稿のアップロード、個人用Workerのデプロイ、Access設定は実行していません。
+Access設定の追加・変更は、利用者が求める閲覧範囲に応じた別の操作です。生成や配布物の準備を行っただけでは、deployやAccess設定は実行されません。
 
 ## 4. スマホで読む
 

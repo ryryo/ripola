@@ -32,7 +32,7 @@ flowchart LR
 
 | 場所 | 責務 |
 | --- | --- |
-| [routes](../../apps/web/src/routes/)・[router.tsx](../../apps/web/src/router.tsx) | 取り込み・読書画面とprofileに応じた導線 |
+| [routes](../../apps/web/src/routes)・[router.tsx](../../apps/web/src/router.tsx) | 取り込み・読書画面とprofileに応じた導線 |
 | [model.ts](../../apps/web/src/reader/model.ts) | ブロック、フレーズ、元範囲、ルビ、表示設定の型 |
 | [text-import.ts](../../apps/web/src/reader/text-import.ts) | TXTとMarkdown ASTから本文・構造・UTF-16元位置を抽出 |
 | [segmentation.ts](../../apps/web/src/reader/segmentation.ts) | BudouX、書記素・数値・URL等の境界保護、安定ID・hash |

@@ -27,6 +27,6 @@
 
 この公開準備段階ではビルド・サンプル検査だけを行いました。その後、[GitHub Pagesの公開と実URL検証](github-pages-2026-10-08.md)と、[Pages初期デモ文の公開URL検査](pages-default-published-2026-10-08.md)を完了しています。Cloudflareへの新規デプロイは行っていません。
 
-後続の[PR #1](https://github.com/ryryo/ripola/pull/1)で、同期補正セットアップをmacOS ARM64とLinux x64・CPython 3.13へ対応させ、実WSL2で初回・再利用・CPU処理・保存・キャッシュ再利用を確認しました。Windows版VOICEVOXとWSL2を組み合わせた生成・保存・Reader再生の全体動作は未検証です。[セットアップ条件](../../guides/setup.md)を参照してください。
+後続の[PR #1](https://github.com/ryryo/ripola/pull/1)で、同期補正セットアップをmacOS ARM64とLinux x64・CPython 3.13へ対応させ、実WSL2で初回・再利用・CPU処理・保存・キャッシュ再利用を確認しました。Windows版VOICEVOXとWSL2を組み合わせた生成・保存・Reader再生の全体動作は未検証です。[セットアップ条件](../../../.agents/skills/ripola-generate-audio/references/setup.md)を参照してください。
 
 [Pages初期デモ文のローカル候補検査](pages-default-draft-2026-10-08.md)は公開済みPagesとは別の結果です。

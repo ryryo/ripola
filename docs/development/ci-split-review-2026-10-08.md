@@ -134,7 +134,7 @@ build/deployは同じrunのartifactと依存gateで結び、Pages書込・OIDC�
 - mobile反復をfullへ回すと、IME・focus・キー操作・高度な状態遷移のmobile固有差はfullまで発見が遅れる場合がある。layout/font/長文関連検査は変更時にも自動追加する。
 - 4 skippedはRSVP_TEST_VOICEVOX=1とRSVP_TEST_AOZORA_AUDIO=1のopt-inが各projectで未実行。標準fullでnative実合成まで合格したとは記録しない。個人書籍や有料生成を検査前提にしない。
 - **Windows/Linuxの検証済み部分:** 別の[PR #1](https://github.com/ryryo/ripola/pull/1)でLinux x64・CPython 3.13の補正setup対応を追加し、実WSL2で初回・再利用・CPU処理・保存・cache再利用を確認済み。Linux CI上のPython計算・runtime契約検査も既存runで成功している。今回再実施はしていない。[既存検証記録](../validation/public-release/README.md)
-- **未検証の実機E2E:** Windows 11/mirroredでWindows版VOICEVOXに接続し、WSL2側Nodeから生成・保存・Reader再生する全体動作は未検証。実測Windows Server 2022/NATではWSL側の接続が失敗した。Linux/WSL2の補正setup成功とこの接続経路を混同しない。[setup条件・検証範囲](../guides/setup.md)
+- **未検証の実機E2E:** Windows 11/mirroredでWindows版VOICEVOXに接続し、WSL2側Nodeから生成・保存・Reader再生する全体動作は未検証。実測Windows Server 2022/NATではWSL側の接続が失敗した。Linux/WSL2の補正setup成功とこの接続経路を混同しない。[setup条件・検証範囲](../../.agents/skills/ripola-generate-audio/references/setup.md)
 - スマホ利用は利用者確認済み。追加の網羅実機QAを新規前提としない。Windows/Linuxの未検証実機E2Eは後回しのまま、今回のCI見直しで完了扱いにしない。
 - 実装後に通常runの対象件数・時間・Pages artifactと、fullへの全132件の残存を確認する。今回の提案の効果は未計測。製品機能や定期実行は追加しない。
 

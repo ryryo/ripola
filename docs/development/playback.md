@@ -40,7 +40,7 @@ effectiveCPM = 60,000 × Σg_i / Σduration_i
 
 ## 日本語CTCによる既知原稿の整列
 
-保存済みWAVと生成時に確定した`spokenText`を使い、CTC emissionを既知原稿に沿って整列します。TTSを再実行せず、ASRの推測結果で本文を置き換えません。採用モデルはReazon Researchの固定日本語Wav2Vec2ForCTC 1種類です。[セットアップと固定モデル](../guides/forced-alignment.md)を参照してください。短い保存済み自作文で12単位中9の採用を実測しています。人手goldによる時刻誤差は未測定で、一定ms以内を保証しません。
+保存済みWAVと生成時に確定した`spokenText`を使い、CTC emissionを既知原稿に沿って整列します。TTSを再実行せず、ASRの推測結果で本文を置き換えません。採用モデルはReazon Researchの固定日本語Wav2Vec2ForCTC 1種類です。[セットアップと固定モデル](../../.agents/skills/ripola-generate-audio/references/forced-alignment.md)を参照してください。短い保存済み自作文で12単位中9の採用を実測しています。人手goldによる時刻誤差は未測定で、一定ms以内を保証しません。
 
 [prepareSpeech/normalizeSpeech](../../apps/web/src/generation/core/speech-source.ts)は表示UTF-16区間→ルビ/辞書展開後の発話区間→NFKC後の整列用区間を保存します。正規化ではgraphemeごとにNFKCを適用し、空白/句読点を除外します。表示本文は変えません。保存した発話原稿と再構成した`spokenText`が完全一致しない時は対応表を採用しません。
 

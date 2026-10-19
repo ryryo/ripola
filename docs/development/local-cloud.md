@@ -17,7 +17,7 @@
 
 VOICEVOXのEngineは利用者PCに置く前提です。公開サイトから閲覧者PCのEngineや生成サーバーへ自動接続しません。静的版の「取り込み」はブラウザ処理であり、クラウド保存を意味しません。ブラウザ保存もPCの生成library正本の代わりにはなりません。
 
-今回の専用プレビューは公開の青空文庫本文と約1分のずんだもん音声だけを対象にします。私用原稿・元PDF/MD・全library・元WAV・生成query・job・env・秘密鍵を配布rootへ入れません。GitHubリポジトリのprivate設定とWorkerの閲覧範囲は別です。本人の個人利用はローカルに限定しません。[個人用Worker](../guides/personal-worker.md)へ選択した本文・音声・同期用対応表を配布してスマホで読めます。公開デモと入力・manifest・出力・Worker設定を分けます。個人用という名前は認証ではなく、閲覧を制限する場合だけ任意の[Accessとassetの保護](distribution.md#optional-accessとqr)を設定します。
+今回の専用プレビューは公開の青空文庫本文と約1分のずんだもん音声だけを対象にします。私用原稿・元PDF/MD・全library・元WAV・生成query・job・env・秘密鍵を配布rootへ入れません。GitHubリポジトリのprivate設定とWorkerの閲覧範囲は別です。本人の個人利用はローカルに限定しません。[個人用Worker](../../.agents/skills/ripola-publish-personal/references/personal-worker.md)へ選択した本文・音声・同期用対応表を配布してスマホで読めます。公開デモと入力・manifest・出力・Worker設定を分けます。個人用という名前は認証ではなく、閲覧を制限する場合だけ任意の[Accessとassetの保護](distribution.md#optional-accessとqr)を設定します。
 
 ## 選択したA案・C案と形式判定の実装
 

@@ -1,0 +1,3 @@
+interface:
+  display_name: "Ripola 音声生成"
+  short_description: "VOICEVOXまたはGeminiで原稿を音声にし、保存と同期補正を進める"

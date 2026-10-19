@@ -1,6 +1,6 @@
 # ローカル生成UI・ジョブ・永続保存の契約
 
-更新日：2026-10-06 UTC。詳細生成の主導線は同じPCの開発サーバーをブラウザから操作する画面です。CLIは共通の型付き生成サービスを呼ぶ補助入口です。本資料は開発契約であり、すべての項目が実装・検証済みという意味ではありません。現状は検証記録、操作と設定は[音声生成ガイド](../guides/audio-generation.md)を参照してください。
+更新日：2026-10-06 UTC。詳細生成の主導線は同じPCの開発サーバーをブラウザから操作する画面です。CLIは共通の型付き生成サービスを呼ぶ補助入口です。本資料は開発契約であり、すべての項目が実装・検証済みという意味ではありません。現状は検証記録、操作と設定は[音声生成ガイド](../../.agents/skills/ripola-generate-audio/references/audio-generation.md)を参照してください。
 
 公開先との機能の違い、将来のAPI生成・永続保存・持ち帰りと競合の段階案は[ローカルとクラウドの分担](local-cloud.md)を参照してください。現在のstage/deployは一方向の配布で、自動双方向同期ではありません。
 
@@ -89,7 +89,7 @@ cache keyは`audioHash + exact spokenText + alignerVersion + normalizeVersion`�
 
 整列jobはqueued/running/cancel-requested/cancelled/failed/completedを区別し、chunk別のcompleted/failed/pending、aligned/partial/fallback、reusedを保存します。同じoperationとalignment keyは排他的lockを使います。HMRではprocess内runnerを共有し、停止後はowner/lockを検査して明示再開します。取消はPython childへabortを送り、完成cacheと元WAVを残します。中断したchunkは未完了へ戻し、再開では対応表だけを作ります。
 
-runtimeのbinary・固定script・model directoryはserver設定だけから選びます。childへ渡す環境を限定し、Google key等を継承させません。stdin/stdoutのversion付きJSONで原稿・UTF-16区間・時刻を受け渡し、stderrに私的path/本文/生envを記録しません。`local_files_only`、offline設定、safetensors、標準CPUモデル、入力60秒/512整列文字とchild timeoutで処理を限定します。設定と明示セットアップは[利用者ガイド](../guides/forced-alignment.md)を参照してください。
+runtimeのbinary・固定script・model directoryはserver設定だけから選びます。childへ渡す環境を限定し、Google key等を継承させません。stdin/stdoutのversion付きJSONで原稿・UTF-16区間・時刻を受け渡し、stderrに私的path/本文/生envを記録しません。`local_files_only`、offline設定、safetensors、標準CPUモデル、入力60秒/512整列文字とchild timeoutで処理を限定します。設定と明示セットアップは[利用者ガイド](../../.agents/skills/ripola-generate-audio/references/forced-alignment.md)を参照してください。
 
 ## 同期と公開build
 
@@ -101,12 +101,12 @@ local profileだけに生成UI/API/Node coreを含めます。Pages/Workerはrou
 
 ## Gateway adapterの現在の契約
 
-通常経路は公式Wrangler remote AI bindingです。REST `/ai/run`は明示opt-in互換経路です。[設定・認証・応答metadata・ログ/cache・timeout・receipt](../guides/ai-gateway.md)が正本です。REST互換の3変数はサーバー内だけで読み、Googleキーをこの経路には送信しません。Gateway IDとadapter versionをplanの`routeIdentity`へ固定し、旧adapter計画やGateway指定変更後の実行を拒否します。`text`・`voice`入力、base64/信頼できるURLのWAV、結果不明の再送禁止、経路間の完成cache共有をmock検証しました。独立したstyle指示は未対応と明示し、非空のAPI入力を拒否します。実認証・残高・有料合成は未検証です。
+通常経路は公式Wrangler remote AI bindingです。REST `/ai/run`は明示opt-in互換経路です。[設定・認証・応答metadata・ログ/cache・timeout・receipt](../../.agents/skills/ripola-generate-audio/references/gemini-cloudflare.md)が正本です。REST互換の3変数はサーバー内だけで読み、Googleキーをこの経路には送信しません。Gateway IDとadapter versionをplanの`routeIdentity`へ固定し、旧adapter計画やGateway指定変更後の実行を拒否します。`text`・`voice`入力、base64/信頼できるURLのWAV、結果不明の再送禁止、経路間の完成cache共有をmock検証しました。独立したstyle指示は未対応と明示し、非空のAPI入力を拒否します。実認証・残高・有料合成は未検証です。
 
 
 ## Wrangler既存ログインへの移行（2026-10-07）
 
-通常CF経路は公式`getPlatformProxy`のremote AI bindingへ変更しました。手動tokenは必須ではありません。以前のRESTは明示opt-in互換経路です。Gateway ID指定と既存Wranglerログインで通常実行する実装です。管理API Readや課金設定の確認済みフラグは要求しません。有料実推論は未実施です。[現行設定と制約](../guides/ai-gateway.md)を正本としてください。Node保存・VOICEVOX・直Geminiは維持します。
+通常CF経路は公式`getPlatformProxy`のremote AI bindingへ変更しました。手動tokenは必須ではありません。以前のRESTは明示opt-in互換経路です。Gateway ID指定と既存Wranglerログインで通常実行する実装です。管理API Readや課金設定の確認済みフラグは要求しません。有料実推論は未実施です。[現行設定と制約](../../.agents/skills/ripola-generate-audio/references/gemini-cloudflare.md)を正本としてください。Node保存・VOICEVOX・直Geminiは維持します。
 
 ## 新規生成後の自動整列・補正
 

@@ -2,7 +2,7 @@
 
 日本語の文章を、区切りを順に読むRSVPリーダーです。Markdown・TXT・青空文庫形式・テキスト層付きPDFを取り込み、読む速度を変えたり、止まって原文に戻ったりできます。
 
-**[ブラウザでデモを試す](https://ryryo.github.io/ripola/)** · [読書ガイド](docs/guides/reading.md) · [セットアップ](docs/guides/setup.md) · [資料一覧](docs/README.md)
+**[ブラウザでデモを試す](https://ryryo.github.io/ripola/)** · [読書ガイド](docs/guides/reading.md) · [セットアップ](.agents/skills/ripola-generate-audio/references/setup.md) · [資料一覧](docs/README.md)
 
 ## できること
 
@@ -32,7 +32,7 @@ pnpm dev
 
 http://127.0.0.1:4173/ を開きます。通常読書とサンプル再生に `.env.local` は不要です。ビルド確認は `pnpm build` → `pnpm preview`（http://127.0.0.1:4174/）。
 
-音声生成後の同期補正を使う場合は、CPython **3.13**とffmpeg／ffprobeを用意し、**`pnpm setup:audio`** を実行します。対象はmacOS Apple Siliconと**Linux x64（WSL2 Ubuntuを含む、glibc 2.28以上）**です。専用Python環境・固定依存・固定モデル・設定を準備し、既存ファイルは検証して再利用します。初回はモデル約387 MB＋依存Mac約110 MB／Linux約234 MBです。Windows native・Linux ARM64・Intel Macは対象外です。[要件・容量・Windowsの接続条件](docs/guides/setup.md)を参照してください。
+音声生成後の同期補正を使う場合は、CPython **3.13**とffmpeg／ffprobeを用意し、**`pnpm setup:audio`** を実行します。対象はmacOS Apple Siliconと**Linux x64（WSL2 Ubuntuを含む、glibc 2.28以上）**です。専用Python環境・固定依存・固定モデル・設定を準備し、既存ファイルは検証して再利用します。初回はモデル約387 MB＋依存Mac約110 MB／Linux約234 MBです。Windows native・Linux ARM64・Intel Macは対象外です。[要件・容量・Windowsの接続条件](.agents/skills/ripola-generate-audio/references/setup.md)を参照してください。
 
 Windowsでは公式VOICEVOXアプリをWindows側、Node/PythonをWSL2側で動かします。固定loopback URLへの接続にはWindows 11 22H2以降のmirrored networkingが必要です。実WSL2 Ubuntu 24.04でCPU補正セットアップを検証していますが、**Windows 11/mirroredでの音声生成E2Eは未検証**です。Windows Server 2022/NATは同じ接続経路として扱えません。
 
@@ -44,9 +44,11 @@ Windowsでは公式VOICEVOXアプリをWindows側、Node/PythonをWSL2側で動�
 | --- | --- | --- |
 | 無料VOICEVOX | 同じPCの[公式アプリ](https://voicevox.hiroshiba.jp/)を起動。キー不要 | 同じPCのEngine |
 | Gemini Direct | `.env.local` に `GEMINI_API_KEY` の1項目 | Google |
-| Cloudflare | Wranglerログイン＋[ローカル設定のGateway選択](docs/guides/ai-gateway.md) | Cloudflare（Gateway設定に応じてGoogleモデルを利用） |
+| Cloudflare | Wranglerログイン＋[ローカル設定のGateway選択](.agents/skills/ripola-generate-audio/references/gemini-cloudflare.md) | Cloudflare（Gateway設定に応じてGoogleモデルを利用） |
 
-[.env.example](.env.example) は日本語コメント付きの最小1キーです。既存 `.env.local` を上書きせず、必要な設定だけ追加してサーバーを再起動します。生成前に本文・声・対象・送信先・費用目安を確認し、明示的に開始します。保存済み音声の再生・補正・配布ではTTSを再送しません。[音声生成ガイド](docs/guides/audio-generation.md)と[特殊な設定](docs/guides/configuration.md)へ。
+[.env.example](.env.example) は日本語コメント付きの最小1キーです。既存 `.env.local` を上書きせず、必要な設定だけ追加してサーバーを再起動します。生成前に本文・声・対象・送信先・費用目安を確認し、明示的に開始します。保存済み音声の再生・補正・配布ではTTSを再送しません。[音声生成ガイド](.agents/skills/ripola-generate-audio/references/audio-generation.md)と[特殊な設定](.agents/skills/ripola-generate-audio/references/configuration.md)へ。
+
+原稿整形・分割、音声生成、保存音声の検査、個人用配布を支援する4つのプロジェクト用スキルを同梱しています。cloneしたリポジトリをCodexで開いて使えます。各手順書はCodexなしでも読めます。[手順とスキルの一覧](docs/README.md#原稿から個人用配布まで)を参照してください。
 
 ## 保存と配布
 
@@ -59,7 +61,7 @@ pnpm build:worker
 
 個人libraryを読まず、同梱サンプル付きの閲覧用配布物を準備します。**ビルドだけではデプロイしません。** Worker／Pagesは端末内の取り込み・RSVP生成と保存音声の再生に対応し、生成API・秘密キー・Python環境を含めません。
 
-公開デモと、各利用者が自分のアカウントに配布する個人用Workerは分離します。音声付きの本は配布できるものを明示選択します。配布した本文JSON・音声は取得可能です。閲覧認証は任意で、制限したい場合は本文・音声を含めAccess等を設定します。[GitHub Pagesデモ](docs/guides/github-pages.md)・[Cloudflare配布](docs/guides/cloudflare-deployment.md)・[個人用Worker](docs/guides/personal-worker.md)へ。
+公開デモと、各利用者が自分のアカウントに配布する個人用Workerは分離します。音声付きの本は配布できるものを明示選択します。配布した本文JSON・音声は取得可能です。閲覧認証は任意で、制限したい場合は本文・音声を含めAccess等を設定します。[GitHub Pagesデモ](docs/guides/github-pages.md)・[Cloudflare配布](docs/guides/cloudflare-deployment.md)・[個人用Worker](.agents/skills/ripola-publish-personal/references/personal-worker.md)へ。
 
 ## 開発・ライセンス
 

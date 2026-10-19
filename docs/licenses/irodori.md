@@ -13,4 +13,4 @@
 
 cardは個人の声の複製・なりすましに明示同意を求め、deepfake・誤情報などの有害利用を禁止しています。参照音声を使わない生成でも偶然実在人物に似る場合がある旨を記しています。通常の操作で録音・話者学習・voice作成を行いません。既定男女声の固定参照は、同じ通常版モデルのVoiceDesignで作った自作オーディション音声をspeech.cppで事前に符号化したものです。実在話者の録音や複製ではありません。短い参照とモデルによる声質の揺れがあるため、完全な話者一致を保証するものとは説明しません。
 
-GGUF固定情報はrevision `66fe2cde1973fd44e7202fbe36df722103958188`、`Irodori-TTS-859M-v4.1-F16.gguf`、1,905,903,936 bytes、SHA-256 `f334932bdf166579bada0a3c8bdabb7199af85682fdcefb6f1cb7e444f5c75b3`です。[導入ガイド](../guides/irodori.md)を参照してください。MIT/Apacheのnoticeを満たすことと、voiceの個別条件・合成音声の配布可否を確認することは別です。
+GGUF固定情報はrevision `66fe2cde1973fd44e7202fbe36df722103958188`、`Irodori-TTS-859M-v4.1-F16.gguf`、1,905,903,936 bytes、SHA-256 `f334932bdf166579bada0a3c8bdabb7199af85682fdcefb6f1cb7e444f5c75b3`です。[導入ガイド](../../.agents/skills/ripola-generate-audio/references/irodori.md)を参照してください。MIT/Apacheのnoticeを満たすことと、voiceの個別条件・合成音声の配布可否を確認することは別です。

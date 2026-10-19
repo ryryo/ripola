@@ -27,7 +27,7 @@
 
 ## 保存範囲
 
-[catalog.json](catalog.json)にはmacOS arm64でインストールした**377 package**のversion、宣言ライセンス、repo、noticeのパス・サイズ・SHA-256を保存しています。[packages](packages/)には配布物内の元LICENSE／NOTICEをそのまま保存しました。別OSのoptional binaryはこのホストにインストールされていないため、元noticeの保存対象に含めていません。lockfileにはその解決も残ります。
+[catalog.json](catalog.json)にはmacOS arm64でインストールした**377 package**のversion、宣言ライセンス、repo、noticeのパス・サイズ・SHA-256を保存しています。[packages](packages)には配布物内の元LICENSE／NOTICEをそのまま保存しました。別OSのoptional binaryはこのホストにインストールされていないため、元noticeの保存対象に含めていません。lockfileにはその解決も残ります。
 
 27 packageは配布物に独立したnoticeファイルがなく、catalogの`noticeStatus`に明示しています。BudouXには別途、v0.9.3タグの固定commit `25946bbbb271dc8a53bb5b04082c6859abc5c847`から[上流LICENSE](upstream/budoux-0.9.3-LICENSE)を保存しました。[一次資料](https://github.com/google/budoux/blob/25946bbbb271dc8a53bb5b04082c6859abc5c847/LICENSE)です。独立したファイルがないpackageを、宣言だけで全文照合済みと扱っていません。
 
@@ -59,7 +59,7 @@ Linuxの実wheelでもtorchの`dist-info/licenses/LICENSE`（BSD-3-Clauseと第�
 
 残る固定依存にはApache-2.0、MIT、BSD、MPL-2.0（certifi／tqdm）、PSF-2.0（typing-extensions）、Apache-2.0 AND CNRI-Python（regex）等があります。tokenizers 0.22.2のLinux wheelはApache classifierがありますが独立したLICENSE/NOTICEを含まないため、再配布時には[固定版の上流LICENSE](https://github.com/huggingface/tokenizers/blob/v0.22.2/LICENSE)も確認・保存してください。実venvの通知を削除せず、別配布物へruntimeを同梱する際は上流licenseと同梱binaryの条件を改めて照合します。この変更ではPython wheel/runtimeをrepoや公開出力へ再配布しません。
 
-Python runtime・モデル・個人のWAV/原稿を公開Pages/Worker出力へ入れません。利用者が独立したvenvへ明示installし、推移的依存のnoticeを保持する構成です。runtimeやモデルを別の配布物へ同梱する場合は、その配布物の全依存/noticeを改めて棚卸しする必要があります。モデルのApache-2.0を製品LICENSEとして採用するものではありません。[セットアップ手順](../guides/forced-alignment.md)を参照してください。
+Python runtime・モデル・個人のWAV/原稿を公開Pages/Worker出力へ入れません。利用者が独立したvenvへ明示installし、推移的依存のnoticeを保持する構成です。runtimeやモデルを別の配布物へ同梱する場合は、その配布物の全依存/noticeを改めて棚卸しする必要があります。モデルのApache-2.0を製品LICENSEとして採用するものではありません。[セットアップ手順](../../.agents/skills/ripola-generate-audio/references/forced-alignment.md)を参照してください。
 
 ## 選択式の日本語フォント
 

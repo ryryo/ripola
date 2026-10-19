@@ -68,7 +68,7 @@ pnpm exec tsx scripts/setup-irodori.ts register-voice \
   --confirm-voice-rights
 ```
 
-登録時と利用時に資材のchecksumを検証します。既存GGUFのcodec互換性はnative runtimeが確認します。参照録音由来のvoiceは、上流仕様では合計120秒までの参照を保持し、codecのhashに結び付いています。speaker inversion由来のvoiceは作成元のモデルだけに対応します。[公式voice条件](https://github.com/nyosegawa/speech.cpp/blob/60a8e1ec068280e5e803ee5d7079e90886c323cb/docs/models/irodori-tts.md#voices)と[第三者条件の記録](../licenses/irodori.md)を確認してください。
+登録時と利用時に資材のchecksumを検証します。既存GGUFのcodec互換性はnative runtimeが確認します。参照録音由来のvoiceは、上流仕様では合計120秒までの参照を保持し、codecのhashに結び付いています。speaker inversion由来のvoiceは作成元のモデルだけに対応します。[公式voice条件](https://github.com/nyosegawa/speech.cpp/blob/60a8e1ec068280e5e803ee5d7079e90886c323cb/docs/models/irodori-tts.md#voices)と[第三者条件の記録](../../../../docs/licenses/irodori.md)を確認してください。
 
 登録voiceの帰属は保存bookへ記録します。静的配布では既存のallowlistで指定した`attribution`が使われるため、そこにもvoiceの必要クレジットを含め、完成音声の配布条件を確認してください。モデル・voice本体や私的な同意記録は配布しません。
 

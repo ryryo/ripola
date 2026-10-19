@@ -2,7 +2,7 @@
 
 2026-10-07：保存音声の活動区間と信頼できるCTC tokenを使う「音声補助推定」を追加しました。採用cueがない範囲も、根拠が揃う時は休止を除いた音声活動時間へ読みを配分します。従来の文字数推定・採用CTC・VOICEVOX音素時計と区別し、採用閾値を下げません。既存モデルを使用し、新依存は不要です。変更前後と検証を参照してください。
 
-VOICEVOX Engine 0.25.2の保存音声には、CTCに加えて音素フレームから時刻を検証する方式を追加しています。[青空文庫・文移動・音素時刻のガイド](aozora-and-navigation.md#保存音声の低信頼部分)を参照してください。以下の9採用・3低scoreはCTC単独の履歴です。新方式はCTCの閾値を変えず、別の検証情報を持ちます。
+VOICEVOX Engine 0.25.2の保存音声には、CTCに加えて音素フレームから時刻を検証する方式を追加しています。[青空文庫・文移動・音素時刻のガイド](../../../../docs/guides/aozora-and-navigation.md#保存音声の低信頼部分)を参照してください。以下の9採用・3低scoreはCTC単独の履歴です。新方式はCTCの閾値を変えず、別の検証情報を持ちます。
 
 保存済みWAVと、その生成時に確定した発話原稿（`spokenText`）を同じPCで整列します。TTSを再実行せず、有料APIも呼びません。ASRで本文を再文字起こししたり、推測した本文へ置き換えたりしません。追加のCPU runtimeとモデルは任意の明示セットアップです。表示用の推定時計による区切り表示は未設定のまま使えます。
 
@@ -10,7 +10,7 @@ VOICEVOX Engine 0.25.2の保存音声には、CTCに加えて音素フレーム�
 
 ## 任意のローカルセットアップ
 
-固定lockは**macOS ARM64／Linux x64・CPython 3.13**用です。別OS/architecture/Python版へそのまま使う保証はありません。依存の入力は[alignment-requirements.in](../../scripts/alignment-requirements.in)、25依存のwheel hash lockは[Mac用](../../scripts/alignment-requirements.txt)と[Linux用](../../scripts/alignment-requirements-linux-x64.txt)です。[共通platform設定](../../scripts/alignment-platforms.json)でNode setupとPython readinessが同じlockを選びます。Linuxはtorch **2.8.0+cpu**の公式CPU wheel URLを固定し、CUDA/NVIDIA・torchaudio・librosaを追加しません。公式配布wheelだけを使い、依存のsource buildや別モデルの自動取得は行いません。Linuxはglibc 2.28以上が必要です。
+固定lockは**macOS ARM64／Linux x64・CPython 3.13**用です。別OS/architecture/Python版へそのまま使う保証はありません。依存の入力は[alignment-requirements.in](../../../../scripts/alignment-requirements.in)、25依存のwheel hash lockは[Mac用](../../../../scripts/alignment-requirements.txt)と[Linux用](../../../../scripts/alignment-requirements-linux-x64.txt)です。[共通platform設定](../../../../scripts/alignment-platforms.json)でNode setupとPython readinessが同じlockを選びます。Linuxはtorch **2.8.0+cpu**の公式CPU wheel URLを固定し、CUDA/NVIDIA・torchaudio・librosaを追加しません。公式配布wheelだけを使い、依存のsource buildや別モデルの自動取得は行いません。Linuxはglibc 2.28以上が必要です。
 
 repo rootから `pnpm setup:audio` を実行します。Python 3.13とffmpeg／ffprobeが不足していれば導入方法を表示して停止し、OS全体へ自動インストールしません。
 
@@ -20,7 +20,7 @@ pnpm dev
 ```
 
 専用venv・hash付き依存・固定モデル・自動設定まで準備します。初回容量を取得前に表示し、完成済みファイルは再利用します。読書・再生からインストールを始めません。[初回導入と回復](setup.md)を参照してください。
-モデルは[Reazon Research japanese-wav2vec2-base-rs35kh](https://huggingface.co/reazon-research/japanese-wav2vec2-base-rs35kh/blob/46afc596052b612293c8db256b3a69447a2f57dc/README.md)の固定commit `46afc596052b612293c8db256b3a69447a2f57dc`、1種類だけです。公開元のライセンスはApache-2.0です。[固定manifest](../../scripts/alignment-model.json)に7ファイルのsize/SHA-256を保存します。
+モデルは[Reazon Research japanese-wav2vec2-base-rs35kh](https://huggingface.co/reazon-research/japanese-wav2vec2-base-rs35kh/blob/46afc596052b612293c8db256b3a69447a2f57dc/README.md)の固定commit `46afc596052b612293c8db256b3a69447a2f57dc`、1種類だけです。公開元のライセンスはApache-2.0です。[固定manifest](../../../../scripts/alignment-model.json)に7ファイルのsize/SHA-256を保存します。
 
 | ダウンロード対象 | byte |
 | --- | --- |
@@ -29,7 +29,7 @@ pnpm dev
 | Mac用25依存wheel合計 | 110,048,507（約110.0 MB） |
 | Linux x64用25依存wheel合計 | 234,122,748（約234.1 MB、torch CPU wheel 183,917,315 bytesを含む） |
 
-上のbyteは配布ファイルの値です。検証Macでは、初回import前のvenv約487 MiBとモデル約369 MiBに加え、Python bytecode cacheの生成後はruntime全体で約902 MiB（約946 MB）になりました。resolverの一時metadata約15 MiBは別で、pip cache等はこの合計に含めません。RAMや実行速度の値ではありません。モデルdownloadは不足ファイル分に加えて512 MiBの空き領域を要求し、size/SHA-256一致済みファイルを再取得しません。モデルをGitや公開assetへ入れません。[ライセンス記録](../licenses/README.md#任意の日本語ctc整列runtimeとモデル)を参照してください。
+上のbyteは配布ファイルの値です。検証Macでは、初回import前のvenv約487 MiBとモデル約369 MiBに加え、Python bytecode cacheの生成後はruntime全体で約902 MiB（約946 MB）になりました。resolverの一時metadata約15 MiBは別で、pip cache等はこの合計に含めません。RAMや実行速度の値ではありません。モデルdownloadは不足ファイル分に加えて512 MiBの空き領域を要求し、size/SHA-256一致済みファイルを再取得しません。モデルをGitや公開assetへ入れません。[ライセンス記録](../../../../docs/licenses/README.md#任意の日本語ctc整列runtimeとモデル)を参照してください。
 
 ## サーバーだけへ自動設定する
 
@@ -75,7 +75,7 @@ Readerは「表示：1区切り」と時刻の根拠を分け、「整列結果�
 | 語彙にないemoji | UTF-16範囲の終端2を保持してunmatched。時刻を付けたsegmentは0 |
 | PCM無音 | unmatched、時刻を付けたsegmentは0 |
 | 固定外のaligner version | runtimeが拒否 |
-| [Python synthetic tests](../../scripts/test_align_audio.py) | 5件通過。実モデルの境界誤差を保証する試験ではない |
+| [Python synthetic tests](../../../../scripts/test_align_audio.py) | 5件通過。実モデルの境界誤差を保証する試験ではない |
 
 人手goldを用意していないため、p50/p95/最大時刻誤差は引き続き未測定です。CTCの20 ms frameも時刻精度の値ではありません。Readerのブラウザ契約試験と実WAVでの操作試験は、素材・実行条件を区別して検証記録に残します。
 
@@ -83,7 +83,7 @@ Readerは「表示：1区切り」と時刻の根拠を分け、「整列結果�
 
 整列cacheは元audio hash、正確な`spokenText`、model/aligner version、正規化versionから作ります。元WAVは変更しません。対応表更新・失敗・取消・再開・UI設定変更ではTTSを再実行しません。モデルや正規化versionが変わる時は別の整列cacheを使います。失敗しても既存の文timelineを保持します。
 
-AAC/M4Aへの配布時は元PCMとdecode後PCMの相関からoffset/driftを測り、確認できた場合だけcue時刻を補正して持ち出します。相関・元位置・cueの検査に通らない範囲は文fallbackです。公開assetにモデル、runtime、確定発話原稿、正規化本文、cache key、個人path、jobログを入れません。選択した表示本文の`rawText`は従来どおり配布対象です。[配布契約](../development/distribution.md)を参照してください。
+AAC/M4Aへの配布時は元PCMとdecode後PCMの相関からoffset/driftを測り、確認できた場合だけcue時刻を補正して持ち出します。相関・元位置・cueの検査に通らない範囲は文fallbackです。公開assetにモデル、runtime、確定発話原稿、正規化本文、cache key、個人path、jobログを入れません。選択した表示本文の`rawText`は従来どおり配布対象です。[配布契約](../../../../docs/development/distribution.md)を参照してください。
 
 補助CLIも同じ整列serviceを使います。
 
@@ -94,10 +94,10 @@ pnpm exec tsx scripts/generate-audio.ts alignment-cancel <alignment-job-id>
 pnpm exec tsx scripts/generate-audio.ts alignment-resume <alignment-job-id>
 ```
 
-必要なら`align`へ`--chunks=<chunk-id,chunk-id>`を指定します。実装契約は[ローカル生成](../development/local-generation.md)、[再生と同期](../development/playback.md)を参照してください。有料Gemini実合成、実機スマホでの同期、幅広い日本語文書での時刻誤差は別途検証が必要です。
+必要なら`align`へ`--chunks=<chunk-id,chunk-id>`を指定します。実装契約は[ローカル生成](../../../../docs/development/local-generation.md)、[再生と同期](../../../../docs/development/playback.md)を参照してください。有料Gemini実合成、実機スマホでの同期、幅広い日本語文書での時刻誤差は別途検証が必要です。
 
-表示用の推定時計・120 ms未満のcue・全区切りの到達性と末尾の契約は[再生設計](../development/playback.md#全区切りを表示する推定時計)を参照してください。音響処理の`sentence-fallback`は保存結果の精度で、Readerに文全体を出す指示ではありません。
+表示用の推定時計・120 ms未満のcue・全区切りの到達性と末尾の契約は[再生設計](../../../../docs/development/playback.md#全区切りを表示する推定時計)を参照してください。音響処理の`sentence-fallback`は保存結果の精度で、Readerに文全体を出す指示ではありません。
 
-原稿と全表示単位の検査、検査不能時の停止、生成・配布の自動検査は[品質検査の契約](../development/audio-presentation-quality.md)を参照してください。
+原稿と全表示単位の検査、検査不能時の停止、生成・配布の自動検査は[品質検査の契約](../../../../docs/development/audio-presentation-quality.md)を参照してください。
 
-常駐Python/modelの寿命、要求queue、取消し・失敗時の終了と復旧、単発CLI互換、音声QAとの境界は[alignment workerの開発契約](../development/alignment-worker.md)を参照してください。通常起動時の追加モデル取得はありません。
+常駐Python/modelの寿命、要求queue、取消し・失敗時の終了と復旧、単発CLI互換、音声QAとの境界は[alignment workerの開発契約](../../../../docs/development/alignment-worker.md)を参照してください。通常起動時の追加モデル取得はありません。

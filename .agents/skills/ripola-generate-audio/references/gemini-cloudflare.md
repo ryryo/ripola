@@ -15,7 +15,9 @@ Cloudflare経路はローカルNodeからWrangler remote AI bindingを使いま�
 
 ```sh
 pnpm --filter @ripola/web exec wrangler login
-cp deployment/local-ai.example.wrangler.jsonc deployment/local-ai.wrangler.jsonc
+if [ ! -e deployment/local-ai.wrangler.jsonc ]; then
+  cp deployment/local-ai.example.wrangler.jsonc deployment/local-ai.wrangler.jsonc
+fi
 ```
 
 Git除外されたローカル設定の`vars.RSVP_AI_GATEWAY_ID`へ使う**既存Gateway ID**を指定します。任意のenv上書き`RSVP_AI_GATEWAY_ID`も利用できます。空なら経路の選択は無効です。`default`への自動補完はしません。複数アカウントがある場合はWrangler設定の`account_id`に対象を明示します。公開用Worker設定に生成APIは追加しません。

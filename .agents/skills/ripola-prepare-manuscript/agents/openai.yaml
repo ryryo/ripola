@@ -1,0 +1,3 @@
+interface:
+  display_name: "Ripola 原稿の整形と分割"
+  short_description: "読み上げ用コピーを整え、元原稿との対応を残して章や節に分割する"

@@ -1,6 +1,6 @@
 # Cloudflareへ閲覧用Readerを配布する
 
-端末内のテキスト取り込み・RSVP生成と、選択した保存音声を配布します。公開OSSデモと、本人のアカウントの個人用Workerを別の用途として扱います。個人利用の手順は[個人用Worker](personal-worker.md)を参照してください。WorkerでVOICEVOX・Gemini生成、Python整列、音声の永続保存を行う機能はありません。R2・D1・APIキーは不要です。[詳細な配布契約](../development/distribution.md)と[機能分担](../development/local-cloud.md)を参照してください。
+端末内のテキスト取り込み・RSVP生成と、選択した保存音声を配布します。公開OSSデモと、本人のアカウントの個人用Workerを別の用途として扱います。個人利用の手順は[個人用Worker](../../.agents/skills/ripola-publish-personal/references/personal-worker.md)を参照してください。WorkerでVOICEVOX・Gemini生成、Python整列、音声の永続保存を行う機能はありません。R2・D1・APIキーは不要です。[詳細な配布契約](../development/distribution.md)と[機能分担](../development/local-cloud.md)を参照してください。
 
 ## 同梱サンプルだけの最小ビルド
 
@@ -25,7 +25,7 @@ cp deployment/cloudflare.example.wrangler.jsonc deployment/cloudflare.wrangler.j
 
 コピーしたローカル設定で `name` を自分用の一意な名前へ変更します。複数アカウントがある場合は、`whoami`で確認した配布用アカウントの `account_id` をこのローカル設定へ追加します。exampleには個人のアカウントIDや認証値を置きません。`.env.local` にCloudflareのトークンを書き足す手順ではありません。
 
-この例は `workers_dev: true` なので、デプロイするとサンプルと選択した本文・音声がインターネットから閲覧可能になります。個人用は[別のWorkerと配布入力](personal-worker.md)を使います。閲覧認証を希望する場合だけAccessを追加します。
+この例は `workers_dev: true` なので、デプロイするとサンプルと選択した本文・音声がインターネットから閲覧可能になります。個人用は[別のWorkerと配布入力](../../.agents/skills/ripola-publish-personal/references/personal-worker.md)を使います。閲覧認証を希望する場合だけAccessを追加します。
 
 ```sh
 pnpm --filter @ripola/web exec wrangler deploy --dry-run --config deployment/cloudflare.wrangler.jsonc
@@ -67,7 +67,7 @@ staging出力は新規directoryを使います。同じ名前が既存なら別�
 
 ## 個人利用と閲覧範囲
 
-上の設定例は公開サンプル向けです。個人の本は[個人用Workerの手順](personal-worker.md)で本人の別Workerへ選択配布します。個人用という名称やGitHubのprivate設定だけではHTTP非公開になりません。認証なしならURLを知る人が本文・音声・manifestを閲覧できます。閲覧を制限する場合は[Cloudflare AccessのWorker保護](https://developers.cloudflare.com/workers/configuration/cloudflare-access/)を自分のアカウントで別途設定し、HTMLだけでなく本文JSON・manifest・音声、workers.dev／custom domain等の全入口が保護されることを確認します。Accessの初回設定・個人配布はこのプロジェクトでは未検証です。
+上の設定例は公開サンプル向けです。個人の本は[個人用Workerの手順](../../.agents/skills/ripola-publish-personal/references/personal-worker.md)で本人の別Workerへ選択配布します。個人用という名称やGitHubのprivate設定だけではHTTP非公開になりません。認証なしならURLを知る人が本文・音声・manifestを閲覧できます。閲覧を制限する場合は[Cloudflare AccessのWorker保護](https://developers.cloudflare.com/workers/configuration/cloudflare-access/)を自分のアカウントで別途設定し、HTMLだけでなく本文JSON・manifest・音声、workers.dev／custom domain等の全入口が保護されることを確認します。Accessの初回設定・個人配布はこのプロジェクトでは未検証です。
 
 QR・noindex・推測しにくいURLは閲覧認証の代わりになりません。認証した通常HTTPS URLを使い、token・キー・私的本文をQRへ入れません。PCのブラウザ保存がスマホへ転送される機能もありません。GitHub repoのprivate設定とWorkerの公開範囲は別です。
 

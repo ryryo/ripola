@@ -6,7 +6,7 @@
 
 ## 特殊な設定と互換性
 
-[Node設定読込](../../apps/web/src/generation/core/config.ts)、[セットアップ](../../scripts/setup-alignment.mjs)、[provider](../../apps/web/src/generation/core/providers.ts)、CLI・Vite・検証スクリプトのenv参照を棚卸ししました。
+[Node設定読込](../../../../apps/web/src/generation/core/config.ts)、[セットアップ](../../../../scripts/setup-alignment.mjs)、[provider](../../../../apps/web/src/generation/core/providers.ts)、CLI・Vite・検証スクリプトのenv参照を棚卸ししました。
 
 | 既存候補 | 新規利用での扱い／互換読込を残す理由 |
 | --- | --- |
@@ -33,4 +33,4 @@
 
 標準の保存先が適さない場合だけ `.env.local` に `RSVP_LIBRARY_DIR=/absolute/path/to/private-library` を追加します。Git外の絶対pathを指定し、既存envを保持して再起動してください。音声・原稿を公開assetsへコピーする設定ではありません。外部runtimeや旧RESTから移行する場合も既存指定の有効性を検証してから変更し、秘密を表示しません。
 
-生成経路の利用条件・quota・請求は別です。アプリの費用表示は見積もりで、APIキーの配置だけで生成を開始しません。[音声生成](audio-generation.md)・[Cloudflare通常経路](ai-gateway.md)・セットアップ検証を参照してください。
+生成経路の利用条件・quota・請求は別です。アプリの費用表示は見積もりで、APIキーの配置だけで生成を開始しません。[音声生成](audio-generation.md)・[Cloudflare通常経路](gemini-cloudflare.md)・セットアップ検証を参照してください。

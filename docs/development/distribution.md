@@ -4,7 +4,7 @@
 
 ## 公開デモと個人用Worker
 
-公開OSSデモは掲載許可済みサンプルだけ、個人用Workerは本人のCloudflareアカウントへ選択した私用本文・音声・同期用対応表を配布します。どちらも端末内テキスト取り込み・RSVP生成と音声再生を使い、サーバー音声生成は無効です。[個人用Workerの実行手順](../guides/personal-worker.md)で入力・manifest・Git外保存・出力・設定の分離を説明します。
+公開OSSデモは掲載許可済みサンプルだけ、個人用Workerは本人のCloudflareアカウントへ選択した私用本文・音声・同期用対応表を配布します。どちらも端末内テキスト取り込み・RSVP生成と音声再生を使い、サーバー音声生成は無効です。[個人用Workerの実行手順](../../.agents/skills/ripola-publish-personal/references/personal-worker.md)で入力・manifest・Git外保存・出力・設定の分離を説明します。
 
 ## 生成と配布を分ける
 

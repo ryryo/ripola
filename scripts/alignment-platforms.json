@@ -13,6 +13,6 @@
     "requirements": "alignment-requirements-linux-x64.txt",
     "dependencyDownloadBytes": 234122748,
     "minimumFreeGB": 2,
-    "guidance": "CPython 3.13（python3.13、venv/ensurepip対応）とffmpeg/ffprobeが必要です。Ubuntu 24.04標準Pythonは3.12です。OSへ自動導入しません。docs/guides/setup.md のWSL2/Linux手順で準備し、pnpm setup:audio を再実行してください。"
+    "guidance": "CPython 3.13（python3.13、venv/ensurepip対応）とffmpeg/ffprobeが必要です。Ubuntu 24.04標準Pythonは3.12です。OSへ自動導入しません。.agents/skills/ripola-generate-audio/references/setup.md のWSL2/Linux手順で準備し、pnpm setup:audio を再実行してください。"
   }
 }

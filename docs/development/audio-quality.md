@@ -10,17 +10,7 @@
 
 ## 入口と保存境界
 
-ローカル本棚で本を開き、音声の詳細の「保存音声の品質を確認」を開きます。通常画面は軽量検査だけを実行し、内容検査を起動しません。各chunkの原文・UTF-16元範囲・疑わしい音声区間・根拠と、明示的な実験で既に保存されたASR候補を読め、保存済み音声を試聴できます。モデル未設定でも軽量検査を使えます。
-
-```sh
-pnpm inspect:audio --book BOOK_ID --revision REVISION --library /private/library
-# 既存の手元Reazonだけを使う。追加downloadなし。
-pnpm inspect:audio --book BOOK_ID --revision REVISION --content
-pnpm inspect:audio --book BOOK_ID --revision REVISION --content --refresh
-pnpm inspect:audio --book BOOK_ID --revision REVISION --read
-```
-
-`--chunks ID,ID` で選択できます。未選択chunkの結果をsidecarで保持します。終了コード0はコマンド実行成功で、品質合格ではありません。fatal構造不正は2、コマンド失敗は1です。
+UI・CLIの操作、対象chunkの指定、保存結果の参照、内容ASR実験、終了コードの読み方は[保存音声QAの手順](../../.agents/skills/ripola-check-audio/references/saved-audio.md)へ移しました。以下は保存と検査の実装契約です。
 
 | 設計候補 | 保存と責務 | 採用判断 |
 | --- | --- | --- |

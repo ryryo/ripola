@@ -37,12 +37,12 @@
 
 ## 通常の検査コマンド
 
+保存library・配布物を対象とする`audit:audio`の操作と結果の読み方は[構造監査の手順](../../.agents/skills/ripola-check-audio/references/presentation-audit.md)へ移しました。以下はコード変更時の回帰検査です。
+
 ```sh
 pnpm test
 pnpm check
 pnpm test:e2e
-pnpm audit:audio --library /path/to/saved-library
-pnpm audit:audio --distribution /path/to/upload-directory
 ```
 
 `pnpm test`には同期なし・部分欠落・低信頼・ルビ・長文・自然な一単位・旧データ・意図的破損の回帰試験と、新規生成から保存／再利用／AAC stage／静的build／読み込みの試験を含みます。実TTSの代わりに自作本文と合成toneを保存し、元WAV hashと合成adapter呼出し数も確認します。`pnpm check`も同じ単体試験を実行します。

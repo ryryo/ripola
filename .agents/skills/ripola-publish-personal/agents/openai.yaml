@@ -1,0 +1,3 @@
+interface:
+  display_name: "Ripola 個人用配布"
+  short_description: "各利用者の個人用Workerへ、既存の蔵書を保って本と音声を追加する"

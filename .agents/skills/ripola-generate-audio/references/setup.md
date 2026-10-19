@@ -86,7 +86,7 @@ Windowsブラウザで http://127.0.0.1:4173/ を開き、声認識・明示生�
 
 トップの「音声と一緒に」はVOICEVOX／Gemini（男）／Gemini（女）を1枠で選べます。同梱AACの再生はAPIキー・Engine・Pythonが不要です。
 
-自分の原稿に音声を付ける場合、VOICEVOXは同じPCの[公式アプリ](https://voicevox.hiroshiba.jp/)を起動します。標準URLとずんだもんが既定で、envは不要です。Gemini Directは `.env.local` に `GEMINI_API_KEY` の1項目だけ追加します。Cloudflareは[Wranglerの既存ログインとGateway選択](ai-gateway.md)を使います。モデルはLiteが既定です。キー設定だけで送信せず、生成ごとに本文・声・対象・送信先・概算を確認し、明示開始します。
+自分の原稿に音声を付ける場合、VOICEVOXは同じPCの[公式アプリ](https://voicevox.hiroshiba.jp/)を起動します。標準URLとずんだもんが既定で、envは不要です。Gemini Directは `.env.local` に `GEMINI_API_KEY` の1項目だけ追加します。Cloudflareは[Wranglerの既存ログインとGateway選択](gemini-cloudflare.md)を使います。モデルはLiteが既定です。キー設定だけで送信せず、生成ごとに本文・声・対象・送信先・概算を確認し、明示開始します。
 
 既存 `.env.local` をコピーで上書きしないでください。process環境、既存env、自動セットアップ、コード既定値の順に優先します。旧有料停止指定を含む互換設定と、特殊な保存先は[最小設定の設計](configuration.md)に記載します。実キーをGitや `VITE_*` へ置かず、設定編集後は再起動します。
 

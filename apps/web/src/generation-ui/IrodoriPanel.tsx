@@ -62,7 +62,7 @@ export function IrodoriPanel({ voice = 'reception-female', onChange, onSettingsC
     </div>
     {status?.phase === 'ready' && !status.voiceAvailable && <p>固定参照を確認できません。ガイドに沿って資材を復元・登録してください。</p>}
     {status?.voiceLabel && <p>固定voice: {status.voiceLabel} · {status.voiceAttribution}</p>}
-    <p><a href="https://github.com/ryryo/ripola/blob/main/docs/guides/irodori.md" target="_blank" rel="noreferrer">実行環境の準備ガイド</a> · <a href={`https://huggingface.co/${IRODORI_MODEL.repository}/tree/${IRODORI_MODEL.revision}`} target="_blank" rel="noreferrer">モデルの取得元と利用条件</a></p>
+    <p><a href="https://github.com/ryryo/ripola/blob/main/.agents/skills/ripola-generate-audio/references/irodori.md" target="_blank" rel="noreferrer">実行環境の準備ガイド</a> · <a href={`https://huggingface.co/${IRODORI_MODEL.repository}/tree/${IRODORI_MODEL.revision}`} target="_blank" rel="noreferrer">モデルの取得元と利用条件</a></p>
       <Textarea label="声・読み上げ方のプロンプト" maxLength={256} value={settings.instructions} disabled={busy || disabled} onChange={event => editSettings({ instructions: event.currentTarget.value })} />
       <Button mt="sm" variant="light" disabled={busy || disabled} onClick={() => editSettings({ instructions: defaultIrodoriSettings(voice).instructions })}>プロンプトを既定に戻す</Button>
       <Button mt="sm" disabled={busy || disabled || status?.phase !== 'ready'} onClick={() => { settingsRevision.current++; void act(async run => { await saveIrodoriSettings({ data: { voice, settings } }); if (operation.current === run) onSettingsChange(settings); }); }}>設定を保存して計画を更新</Button>
