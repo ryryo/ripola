@@ -646,7 +646,9 @@ test('audio fullscreen keeps the media clock, remembers rate and shares display 
   await expect(full.getByRole('button', { name: '再生', exact: true })).toBeVisible();
   await slider.fill('9');
   await full.getByRole('button', { name: 'フレーズ表示', exact: true }).click();
-  await expect(full.getByRole('button', { name: '再生（画面中央）', exact: true })).toBeVisible();
+  const centerPlay = full.getByRole('button', { name: '再生（画面中央）', exact: true });
+  if (page.viewportSize()!.width >= 951) await expect(centerPlay).toHaveCount(0);
+  else await expect(centerPlay).toBeVisible();
   await expect(full.getByTestId('audio-phrase')).toHaveText(phrase);
   await expect(slider).toHaveValue('9');
   await full.getByRole('button', { name: '再生', exact: true }).click();
@@ -973,7 +975,10 @@ for (const kind of ['silent', 'audio'] as const) {
     const full = page.locator('.fullscreen-reader[data-fullscreen="true"]');
     await expect(full.locator('.fullscreen-seek')).toBeHidden();
     const before = await full.locator('.phrase-container').boundingBox();
-    await full.getByRole('button', { name: '再生（画面中央）', exact: true }).click();
+    if (page.viewportSize()!.width >= 951) {
+      await expect(full.getByRole('button', { name: '再生（画面中央）', exact: true })).toHaveCount(0);
+      await full.getByRole('button', { name: '再生', exact: true }).click();
+    } else await full.getByRole('button', { name: '再生（画面中央）', exact: true }).click();
     await expect(full).toHaveAttribute('data-playing', 'true');
     await expect(full.locator('.fullscreen-seek')).toBeHidden();
     await page.keyboard.press('Space');
