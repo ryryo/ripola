@@ -1,5 +1,5 @@
 import { denseAudioFixture } from './dense-audio-fixture';
-import { adjustReaderDisplay, readerStage, withFullscreenSettings } from './display-controls-helpers';
+import { adjustReaderDisplay, chooseGuideMatch, readerStage, searchGuide, withFullscreenSettings } from './display-controls-helpers';
 import { createHash } from 'node:crypto';
 import { expect, test, type Page } from '@playwright/test';
 import { chooseTheme } from './theme-helpers';
@@ -14,6 +14,23 @@ async function read(page: Page, text = manuscript) {
   await page.getByRole('button', { name: 'テキストのみ生成して読む', exact: true }).click();
   await expect(page.getByTestId('current-phrase')).toBeVisible();
   await expect(page.getByRole('button', { name: '再生', exact: true })).toBeEnabled();
+}
+async function expectNormalReaderFits(page: Page) {
+  await expect(async () => {
+    const bounds = await readerStage(page).evaluate(element => {
+      const stage = element.getBoundingClientRect();
+      const transport = element.closest('main')!.querySelector('.reader-player-main')!.getBoundingClientRect();
+      const text = element.querySelector('.guide-viewport')?.getBoundingClientRect();
+      const chrome = parseFloat(getComputedStyle(element).getPropertyValue('--reader-normal-chrome-height'));
+      return { stageHeight: stage.height, textHeight: text?.height, chrome, primary: transport.bottom - stage.bottom, group: transport.bottom - stage.top, viewport: innerHeight };
+    });
+    const originalTextHeight = Math.min(840, Math.max(460, bounds.viewport * .74));
+    expect(bounds.stageHeight).toBeGreaterThanOrEqual(originalTextHeight + bounds.chrome - 1);
+    if (bounds.textHeight !== undefined) expect(bounds.textHeight).toBeGreaterThanOrEqual(originalTextHeight - 1);
+    // Preserve the original text height even when the minimum group needs scroll.
+    const minimumGroup = originalTextHeight + bounds.chrome + bounds.primary;
+    expect(bounds.group).toBeLessThanOrEqual(Math.max(bounds.viewport, minimumGroup) + 1);
+  }).toPass({ timeout: 5000 });
 }
 async function settings(page: Page) { await page.getByRole('button', { name: '表示設定', exact: true }).click(); }
 async function bookActions(page: Page) { await page.getByRole('button', { name: '本の操作', exact: true }).click(); }
@@ -160,7 +177,9 @@ test('grouping is a view; Guide and Flash share position, ruby and static text',
   await expect(page.getByTestId('guide-reader')).toBeVisible();
   await expect(readerStage(page)).toHaveAttribute('data-unit-index', position!);
   await expect(page.locator('.guide-unit rt')).toContainText(['としょかん']);
-  await page.getByLabel('本文を検索').fill('最後'); await page.getByRole('button', { name: '検索して移動' }).click();
+  await searchGuide(page, '最後');
+  await expect(page.locator('.guide-unit[data-search-current="true"]').first()).toContainText('最後');
+  await chooseGuideMatch(page);
   await expect(page.locator('.guide-unit[aria-current="location"]').first()).toContainText('最後');
   await expect(page.getByRole('button', { name: '再生', exact: true })).toBeVisible();
   await page.getByText('全文を静止表示・コピー', { exact: true }).click();
@@ -192,14 +211,68 @@ test('Guide bounds long-document DOM; manual scrolling keeps the reading anchor 
 test('Guide reveals the highlighted phrase within a tall virtual row after a search jump', async ({ page }) => {
   await read(page, '静かな図書館で記録を読む。'.repeat(14) + 'ここが現在位置の目印です。' + '続きをゆっくり読む。'.repeat(25));
   await page.getByRole('button', { name: '全文表示', exact: true }).click();
-  await page.getByLabel('本文を検索', { exact: true }).fill('目印');
-  await page.getByRole('button', { name: '検索して移動', exact: true }).click();
-  await expect.poll(() => page.getByTestId('guide-viewport').evaluate(element => {
-    const target = element.querySelector('.guide-unit[aria-current="location"]');
+  const viewport = page.getByTestId('guide-viewport');
+  const initialSize = page.viewportSize()!;
+  if (initialSize.width > 760) await expectNormalReaderFits(page);
+  else await expect.poll(() => viewport.evaluate(element => element.getBoundingClientRect().height)).toBeGreaterThanOrEqual(460);
+  await page.setViewportSize({ width: initialSize.width, height: 600 });
+  if (initialSize.width > 760) await expectNormalReaderFits(page);
+  const shortHeight = (await viewport.boundingBox())!.height;
+  await page.setViewportSize({ width: initialSize.width, height: 1200 });
+  await expect.poll(() => viewport.evaluate(element => element.clientHeight)).toBeGreaterThan(shortHeight + 200);
+  if (initialSize.width > 760) await expectNormalReaderFits(page);
+  else expect((await viewport.boundingBox())!.height).toBeLessThanOrEqual(840);
+  await page.setViewportSize(initialSize);
+  const status = (await readerStage(page).locator('.stage-topline').boundingBox())!;
+  const toolbar = (await page.locator('.guide-toolbar').boundingBox())!;
+  if (initialSize.width > 760) {
+    expect(toolbar.height).toBeLessThanOrEqual(60);
+    expect(status.y + status.height / 2).toBeCloseTo(toolbar.y + 22, 0);
+    const input = page.getByLabel('本文を検索', { exact: true });
+    if (!await input.isVisible()) {
+      await page.getByRole('button', { name: '検索', exact: true }).click();
+      await expect(input).toBeVisible();
+      await page.keyboard.press('Escape');
+      await expect(page.getByRole('button', { name: '検索', exact: true })).toBeFocused();
+    }
+  } else expect(status.y + status.height).toBeLessThanOrEqual(toolbar.y + 1);
+  await expect(page.getByRole('button', { name: '検索', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: '追従を止める', exact: true })).toBeVisible();
+  await expect(page.getByText('全文を静止表示・コピー', { exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: '全文の操作', exact: true })).toHaveCount(0);
+  if (initialSize.width > 760) {
+    const stage = await readerStage(page).boundingBox();
+    const player = await page.getByRole('region', { name: '再生操作', exact: true }).boundingBox();
+    await page.getByRole('button', { name: 'フレーズ表示', exact: true }).click();
+    await expect.poll(async () => (await readerStage(page).boundingBox())!.height).toBeCloseTo(stage!.height, 0);
+    expect((await page.getByRole('region', { name: '再生操作', exact: true }).boundingBox())!.y).toBeCloseTo(player!.y, 0);
+    await expectNormalReaderFits(page);
+    await readerStage(page).evaluate(element => window.scrollTo(0, element.getBoundingClientRect().top + scrollY));
+    await page.screenshot({ path: test.info().outputPath('normal-phrase-shared-height.png') });
+    await page.getByRole('slider', { name: '表示量', exact: true }).fill('2');
+    await expect.poll(async () => (await readerStage(page).boundingBox())!.height).toBeCloseTo(stage!.height, 0);
+    await expectNormalReaderFits(page);
+    await page.getByRole('combobox', { name: '本文の向き', exact: true }).selectOption('vertical-rl');
+    await expectNormalReaderFits(page);
+    await page.getByRole('combobox', { name: '本文の向き', exact: true }).selectOption('horizontal-tb');
+    await page.getByRole('slider', { name: '表示量', exact: true }).fill('1');
+    await page.getByRole('button', { name: '全文表示', exact: true }).click();
+    await expect.poll(async () => (await readerStage(page).boundingBox())!.height).toBeCloseTo(stage!.height, 0);
+  }
+  if (initialSize.width > 760) await expectNormalReaderFits(page);
+  if (initialSize.width > 760) await readerStage(page).evaluate(element => window.scrollTo(0, element.getBoundingClientRect().top + scrollY));
+  await page.screenshot({ path: test.info().outputPath('normal-fulltext-height.png') });
+  const position = await readerStage(page).getAttribute('data-unit-index');
+  const searchFrame = await viewport.boundingBox();
+  await searchGuide(page, '目印');
+  if (initialSize.width > 760) expect(await viewport.boundingBox()).toEqual(searchFrame);
+  await expect.poll(() => viewport.evaluate(element => {
+    const target = element.querySelector('.guide-unit[data-search-current="true"]');
     if (!target) return false;
     const frame = element.getBoundingClientRect(); const rect = target.getClientRects()[0];
     return Boolean(rect && rect.top >= frame.top && rect.bottom <= frame.bottom);
   })).toBe(true);
+  await expect(readerStage(page)).toHaveAttribute('data-unit-index', position!);
 });
 
 test('shortcuts follow the proposal without stealing native slider/input or composing keys', async ({ page }) => {
@@ -246,6 +319,27 @@ async function audioFixture(page: Page, seconds: 12 | 60 = 12, long: boolean | s
   await page.goto(`/books?book=${id}&revision=${revision}`); await expect(page.getByTestId('audio-phrase')).toBeVisible();
   await expect(page.getByRole('button', { name: '再生', exact: true })).toBeEnabled();
 }
+
+test('audio full text search keeps the media position and plays from the selected match', async ({ page }) => {
+  await audioFixture(page, 12, true);
+  await page.getByRole('button', { name: '全文表示', exact: true }).click();
+  await expect(page.getByTestId('guide-reader')).toBeVisible();
+  const slider = page.getByRole('slider', { name: '音声の再生位置', exact: true });
+  const before = await slider.inputValue();
+  await searchGuide(page, '図書館');
+  const panel = page.getByTestId('guide-search-panel');
+  await expect(panel.getByTestId('guide-search-count')).toHaveText('全1件中1件目');
+  expect(await slider.inputValue()).toBe(before);
+  await panel.getByRole('button', { name: 'ここから再生', exact: true }).click();
+  await expect(page.getByTestId('guide-search-panel')).toHaveCount(0);
+  await expect.poll(() => page.locator('audio').evaluate((element: HTMLAudioElement) => element.paused)).toBe(false);
+  await expect.poll(async () => Number(await slider.inputValue())).toBeGreaterThan(0);
+  await page.getByRole('button', { name: '一時停止', exact: true }).click();
+  await expect.poll(() => page.locator('audio').evaluate((element: HTMLAudioElement) => element.paused)).toBe(true);
+  await page.getByRole('button', { name: '検索', exact: true }).click();
+  await expect(page.getByLabel('本文を検索', { exact: true })).toHaveValue('図書館');
+  await expect(page.getByTestId('guide-search-count')).toHaveText('全1件中1件目');
+});
 
 for (const kind of ['silent', 'audio'] as const) {
   test(`${kind} multiline highlight colors and intensities preserve text layout and persist`, async ({ page }, info) => {
@@ -676,17 +770,20 @@ test('vertical Guide virtualizes right-to-left columns, follows search and prese
   await page.getByRole('button', { name: /^(Guide全文|全文表示)$/ }).click();
   const viewport = page.getByTestId('guide-viewport');
   await expect(viewport).toHaveCSS('writing-mode', 'vertical-rl');
+  await expect.poll(() => viewport.evaluate(element => element.getBoundingClientRect().height)).toBeGreaterThanOrEqual(460);
+  const normalHeight = (await viewport.boundingBox())!.height;
   await expect(page.locator('.guide-unit rt').first()).toHaveText('としょかん');
   expect(await page.locator('.guide-unit').count()).toBeLessThan(250);
   for (const query of ['目印', '末尾の標識']) {
-    await page.getByLabel('本文を検索', { exact: true }).fill(query);
-    await page.getByRole('button', { name: '検索して移動', exact: true }).click();
-    await expect(page.locator('.guide-unit[aria-current="location"]').first()).toContainText(query === '目印' ? '目印' : '末尾');
+    await searchGuide(page, query);
+    await expect(page.locator('.guide-search-mark[data-search-selected="true"]').first()).toBeVisible();
     await expect.poll(() => viewport.evaluate(element => {
-      const target = element.querySelector('.guide-unit[aria-current="location"]');
+      const target = element.querySelector('.guide-search-mark[data-search-selected="true"]');
       const frame = element.getBoundingClientRect(); const rect = target?.getClientRects()[0];
       return Boolean(rect && rect.left >= frame.left && rect.right <= frame.right && rect.top >= frame.top && rect.bottom <= frame.bottom);
     })).toBe(true);
+    await chooseGuideMatch(page);
+    await expect(page.locator('.guide-unit[aria-current="location"]').first()).toContainText(query === '目印' ? '目印' : '末尾');
     expect(await page.locator('.guide-unit').count()).toBeLessThan(250);
   }
   const position = await readerStage(page).getAttribute('data-unit-index');
@@ -709,6 +806,7 @@ test('vertical Guide virtualizes right-to-left columns, follows search and prese
     return Boolean(rect && rect.left >= frame.left && rect.right <= frame.right);
   })).toBe(true);
   await page.getByRole('button', { name: '全画面を終了', exact: true }).click();
+  await expect.poll(async () => (await viewport.boundingBox())!.height).toBeCloseTo(normalHeight, 0);
   await page.getByRole('button', { name: /^(Flash|フレーズ表示)$/ }).click();
   await expect(page.getByTestId('current-phrase')).toContainText('末尾');
   await expect(page.getByTestId('current-phrase')).toHaveCSS('writing-mode', 'vertical-rl');
@@ -737,8 +835,17 @@ test('audio vertical layout keeps timing, works fullscreen and restores directio
   await slider.fill('6');
   await page.getByRole('button', { name: /^(Guide全文|全文表示)$/ }).click();
   await expect(page.getByTestId('guide-viewport')).toHaveCSS('writing-mode', 'vertical-rl');
+  if (page.viewportSize()!.width > 760) await expectNormalReaderFits(page);
+  else await expect.poll(() => page.getByTestId('guide-viewport').evaluate(element => element.getBoundingClientRect().height)).toBeGreaterThanOrEqual(460);
+  const normalStage = await readerStage(page).boundingBox();
+  const normalPlayer = await page.getByRole('region', { name: '再生操作', exact: true }).boundingBox();
   expect(Number(await slider.inputValue())).toBeCloseTo(6, 2);
   await page.getByRole('button', { name: /^(Flash|フレーズ表示)$/ }).click();
+  if (page.viewportSize()!.width > 760) {
+    await expectNormalReaderFits(page);
+    await expect.poll(async () => (await readerStage(page).boundingBox())!.height).toBeCloseTo(normalStage!.height, 0);
+    expect((await page.getByRole('region', { name: '再生操作', exact: true }).boundingBox())!.y).toBeCloseTo(normalPlayer!.y, 0);
+  }
   await page.getByRole('button', { name: '再生', exact: true }).click();
   await expect.poll(async () => Number(await slider.inputValue())).toBeGreaterThan(6);
   await page.getByRole('button', { name: '一時停止', exact: true }).click();
@@ -919,9 +1026,12 @@ test('vertical fullscreen touch scrolling keeps visible text stable across virtu
     const frame = element.getBoundingClientRect();
     return [...element.querySelectorAll('[aria-current="location"]')].some(unit => [...unit.getClientRects()].some(rect => rect.left >= frame.left && rect.right <= frame.right && rect.top >= frame.top && rect.bottom <= frame.bottom));
   });
-  await full.getByLabel('本文を検索', { exact: true }).fill('第80段落');
-  await full.getByRole('button', { name: '検索して移動', exact: true }).click();
-  await expect.poll(visibleCurrent).toBe(true);
+  const visibleSearch = () => viewport.evaluate(element => {
+    const frame = element.getBoundingClientRect();
+    return [...element.querySelectorAll('.guide-search-mark[data-search-selected="true"]')].some(mark => [...mark.getClientRects()].some(rect => rect.left >= frame.left && rect.right <= frame.right && rect.top >= frame.top && rect.bottom <= frame.bottom));
+  });
+  await searchGuide(page, '第80段落');
+  await expect.poll(visibleSearch).toBe(true);
   const position = await readerStage(page).getAttribute('data-unit-index');
   await viewport.evaluate(element => {
     const state = { running: true, direction: -1, samples: 0, reversals: [] as number[], anchor: undefined as { node: Element; fragment: number; right: number } | undefined };
@@ -985,13 +1095,18 @@ test('vertical fullscreen touch scrolling keeps visible text stable across virtu
   await expect(full).toHaveAttribute('data-playing', 'false');
   await expect(readerStage(page)).toHaveAttribute('data-unit-index', position!);
   await expect(full.getByRole('button', { name: '現在位置を追従', exact: true })).toBeVisible();
+  const returnButton = full.getByRole('button', { name: '読書位置に戻る', exact: true });
+  await expect(returnButton).toBeEnabled();
   expect(await full.locator('.guide-unit').count()).toBeLessThan(250);
-  await full.getByRole('button', { name: '現在位置を追従', exact: true }).click();
+  await returnButton.click();
   await expect.poll(visibleCurrent).toBe(true);
-  await full.getByLabel('本文を検索', { exact: true }).fill('第140段落');
-  await full.getByRole('button', { name: '検索して移動', exact: true }).click();
+  await expect(readerStage(page)).toHaveAttribute('data-unit-index', position!);
+  await expect(full).toHaveAttribute('data-playing', 'false');
+  await searchGuide(page, '第140段落');
+  await expect.poll(visibleSearch).toBe(true);
+  await expect(page.locator('.guide-unit[data-search-current="true"]')).toContainText('第140');
+  await chooseGuideMatch(page);
   await expect(full.locator('.guide-unit[aria-current="location"]').first()).toContainText('第140');
-  await expect.poll(visibleCurrent).toBe(true);
   const current = await full.locator('.guide-unit[aria-current="location"]').first().getAttribute('data-unit-id');
   await full.getByRole('button', { name: '再生', exact: true }).click();
   await expect(full).toHaveAttribute('data-playing', 'true');

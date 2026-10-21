@@ -1,11 +1,13 @@
 import { Button, Drawer, NativeSelect } from '@mantine/core';
 import { useMediaQuery } from '@mantine/hooks';
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import type { SentenceLocation } from '../sentences';
 import './navigation.css';
 
-export function NavigationLayout({ children, entries, current, onJump, onPause, onResume, chapters = [], playing = false, heading, actions }: {
+export function NavigationLayout({ children, entries, current, onJump, onPause, onResume, chapters = [], playing = false, heading, actions, actionsTarget }: {
   heading?: ReactNode; actions?: ReactNode; children: ReactNode; entries: SentenceLocation[]; current: number; onJump: (target: number) => void; onPause: () => void;
+  actionsTarget?: HTMLElement | null;
   playing?: boolean;
   onResume?: () => void;
   chapters?: Array<{ title: string; target: number }>;
@@ -20,7 +22,8 @@ export function NavigationLayout({ children, entries, current, onJump, onPause, 
   const navigation = <Button variant="subtle" size="sm" aria-controls={id} aria-expanded={!playing && (mobile ? drawer : expanded)}
     onClick={() => { onPause(); if (mobile) setDrawer(true); else setExpanded(value => !value); }}>{mobile ? '文一覧を開く' : expanded ? '文一覧を閉じる' : '文一覧を開く'}</Button>;
   return <div className="navigation-layout" data-expanded={expanded && !mobile && !playing}>
-    <div className="navigation-reading">{heading ? <div className="reader-book-heading">{heading}<div className="reader-book-actions">{navigation}{actions}</div></div> : <div className="navigation-toolbar">{navigation}</div>}{children}</div>
+    {actionsTarget && createPortal(<>{navigation}{actions}</>, actionsTarget)}
+    <div className="navigation-reading">{heading ? <div className="reader-book-heading">{heading}{!actionsTarget && <div className="reader-book-actions">{navigation}{actions}</div>}</div> : !actionsTarget && <div className="navigation-toolbar">{navigation}</div>}{children}</div>
     {!mobile && expanded && !playing && <aside id={id} className="navigation-sidebar" aria-label="文を移動" onPointerDownCapture={onPause} onKeyDownCapture={onPause}>{panel}</aside>}
     <Drawer opened={mobile && drawer && !playing} onClose={() => setDrawer(false)} position="right" title="文を移動" size="md" closeButtonProps={{ 'aria-label': '文一覧を閉じる' }}><div id={mobile ? id : undefined}>{drawer && !playing && panel}</div>{onResume && <Button fullWidth mt="md" onClick={() => { setDrawer(false); onResume(); }}>一覧を閉じて再生</Button>}</Drawer>
   </div>;

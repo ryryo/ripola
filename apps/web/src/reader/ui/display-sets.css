@@ -15,8 +15,8 @@
 .display-set-text{position:relative;isolation:isolate}
 .reading-marker-layer{position:absolute;inset:0;z-index:-1;pointer-events:none;writing-mode:horizontal-tb}
 .reading-marker-layer>span{position:absolute;border-radius:3px;background:color-mix(in srgb,var(--reading-highlight-color,var(--mantine-primary-color-filled,#d09b46)) var(--reading-highlight-intensity,28%),transparent)}
-.fullscreen-reader[data-fullscreen=false] > .reader-stage.multiline-mode,.fullscreen-reader[data-fullscreen=false] > .audio-stage.multiline-mode{height:clamp(320px,calc(var(--display-lines,2) * var(--reader-font-size,56px) * var(--display-line-height,1.6) + 140px),min(90dvh,1000px));min-height:320px;padding-top:56px;overflow:hidden}
-.fullscreen-reader[data-fullscreen=false] > .multiline-mode:has(.display-set-reader[data-writing-mode=vertical-rl]){min-height:clamp(460px,74dvh,840px)}
+.fullscreen-reader[data-fullscreen=false] > .reader-stage.multiline-mode,.fullscreen-reader[data-fullscreen=false] > .audio-stage.multiline-mode{height:var(--reader-normal-stage-height,clamp(320px,calc(var(--display-lines,2) * var(--reader-font-size,56px) * var(--display-line-height,1.6) + 140px),min(90dvh,1000px)));min-height:320px;padding-top:56px;overflow:hidden}
+.fullscreen-reader[data-fullscreen=false] > .multiline-mode:has(.display-set-reader[data-writing-mode=vertical-rl]){min-height:var(--reader-document-height,clamp(460px,74dvh,840px))}
 .fullscreen-reader[data-fullscreen=true] .multiline-mode{height:100%;min-height:0;overflow:hidden}
 @media(max-width:600px){.display-set-reader{padding:8px 12px 12px;gap:8px}.reader-display-toolbar{flex-wrap:wrap}}
 .guide-row{font-size:var(--document-font-size,20px)!important}

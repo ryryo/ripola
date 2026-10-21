@@ -3388,5 +3388,239 @@
       "layout",
       "audio"
     ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "audio-progressive.spec.ts",
+    "title": "ローカル本棚の本詳細は前後ナビを本文列の末尾に表示する",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "generation"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "audio-progressive.spec.ts",
+    "title": "ローカル本棚の本詳細は前後ナビを本文列の末尾に表示する",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "generation"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "history.spec.ts",
+    "title": "配布本棚の前後ナビは順序・保存位置・戻る進む・全画面を保つ",
+    "lane": "related",
+    "domains": [
+      "import",
+      "audio",
+      "distribution",
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "history.spec.ts",
+    "title": "配布本棚の前後ナビは順序・保存位置・戻る進む・全画面を保つ",
+    "lane": "related",
+    "domains": [
+      "import",
+      "audio",
+      "distribution",
+      "layout"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "fullscreen.spec.ts",
+    "title": "desktop full text gives height to the body and overlays tools without moving playback",
+    "lane": "related",
+    "domains": [
+      "layout",
+      "audio"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "fullscreen.spec.ts",
+    "title": "desktop audio full text shares the transport layout and saves quick adjustments",
+    "lane": "related",
+    "domains": [
+      "layout",
+      "audio"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "fullscreen.spec.ts",
+    "title": "desktop full text gives height to the body and overlays tools without moving playback",
+    "lane": "related",
+    "domains": [
+      "layout",
+      "audio"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "fullscreen.spec.ts",
+    "title": "desktop audio full text shares the transport layout and saves quick adjustments",
+    "lane": "related",
+    "domains": [
+      "layout",
+      "audio"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "home-continue-reading.spec.ts",
+    "title": "トップは表示上0%と95%以上を除外し、該当本がなくても本棚への導線を出す",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "import",
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "home-continue-reading.spec.ts",
+    "title": "トップは表示上0%と95%以上を除外し、該当本がなくても本棚への導線を出す",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "import",
+      "layout"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "guide-search.spec.ts",
+    "title": "search counts every occurrence and cycles, keeps zero/one states, preserves on reopen and resets for another document",
+    "lane": "related",
+    "domains": [
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "guide-search.spec.ts",
+    "title": "search counts every occurrence and cycles, keeps zero/one states, preserves on reopen and resets for another document",
+    "lane": "related",
+    "domains": [
+      "layout"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "guide-search.spec.ts",
+    "title": "search selection stays independent from playback; play-from-here and return-to-reading use the selected phrase",
+    "lane": "related",
+    "domains": [
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "guide-search.spec.ts",
+    "title": "search selection stays independent from playback; play-from-here and return-to-reading use the selected phrase",
+    "lane": "related",
+    "domains": [
+      "layout"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "guide-search.spec.ts",
+    "title": "vertical fullscreen search highlights ruby and far text, keeps matches distinguishable and Escape only closes search",
+    "lane": "related",
+    "domains": [
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "guide-search.spec.ts",
+    "title": "vertical fullscreen search highlights ruby and far text, keeps matches distinguishable and Escape only closes search",
+    "lane": "related",
+    "domains": [
+      "layout"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "guide-search.spec.ts",
+    "title": "IME-composing Enter does not move, and the search panel is keyboard operable with focus returned on close",
+    "lane": "related",
+    "domains": [
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "guide-search.spec.ts",
+    "title": "IME-composing Enter does not move, and the search panel is keyboard operable with focus returned on close",
+    "lane": "related",
+    "domains": [
+      "layout"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "reading-options.spec.ts",
+    "title": "audio full text search keeps the media position and plays from the selected match",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "reading-options.spec.ts",
+    "title": "audio full text search keeps the media position and plays from the selected match",
+    "lane": "related",
+    "domains": [
+      "audio",
+      "layout"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "guide-search.spec.ts",
+    "title": "search disables play-from-here for static code while keeping the match selectable",
+    "lane": "related",
+    "domains": [
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "guide-search.spec.ts",
+    "title": "search disables play-from-here for static code while keeping the match selectable",
+    "lane": "related",
+    "domains": [
+      "layout"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "guide-search.spec.ts",
+    "title": "manual scroll keeps return-to-reading available and returning restores the paused phrase before prev/next continue",
+    "lane": "related",
+    "domains": [
+      "layout"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "guide-search.spec.ts",
+    "title": "manual scroll keeps return-to-reading available and returning restores the paused phrase before prev/next continue",
+    "lane": "related",
+    "domains": [
+      "layout"
+    ]
   }
 ]

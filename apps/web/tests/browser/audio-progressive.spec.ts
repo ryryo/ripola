@@ -120,6 +120,26 @@ test('生成holeで待機し、次chunk保存後に本文順で再開する', as
   expect(generationUpdates).toEqual([]);
 });
 
+test('ローカル本棚の本詳細は前後ナビを本文列の末尾に表示する', async ({ page }) => {
+  await publish([0, 1, 2], 'completed');
+  await page.goto(`${origin}/library?book=${full.id}&revision=${full.revision}`);
+  await expect(page.getByTestId('audio-phrase')).toBeVisible();
+  const nav = page.getByRole('navigation', { name: '本棚の前後の本' });
+  await expect(nav).toBeVisible();
+  expect(await nav.evaluate(element => getComputedStyle(element).position)).toBe('static');
+  await expect(nav.locator('.book-navigation-previous')).toContainText('先頭の本です');
+  await expect(nav.locator('.book-navigation-next')).toContainText('最後の本です');
+  const shelf = nav.getByRole('link', { name: '本棚へ戻る', exact: true });
+  await expect(shelf).toHaveAttribute('href', '/library');
+  expect(await page.evaluate(() => document.documentElement.scrollHeight)).toBeGreaterThan(await page.evaluate(() => window.innerHeight));
+  expect((await nav.boundingBox())!.y).toBeGreaterThan((await page.locator('.reader-player').boundingBox())!.y);
+  await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+  await expect.poll(async () => (await nav.boundingBox())!.y).toBeLessThan(await page.evaluate(() => window.innerHeight));
+  await shelf.click();
+  await expect(page.getByRole('heading', { name: 'このPCの本棚', exact: true })).toBeVisible();
+  await expect(page).toHaveURL(`${origin}/library`);
+});
+
 test('追加保存と同sequence整列はnative位置を保ち、MP3差替えは同じsourceへ戻る', async ({ page }) => {
   await publish([0, 2]); await open(page);
   await page.getByRole('slider', { name: '音声の再生位置', exact: true }).fill('5');

@@ -1,4 +1,4 @@
-import { Button, CheckIcon, ColorSwatch, Slider, Switch } from '@mantine/core';
+import { Button, CheckIcon, ColorSwatch, NativeSelect, Slider, Switch } from '@mantine/core';
 import { useId, type ReactNode } from 'react';
 import type { ReaderSettings } from '../model';
 import { resetDisplaySettings } from '../preferences';
@@ -33,10 +33,11 @@ export function ReaderTransport({ progress, previous, next, playing, playLabel, 
   </section>;
 }
 
-export function ReaderDisplaySettings({ settings, onChange, font }: {
-  settings: ReaderSettings; onChange: (patch: Partial<ReaderSettings>) => void; font: { phase: string; error: string };
+export function ReaderDisplaySettings({ settings, onChange, font, includeDisplayAmount = false }: {
+  settings: ReaderSettings; onChange: (patch: Partial<ReaderSettings>) => void; font: { phase: string; error: string }; includeDisplayAmount?: boolean;
 }) {
   return <div className="settings-panel">
+    {includeDisplayAmount && settings.mode !== 'guide' && <section className="settings-section"><h2>表示量</h2><DisplayAmount settings={settings} onChange={onChange} label="表示量" /></section>}
     <section className="settings-section"><h2>書体とルビ</h2>
       <FontSelect value={settings.fontFamily ?? 'system'} onChange={fontFamily => onChange({ fontFamily })} phase={font.phase} error={font.error} />
       <Switch classNames={{ label: 'settings-item-label' }} label="ルビを表示" checked={settings.ruby} onChange={event => onChange({ ruby: event.currentTarget.checked })} />
@@ -106,5 +107,18 @@ export function ReaderDisplayControls({ settings, onChange }: { settings: Reader
     <WritingModeSelect value={settings.writingMode} onChange={writingMode => onChange({ writingMode })} />
     <DisplayAmount settings={settings} onChange={onChange} label="表示量" compact />
     <FontSize settings={settings} onChange={onChange} label="フォントサイズ" />
+  </div>;
+}
+
+export function FullscreenReadingControls({ settings, onChange }: { settings: ReaderSettings; onChange: (patch: Partial<ReaderSettings>) => void }) {
+  const full = settings.mode === 'guide';
+  const size = full ? settings.documentFontSize ?? 20 : settings.fontSize;
+  const maximum = !full && settings.focusedDisplay?.kind === 'multiline';
+  const sizes = [...new Set([size, ...Array.from({ length: full ? 18 : 37 }, (_, index) => (full ? 14 : 24) + index * 2)])].sort((a, b) => a - b);
+  return <div className="fullscreen-reading-adjustments">
+    <WritingModeSelect value={settings.writingMode} onChange={writingMode => onChange({ writingMode })} />
+    <NativeSelect aria-label="フォントサイズ" value={size} onChange={event => onChange(full ? { documentFontSize: Number(event.target.value) } : { fontSize: Number(event.target.value) })}>
+      {sizes.map(value => <option key={value} value={value}>{maximum ? '上限 ' : ''}{value} px</option>)}
+    </NativeSelect>
   </div>;
 }

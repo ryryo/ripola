@@ -1,0 +1,3 @@
+interface:
+  display_name: "Ripola 外部Linux音声生成"
+  short_description: "外部LinuxでVOICEVOXを生成し、SSH/APIで監視・回収して本棚へ取り込む"

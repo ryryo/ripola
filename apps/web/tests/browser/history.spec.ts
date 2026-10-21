@@ -103,14 +103,14 @@ test('PDFの原稿と原文は戻る・進むと本棚からの復帰でも失�
   await expect(page.locator('canvas').first()).toBeVisible();
 });
 
-async function distributionFixture(page: Page) {
+async function distributionFixture(page: Page, titles = ['履歴の本1', '履歴の本2']) {
   const media = browserMp3(fixtureWav(12));
   const revision = 'd'.repeat(64);
   const books = ['history-a', 'history-b'].map((id, index) => {
     const text = index ? '二冊目の本を読みます。' : '朝の頁を読みます。';
     const unit = { id: 'u0', blockId: 'b', kind: 'text', text, start: 0, end: text.length, ruby: [], sources: [{ kind: 'text', start: 0, end: text.length }], mapping: 'exact', characters: text.length, cumulativeCharacters: 0, pause: 'sentence' };
-    const manifest = JSON.stringify({ schemaVersion: 1, id, revision, title: `履歴の本${index + 1}`, document: { blocks: [{ id: 'b', kind: 'paragraph', text, ruby: [], runs: [] }], units: [unit], versions: { parser: 'fixture', model: 'fixture', rules: 'fixture' } }, chunks: [{ id: 'c0', audioUrl: `library/books/${id}/${revision}/media/${media.sha256}.mp3`, mimeType: 'audio/mpeg', sha256: media.sha256, bytes: media.bytes.length, durationSeconds: 12, timing: { verification: 'pcm-correlated' }, timeline: [{ blockId: 'b', start: 0, end: text.length, unitIds: ['u0'] }] }], warnings: [], totalChunks: 1, completedChunks: 1, durationSeconds: 12, precision: 'sentence', attribution: 'Self-authored navigation fixture and synthetic tone.' });
-    return { id, revision, title: `履歴の本${index + 1}`, manifestUrl: `library/books/${id}/${revision}/manifest.json`, manifestSha256: createHash('sha256').update(manifest).digest('hex'), manifestBytes: Buffer.byteLength(manifest), durationSeconds: 12, precision: 'sentence', attribution: 'Self-authored navigation fixture', publicDemo: false, manifest };
+    const manifest = JSON.stringify({ schemaVersion: 1, id, revision, title: titles[index], document: { blocks: [{ id: 'b', kind: 'paragraph', text, ruby: [], runs: [] }], units: [unit], versions: { parser: 'fixture', model: 'fixture', rules: 'fixture' } }, chunks: [{ id: 'c0', audioUrl: `library/books/${id}/${revision}/media/${media.sha256}.mp3`, mimeType: 'audio/mpeg', sha256: media.sha256, bytes: media.bytes.length, durationSeconds: 12, timing: { verification: 'pcm-correlated' }, timeline: [{ blockId: 'b', start: 0, end: text.length, unitIds: ['u0'] }] }], warnings: [], totalChunks: 1, completedChunks: 1, durationSeconds: 12, precision: 'sentence', attribution: 'Self-authored navigation fixture and synthetic tone.' });
+    return { id, revision, title: titles[index], manifestUrl: `library/books/${id}/${revision}/manifest.json`, manifestSha256: createHash('sha256').update(manifest).digest('hex'), manifestBytes: Buffer.byteLength(manifest), durationSeconds: 12, precision: 'sentence', attribution: 'Self-authored navigation fixture', publicDemo: false, manifest };
   });
   await page.route('**/library/index.json', route => route.fulfill({ json: { schemaVersion: 1, target: 'worker', createdAt: '2026-10-16T00:00:00Z', books: books.map(book => ({ ...book, manifest: undefined })) } }));
   for (const book of books) await page.route(`**/${book.manifestUrl}`, route => route.fulfill({ body: book.manifest, contentType: 'application/json' }));
@@ -210,4 +210,77 @@ test('別原稿のファイル読み込み待ちで戻っても遅い完了が�
   await page.waitForTimeout(250);
   await expect(page.getByLabel('読む文章', { exact: true })).toHaveValue(manuscript);
   await expect(phrase(page)).toHaveCount(0);
+});
+
+test('配布本棚の前後ナビは順序・保存位置・戻る進む・全画面を保つ', async ({ page }) => {
+  const longTitle = 'とても長いタイトルが続いても本棚の前後ナビからはみ出さないことを確かめるための長い本の名前です';
+  const books = await distributionFixture(page, ['履歴の本1', longTitle]);
+  await page.addInitScript(({ first, second }) => {
+    localStorage.setItem(`rsvp-audio-position:${first.id}:${first.revision}`, '4');
+    localStorage.setItem(`rsvp-audio-position:${second.id}:${second.revision}`, '7');
+  }, { first: books[0], second: books[1] });
+  await page.goto('/books');
+  await expect(page.getByRole('heading', { name: '本棚', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: '音声付きで読む', exact: true }).first().click();
+  await expect(page.getByRole('heading', { name: '履歴の本1', exact: true })).toBeVisible();
+  const slider = page.getByRole('slider', { name: '音声の再生位置', exact: true });
+  await expect(slider).toHaveValue('4');
+  const nav = page.getByRole('navigation', { name: '本棚の前後の本' });
+  await expect(nav).toBeVisible();
+  await expect(nav).toHaveJSProperty('tagName', 'NAV');
+  expect(await nav.evaluate(element => getComputedStyle(element).position)).toBe('static');
+  expect(await nav.evaluate(element => element.previousElementSibling?.classList.contains('reader-player'))).toBe(true);
+  const player = await page.locator('.reader-player').boundingBox();
+  const navBox = await nav.boundingBox();
+  expect(navBox!.y).toBeGreaterThan(player!.y + player!.height);
+  expect(await page.evaluate(() => document.documentElement.scrollHeight)).toBeGreaterThan(await page.evaluate(() => window.innerHeight));
+  await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+  await expect.poll(async () => (await nav.boundingBox())!.y).toBeLessThan(navBox!.y);
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await expect(nav.locator('.book-navigation-previous')).toContainText('先頭の本です');
+  const next = nav.getByRole('link', { name: `次の本: ${longTitle}` });
+  await expect(next).toHaveAttribute('href', /\/books\/?\?book=history-b&revision=/);
+  await expect(next).toContainText(longTitle);
+  const nextTitle = nav.locator('.book-navigation-next .book-navigation-title');
+  expect(await nextTitle.evaluate(element => ({ clipped: element.scrollWidth > element.clientWidth, ellipsis: getComputedStyle(element).textOverflow }))).toEqual({ clipped: true, ellipsis: 'ellipsis' });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1)).toBe(true);
+  await expect(nav.getByRole('link', { name: '本棚へ戻る', exact: true })).toHaveAttribute('href', /\/books\/?$/);
+
+  await page.getByRole('button', { name: '再生', exact: true }).click();
+  await expect.poll(async () => Number(await slider.inputValue())).toBeGreaterThan(4.2);
+  await page.locator('audio').evaluate((media: HTMLAudioElement) => { (window as unknown as { shelfAudio?: HTMLAudioElement }).shelfAudio = media; });
+  await next.click();
+  await expect(page).toHaveURL(/book=history-b/);
+  await expect(page.getByRole('heading', { name: longTitle, exact: true })).toBeVisible();
+  await expect.poll(async () => Number(await slider.inputValue())).toBe(7);
+  expect(await page.evaluate(() => (window as unknown as { shelfAudio?: HTMLAudioElement }).shelfAudio?.paused)).toBe(true);
+  expect(await page.locator('audio').evaluate((media: HTMLAudioElement) => media.paused)).toBe(true);
+  await expect(page.getByRole('button', { name: '再生', exact: true })).toBeVisible();
+  await expect(nav.locator('.book-navigation-next')).toContainText('最後の本です');
+  await expect(nav.getByRole('link', { name: '前の本: 履歴の本1' })).toHaveAttribute('href', /\/books\/?\?book=history-a&revision=/);
+
+  await page.evaluate(() => { Element.prototype.requestFullscreen = () => Promise.reject(new Error('Use viewport fullscreen in the navigation test')); });
+  await page.getByRole('button', { name: '全画面で読む', exact: true }).click();
+  await expect(nav).toHaveCount(0);
+  await page.getByRole('button', { name: '全画面を終了', exact: true }).click();
+  await expect(nav).toBeVisible();
+
+  await page.goBack();
+  await expect(page.getByRole('heading', { name: '履歴の本1', exact: true })).toBeVisible();
+  await expect.poll(async () => Number(await slider.inputValue())).toBeGreaterThan(4.2);
+  await expect(page.getByRole('button', { name: '再生', exact: true })).toBeVisible();
+  await page.goForward();
+  await expect(page.getByRole('heading', { name: longTitle, exact: true })).toBeVisible();
+  await expect(slider).toHaveValue('7');
+  await expect(page.getByRole('button', { name: '再生', exact: true })).toBeVisible();
+
+  await nav.getByRole('link', { name: '本棚へ戻る', exact: true }).click();
+  await expect(page.getByRole('heading', { name: '本棚', exact: true })).toBeVisible();
+  await expect(page).toHaveURL(/\/books\/?$/);
+
+  await page.goto(`/books?book=${books[1].id}&revision=${books[1].revision}`);
+  await expect(page.getByRole('heading', { name: longTitle, exact: true })).toBeVisible();
+  await expect(slider).toHaveValue('7');
+  await expect(page.getByRole('navigation', { name: '本棚の前後の本' })).toBeVisible();
+  await expect(page.getByRole('link', { name: '前の本: 履歴の本1' })).toBeVisible();
 });

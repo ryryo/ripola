@@ -4,6 +4,18 @@ export function readerStage(page: Page) {
   return page.locator('[data-testid="reader-stage"], [data-testid="audio-stage"]');
 }
 
+/** Opens the guide search panel (desktop popover or inline mobile row) and types a query. */
+export async function searchGuide(page: Page, query: string) {
+  const input = page.getByLabel('本文を検索', { exact: true });
+  const panel = page.getByTestId('guide-search-panel');
+  if (!(await input.isVisible()) || !(await panel.isVisible())) await page.getByRole('button', { name: '検索', exact: true }).click();
+  await input.fill(query);
+}
+
+export async function chooseGuideMatch(page: Page, index = 0) {
+  await page.locator('.guide-unit[data-search-current="true"]').nth(index).click();
+}
+
 export async function withFullscreenSettings(page: Page, change: () => Promise<void>) {
   const toggle = page.getByRole('button', { name: '読書設定を開く', exact: true });
   const compact = await toggle.isVisible();

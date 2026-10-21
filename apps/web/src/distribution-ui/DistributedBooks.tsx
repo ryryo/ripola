@@ -3,15 +3,27 @@ import { AudioSampleReader } from '../reader/ui/AudioSampleReader';
 import { Brand } from '../ui/Brand';
 import { ThemeControl } from '../ui/ThemeControl';
 import { Alert, Badge, Button, Stack, Text, Title } from '@mantine/core';
-import { useEffect, useState } from 'react';
+import { useLocation } from '@tanstack/react-router';
+import { useEffect, useRef, useState } from 'react';
 import { distributionLoadError, loadDistributedBook, loadDistributionLibrary, type PublicAudioBookManifest, type PublicBookEntry } from '../distribution/library';
 import { AudioReader } from '../reader/ui/AudioReader';
 import { ShareLink } from '../sharing/ShareLink';
 import { Bookshelf } from '../reader/ui/Bookshelf';
 import { BookReadingProgress } from '../reader/ui/BookReadingProgress';
-import { readerCapabilities } from '../reader/environment';
 import { DEFAULT_BOOKSHELF_OPTIONS } from '../reader/bookshelf';
+import { buildBookNavigation, loadBookshelfPositions, sameBook, selectBookNavigationSnapshot, type BookNavigation, type BookNavigationBook } from '../reader/book-navigation';
 import '../generation-ui/generation.css';
+
+type DistributedNavigationBook = PublicBookEntry & BookNavigationBook;
+
+function distributedBookHref(shelfHref: string, entry: { id: string; revision: string }): string {
+  return `${shelfHref}?${new URLSearchParams({ book: entry.id, revision: entry.revision })}`;
+}
+
+/** Published demo entries are samples, not neighboring personal library books. */
+function canNavigateDistributed(entry: PublicBookEntry): boolean {
+  return !entry.publicDemo && entry.durationSeconds > 0;
+}
 
 export function DistributedBooks() {
   const sampleKey = useAppNavigation().search.get('sample');
@@ -25,6 +37,12 @@ function DistributedLibrary() {
   const [books, setBooks] = useState<PublicBookEntry[]>([]);
   const [book, setBook] = useState<PublicAudioBookManifest>();
   const [shelfOptions, setShelfOptions] = useState(DEFAULT_BOOKSHELF_OPTIONS);
+  const navigationSnapshot = useRef<DistributedNavigationBook[] | null>(null);
+  // Keep links on the shelf route that is actually serving this profile (the
+  // local dev server can expose /books or /demo even when its build profile
+  // names another audio route).
+  const shelfHref = useLocation().pathname;
+  const shelfBooks: DistributedNavigationBook[] = books.map(entry => ({ ...entry, href: distributedBookHref(shelfHref, entry) }));
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const demo = import.meta.env.VITE_RSVP_PROFILE === 'pages' || (books.length > 0 && books.every(entry => entry.publicDemo));
@@ -39,12 +57,19 @@ function DistributedLibrary() {
     }).catch(error => { if (active) setError(distributionLoadError(error)); }).finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, [bookId, revision]);
-  function open(entry: PublicBookEntry) {
-    void navigation.go(`${location.pathname}?${new URLSearchParams({ book: entry.id, revision: entry.revision })}`);
+  function open(entry: DistributedNavigationBook) {
+    navigationSnapshot.current = selectBookNavigationSnapshot(shelfBooks, loadBookshelfPositions(shelfBooks), shelfOptions.sort, shelfOptions.filter, canNavigateDistributed);
+    void navigation.go(entry.href);
   }
   if (book && book.id === bookId && book.revision === revision) {
     const isDemo = books.some(entry => entry.id === book.id && entry.revision === book.revision && entry.publicDemo);
-    return <AudioReader book={book} demo={isDemo} onClose={() => navigation.backTo(isDemo ? import.meta.env.BASE_URL : location.pathname)} />;
+    const current = shelfBooks.find(entry => sameBook(entry, book));
+    const ordered = current && canNavigateDistributed(current) ? buildBookNavigation({
+      books: shelfBooks, positions: loadBookshelfPositions(shelfBooks), sort: shelfOptions.sort, filter: shelfOptions.filter,
+      current, canRead: canNavigateDistributed, preferred: navigationSnapshot.current,
+    }) : undefined;
+    const bookNavigation: BookNavigation | undefined = ordered && { previous: ordered.previous, next: ordered.next, shelfHref };
+    return <AudioReader book={book} demo={isDemo} bookNavigation={bookNavigation} onClose={() => navigation.backTo(isDemo ? import.meta.env.BASE_URL : location.pathname)} />;
   }
   return <div className="generation-shell"><header className="generation-header"><Brand /><div className="header-actions"><ThemeControl /><nav><a href={import.meta.env.BASE_URL}>黙読</a></nav></div></header><main><Stack gap="lg">
     <Button component="a" href={import.meta.env.BASE_URL} variant="subtle" style={{ alignSelf: 'start' }}>黙読リーダーへ</Button>
@@ -52,9 +77,9 @@ function DistributedLibrary() {
     {error && <Alert color="red" role="alert">{error}</Alert>}
     {!loading && !error && !books.length && <Text>音声付きの本はまだ配置されていません。</Text>}
     {loading && <Text role="status">読み込んでいます…</Text>}
-    {!loading && books.length > 0 && <Bookshelf books={books} options={shelfOptions} onChange={setShelfOptions}>{entry => <li key={`${entry.id}/${entry.revision}`}><article className="generation-card bookshelf-book" aria-labelledby={`shelf-${entry.id}-${entry.revision}`}>
-      <div className="bookshelf-book-content"><h2 id={`shelf-${entry.id}-${entry.revision}`} title={entry.title}><a href={`${import.meta.env.BASE_URL}${readerCapabilities(import.meta.env.VITE_RSVP_PROFILE).audioRoute}?${new URLSearchParams({ book: entry.id, revision: entry.revision })}`} onClick={event => { if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return; event.preventDefault(); if (!loading) void open(entry); }}>{entry.title}</a></h2><BookReadingProgress book={entry} /></div>
-      <div className="bookshelf-book-actions"><Button variant="light" onClick={() => void open(entry)} disabled={loading} aria-label="音声付きで読む" aria-describedby={`shelf-${entry.id}-${entry.revision}`}>読む</Button></div>
+    {!loading && books.length > 0 && <Bookshelf books={shelfBooks} options={shelfOptions} onChange={setShelfOptions}>{entry => <li key={`${entry.id}/${entry.revision}`}><article className="generation-card bookshelf-book" aria-labelledby={`shelf-${entry.id}-${entry.revision}`}>
+      <div className="bookshelf-book-content"><h2 id={`shelf-${entry.id}-${entry.revision}`} title={entry.title}><a href={entry.href} onClick={event => { if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return; event.preventDefault(); if (!loading) open(entry); }}>{entry.title}</a></h2><BookReadingProgress book={entry} /></div>
+      <div className="bookshelf-book-actions"><Button variant="light" onClick={() => open(entry)} disabled={loading} aria-label="音声付きで読む" aria-describedby={`shelf-${entry.id}-${entry.revision}`}>読む</Button></div>
     </article></li>}</Bookshelf>}
     <ShareLink title={demo ? '音声デモ' : '音声ライブラリー'} />
   </Stack></main></div>;

@@ -1,6 +1,8 @@
 import { Button, Drawer } from '@mantine/core';
 import { useMediaQuery } from '@mantine/hooks';
-import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
+import { FullscreenReaderContext } from './FullscreenReaderContext';
+import { useNormalReaderHeight } from './useNormalReaderHeight';
 import './fullscreen.css';
 
 export function useFullscreenReader(pause: () => void) {
@@ -95,20 +97,27 @@ function FullscreenIcon({ exiting = false }: { exiting?: boolean }) {
 export function ReaderPlayButton({ playing, disabled = false, label = '再生', onPlay }: {
   playing: boolean; disabled?: boolean; label?: string; onPlay: () => void;
 }) {
+  const { desktop } = useContext(FullscreenReaderContext);
+  if (desktop) return null;
   return <button type="button" className="reader-play-overlay" hidden={playing} disabled={disabled} aria-label={`${label}（画面中央）`} title={label} aria-keyshortcuts="Space" onClick={onPlay}>
     <svg width="44" height="44" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4v16l14-8z" /></svg>
   </button>;
 }
 
-export function FullscreenReader({ fullscreen, playing, children, seek, speed, modes, displayControls, toggle, pause, disabled = false, playLabel = '再生', showProgress = true, multiline = false }: {
+export function FullscreenReader({ fullscreen, playing, children, seek, speed, modes, displayControls, readingControls, displaySettings, position, fullText = false, toggle, pause, disabled = false, playLabel = '再生', showProgress = true, multiline = false }: {
   fullscreen: ReturnType<typeof useFullscreenReader>; playing: boolean; children: ReactNode; seek: ReactNode; speed: ReactNode; modes: ReactNode; displayControls?: ReactNode;
   toggle: () => void; pause: () => void; disabled?: boolean; playLabel?: string; showProgress?: boolean; multiline?: boolean;
+  fullText?: boolean; readingControls?: ReactNode; displaySettings?: ReactNode; position?: ReactNode;
 }) {
   const footerRef = useRef<HTMLDivElement>(null);
   const compact = useMediaQuery('(max-width: 600px), (max-width: 950px) and (max-height: 520px)');
+  const wide = useMediaQuery('(min-width: 951px)');
+  const desktopReader = fullscreen.active && wide;
+  useNormalReaderHeight(fullscreen.containerRef, fullscreen.active);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const sheetOpen = fullscreen.active && compact && settingsOpen;
-  useEffect(() => { if (!fullscreen.active || !compact) setSettingsOpen(false); }, [fullscreen.active, compact]);
+  const [guideOverlayOpen, setGuideOverlayOpen] = useState(false);
+  const sheetOpen = fullscreen.active && (compact || desktopReader) && settingsOpen;
+  useEffect(() => { setSettingsOpen(false); }, [fullscreen.active, compact, desktopReader]);
   const settings = <div className="fullscreen-settings-grid"><div className="fullscreen-speed-control">{speed}</div>{displayControls}</div>;
   useEffect(() => {
     const element = fullscreen.containerRef.current; const footer = footerRef.current;
@@ -136,24 +145,26 @@ export function FullscreenReader({ fullscreen, playing, children, seek, speed, m
     mutations.observe(element, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
     return () => { mutations.disconnect(); observer.disconnect(); element.style.removeProperty('--fullscreen-footer-height'); element.style.removeProperty('--fullscreen-play-top'); };
   }, [fullscreen.active, fullscreen.containerRef]);
-  return <div ref={fullscreen.containerRef} className="fullscreen-reader" data-fullscreen={fullscreen.active} data-playing={playing} data-settings-open={sheetOpen} tabIndex={-1} role={fullscreen.active ? 'region' : undefined} aria-label={fullscreen.active ? '全画面の読書' : undefined}
+  return <FullscreenReaderContext.Provider value={{ desktop: desktopReader, setOverlayOpen: setGuideOverlayOpen }}><div ref={fullscreen.containerRef} className="fullscreen-reader" data-fullscreen={fullscreen.active} data-playing={playing} data-desktop-reader={desktopReader} data-desktop-guide={desktopReader && fullText} data-settings-open={sheetOpen || guideOverlayOpen} tabIndex={-1} role={fullscreen.active ? 'region' : undefined} aria-label={fullscreen.active ? '全画面の読書' : undefined}
     onClick={event => {
-      if (multiline || !fullscreen.active || !playing || !(event.target instanceof HTMLElement) || !event.target.closest('.reader-stage, .audio-stage') || event.target.closest('button, input, select, a')) return;
+      if (multiline || !fullscreen.active || !playing || !(event.target instanceof HTMLElement) || !event.target.closest('.reader-stage, .audio-stage') || event.target.closest('button, input, select, textarea, a, [role="dialog"], [role="menu"]')) return;
       pause(); fullscreen.containerRef.current?.focus({ preventScroll: true });
     }}>
     {fullscreen.active && <div className="fullscreen-mode-controls" hidden={playing}>{modes}</div>}
     {children}
     {fullscreen.active && <div ref={footerRef} className="fullscreen-footer">
-      {!compact && <div className="fullscreen-display-controls" hidden={playing} inert={playing}>{settings}</div>}
-      <div className="fullscreen-seek" hidden={!showProgress} inert={!showProgress}>{seek}</div>
+      {!compact && !desktopReader && <div className="fullscreen-display-controls" hidden={playing} inert={playing}>{settings}</div>}
+      <div className="fullscreen-seek" hidden={!showProgress} inert={!showProgress}>{desktopReader && <span className="fullscreen-position-value">{position}</span>}{seek}</div>
       <div className="fullscreen-actions">
+        {desktopReader && <><Button className="fullscreen-reading-settings" variant="default" aria-haspopup="dialog" aria-expanded={sheetOpen} onClick={() => { pause(); setSettingsOpen(true); }}>表示設定</Button><div className="fullscreen-reading-speed">{speed}</div></>}
         {compact && <button type="button" className="fullscreen-settings-toggle" aria-label="読書設定を開く" title="読書設定" aria-haspopup="dialog" aria-expanded={sheetOpen} onClick={() => { pause(); setSettingsOpen(true); }}>
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true"><path d="M4 7h16M4 17h16" /><circle cx="8" cy="7" r="3" fill="var(--panel)" /><circle cx="16" cy="17" r="3" fill="var(--panel)" /></svg>
         </button>}
         <Button disabled={disabled} onClick={() => { toggle(); fullscreen.containerRef.current?.focus({ preventScroll: true }); }} aria-keyshortcuts="Space">{playing ? '一時停止' : playLabel}</Button>
+        {desktopReader && readingControls}
         <button type="button" className="fullscreen-enter" aria-label="全画面を終了" title="全画面を終了" onClick={fullscreen.exit}><FullscreenIcon exiting /></button>
       </div>
     </div>}
-    {fullscreen.active && compact && <Drawer className="fullscreen-settings reader-drawer" opened={sheetOpen} onClose={() => setSettingsOpen(false)} title="読書設定" position="bottom" size="auto" withinPortal={false} overlayProps={{ backgroundOpacity: 0 }} zIndex={400} closeButtonProps={{ 'aria-label': '設定を閉じる' }}>{settings}</Drawer>}
-  </div>;
+    {fullscreen.active && (compact || desktopReader) && <Drawer className={`fullscreen-settings reader-drawer ${desktopReader ? 'fullscreen-reading-settings-drawer' : ''}`} opened={sheetOpen} onClose={() => setSettingsOpen(false)} title={desktopReader ? '表示設定' : '読書設定'} position={desktopReader ? 'right' : 'bottom'} size={desktopReader ? 'md' : 'auto'} withinPortal={false} overlayProps={{ backgroundOpacity: 0 }} zIndex={400} closeButtonProps={{ 'aria-label': '設定を閉じる' }}>{desktopReader ? displaySettings : settings}</Drawer>}
+  </div></FullscreenReaderContext.Provider>;
 }
