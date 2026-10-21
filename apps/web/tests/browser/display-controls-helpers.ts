@@ -13,6 +13,10 @@ export async function searchGuide(page: Page, query: string) {
 }
 
 export async function chooseGuideMatch(page: Page, index = 0) {
+  // The search overlay can cover a selected phrase. Dismiss it before choosing
+  // text, just as a reader would; closing preserves the selected match.
+  const close = page.getByRole('button', { name: '検索を閉じる', exact: true });
+  if (await close.isVisible()) await close.click();
   await page.locator('.guide-unit[data-search-current="true"]').nth(index).click();
 }
 

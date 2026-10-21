@@ -238,7 +238,7 @@ test('search disables play-from-here for static code while keeping the match sel
 });
 
 test('manual scroll keeps return-to-reading available and returning restores the paused phrase before prev/next continue', async ({ page }) => {
-  await readGuide(page, '始まりの検索語。\n\n' + '遠い段落です。'.repeat(40) + '遠い検索語。\n\n最後の検索語。');
+  await readGuide(page, '始まりの検索語。\n\n' + '遠い段落です。'.repeat(160) + '遠い検索語。\n\n最後の検索語。');
   const panel = await openPanel(page);
   const input = page.getByLabel('本文を検索', { exact: true });
   await input.fill('検索語');
