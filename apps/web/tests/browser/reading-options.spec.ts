@@ -1501,17 +1501,23 @@ for (const kind of ['silent', 'audio'] as const) test(`${kind} reader uses displ
   await full.getByRole('combobox', { name: '本文の向き', exact: true }).selectOption('vertical-rl');
   await expect(full.getByTestId(kind === 'audio' ? 'audio-phrase' : 'current-phrase')).toHaveCSS('writing-mode', 'vertical-rl');
   await full.getByRole('combobox', { name: '本文の向き', exact: true }).selectOption('horizontal-tb');
-  await full.getByRole('slider', { name: '表示量', exact: true }).fill('3');
-  await expect(full.getByRole('slider', { name: '表示量', exact: true })).toHaveAttribute('aria-valuetext', '3行');
-  await full.getByRole('slider', { name: '表示量', exact: true }).fill('1');
+  // The viewport loop ends at desktop width: amount is in the shared settings
+  // drawer, while orientation and font size remain available beside playback.
+  await full.getByRole('button', { name: '表示設定', exact: true }).click();
+  const display = full.getByRole('dialog', { name: '表示設定', exact: true });
+  await display.getByRole('slider', { name: '表示量', exact: true }).fill('3');
+  await expect(display.getByRole('slider', { name: '表示量', exact: true })).toHaveAttribute('aria-valuetext', '3行');
+  await display.getByRole('slider', { name: '表示量', exact: true }).fill('1');
+  await display.getByRole('button', { name: '設定を閉じる', exact: true }).click();
   await expect(readerStage(page)).toHaveAttribute('data-unit-index', before!);
   await full.getByRole('button', { name: '全文表示', exact: true }).click();
-  await expect(full.getByRole('slider', { name: '表示量', exact: true })).toBeDisabled();
-  await expect(full.getByRole('slider', { name: '表示量', exact: true })).toHaveAttribute('aria-valuetext', '全文');
-  await full.getByRole('slider', { name: 'フォントサイズ', exact: true }).fill('32');
+  await full.getByRole('button', { name: '表示設定', exact: true }).click();
+  await expect(display.getByRole('slider', { name: '表示量', exact: true })).toHaveCount(0);
+  await display.getByRole('button', { name: '設定を閉じる', exact: true }).click();
+  await full.getByRole('combobox', { name: 'フォントサイズ', exact: true }).selectOption('32');
   await expect(full.locator('.guide-row').first()).toHaveCSS('font-size', '32px');
   await full.getByRole('button', { name: 'フレーズ表示', exact: true }).click();
-  await expect(full.getByRole('slider', { name: 'フォントサイズ', exact: true })).toHaveValue('96');
+  await expect(full.getByRole('combobox', { name: 'フォントサイズ', exact: true })).toHaveValue('96');
   await expect(readerStage(page)).toHaveAttribute('data-unit-index', before!);
   await full.getByRole('button', { name: '全画面を終了', exact: true }).click();
   await expect(direction).toHaveValue('horizontal-tb');
