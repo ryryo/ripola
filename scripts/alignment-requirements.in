@@ -3,3 +3,5 @@ torch==2.8.0
 transformers==4.57.6
 numpy==2.3.5
 safetensors==0.6.2
+# CA bundle security floor; platform wheels remain hash-pinned.
+certifi==2026.10.19

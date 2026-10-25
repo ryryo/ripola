@@ -39,7 +39,7 @@ jobs:
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         if: steps.scope.outputs.code == 'true'
         with:
-          node-version: '26'
+          node-version-file: .node-version
           package-manager-cache: false
       - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5
         if: steps.scope.outputs.code == 'true'
