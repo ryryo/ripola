@@ -41,6 +41,7 @@ async function main() {
   if (!process.env.WORKSPACE_SCRATCH || resolve(options.scratch) !== resolve(process.env.WORKSPACE_SCRATCH)) throw new Error('Scratch must be allocated by the storage guard.');
   const stage = join(resolve(options.scratch), 'stage');
   const config = JSON.parse(await readFile(options.config, 'utf8'));
+  if (options.kind === 'audio' && Object.hasOwn(config, 'existing')) throw new Error('Audio staging does not support existing. Include every retained and added book in books.');
   if (!['pages', 'worker'].includes(config.target)) throw new Error('Allowlist requires target=pages|worker.');
   await run(process.execPath, ['--import', 'tsx', `scripts/stage-${options.kind === 'text' ? 'text-' : ''}library.ts`, '--config', options.config, '--output', stage]);
   const buildArgs = ['scripts/build-distribution.mjs', '--profile', config.target, '--audience', config.audience ?? 'demo', '--staging', stage];

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { once } from 'node:events';
-import { access, copyFile, mkdtemp, mkdir, readFile, readdir, rm, stat, symlink, writeFile } from 'node:fs/promises';
+import { access, chmod, copyFile, mkdtemp, mkdir, readFile, readdir, rm, stat, lstat, rename, symlink, writeFile } from 'node:fs/promises';
 import { clearTimeout, setTimeout } from 'node:timers';
 import { hostname } from 'node:os';
 import { join } from 'node:path';
@@ -41,7 +41,7 @@ test('concurrent writers fail before touching the adopted output and retry succe
   const ready = new Promise(resolve => { entered = resolve; });
   const gate = new Promise(resolve => { release = resolve; });
   const first = withDistributionOutput(output, async ({ temporary, commit }) => {
-    await writeFile(join(temporary, 'asset'), 'first'); entered(); await gate; await commit(false);
+    await writeFile(join(temporary, 'asset'), 'first'); entered(); await gate; await commit();
   });
   await ready;
   await assert.rejects(withDistributionOutput(output, () => assert.fail('must not enter')), /locked/);
@@ -50,10 +50,48 @@ test('concurrent writers fail before touching the adopted output and retry succe
   await rm(join(root, 'alias'));
   release(); await first;
   await withDistributionOutput(output, async ({ temporary, commit }) => {
-    await writeFile(join(temporary, 'asset'), 'retry'); await commit(true);
+    await writeFile(join(temporary, 'asset'), 'retry'); await commit(await lstat(output, { bigint: true }));
   });
   assert.equal(await readFile(join(output, 'asset'), 'utf8'), 'retry');
   assert.deepEqual(await readdir(root), ['worker']);
+}));
+
+test('a non-cooperating output replacement is preserved with the candidate', () => fixture(async root => {
+  const output = join(root, 'worker'); await mkdir(output); await writeFile(join(output, 'asset'), 'original');
+  const previous = await lstat(output, { bigint: true });
+  await assert.rejects(withDistributionOutput(output, async ({ temporary, commit }) => {
+    await writeFile(join(temporary, 'asset'), 'candidate'); await rename(output, join(root, 'original-safe'));
+    await mkdir(output); await writeFile(join(output, 'source-sentinel'), 'unknown'); await commit(previous);
+  }), /identity changed/);
+  const lock = join(root, '.rsvp-distribution-worker.lock');
+  assert.equal(await readFile(join(lock, 'previous/source-sentinel'), 'utf8'), 'unknown');
+  assert.equal(await readFile(join(lock, 'candidate/asset'), 'utf8'), 'candidate');
+  assert.equal(await readFile(join(root, 'original-safe/asset'), 'utf8'), 'original');
+}));
+
+test('CLI compile failure with a surviving grandchild blocks the next build', () => fixture(async root => {
+  const repo = join(root, 'repo'); await mkdir(join(repo, 'scripts'), { recursive: true }); await mkdir(join(root, 'bin'));
+  for (const name of ['build-distribution.mjs', 'distribution-transaction.mjs']) await copyFile(new URL(name, import.meta.url), join(repo, 'scripts', name));
+  await writeFile(join(repo, 'scripts/distribution-utils.mjs'), 'export const MAX_ASSET_BYTES=1; export function isInside(){}; export function contentHash(){}; export function auditDistribution(){}; export function readLibraryFile(){}; export function validatePublicPresentation(){};');
+  await writeFile(join(repo, 'scripts/prepare-pdf-assets.mjs'), '');
+  const record = join(root, 'grandchild.json'), pnpm = join(root, 'bin/pnpm');
+  await writeFile(pnpm, `#!/usr/bin/env node\nconst {spawn}=require('node:child_process');const fs=require('node:fs');const child=spawn(process.execPath,['-e','setInterval(()=>{},1000)'],{detached:true,stdio:'ignore'});child.unref();fs.writeFileSync(${JSON.stringify(record)},JSON.stringify({pid:child.pid}));process.exit(7);`);
+  await chmod(pnpm, 0o700); let writer;
+  try {
+    async function run() {
+      const child = spawn(process.execPath, [join(repo, 'scripts/build-distribution.mjs'), '--profile', 'worker'], { cwd: repo, env: { ...process.env, PATH: `${join(root, 'bin')}:${process.env.PATH}` }, stdio: ['ignore', 'pipe', 'pipe'] });
+      let log = ''; child.stdout.on('data', value => { log += value; }); child.stderr.on('data', value => { log += value; });
+      const [code] = await once(child, 'exit'); return { code, log };
+    }
+    assert.equal((await run()).code, 1); writer = JSON.parse(await readFile(record, 'utf8')).pid;
+    process.kill(writer, 0);
+    const next = await run(); assert.equal(next.code, 1); assert.match(next.log, /surviving subprocesses/);
+    const lock = join(repo, 'dist/.rsvp-distribution-.client-worker.lock');
+    assert.equal(JSON.parse(await readFile(join(lock, 'owner.json'), 'utf8')).recoverable, false);
+    assert.equal(JSON.parse(await readFile(record, 'utf8')).pid, writer);
+  } finally {
+    if (writer) { process.kill(writer, 'SIGKILL'); await new Promise(resolve => setTimeout(resolve, 30)); }
+  }
 }));
 
 for (const phase of ['candidate', 'previous', 'adopted']) {
@@ -66,7 +104,8 @@ for (const phase of ['candidate', 'previous', 'adopted']) {
       await withDistributionOutput(${JSON.stringify(output)}, async ({temporary}) => {
         await writeFile(join(temporary,'asset'),'new');
         const s=await lstat(temporary);
-        await writeFile(join(dirname(temporary),'candidate.json'),JSON.stringify({dev:s.dev,ino:s.ino}));
+        const old=await lstat(${JSON.stringify(output)});
+        await writeFile(join(dirname(temporary),'transaction.json'),JSON.stringify({schemaVersion:1,output:${JSON.stringify(output)},candidate:{dev:String(s.dev),ino:String(s.ino)},previous:{dev:String(old.dev),ino:String(old.ino)}}));
         if (${JSON.stringify(phase)} !== 'candidate') await rename(${JSON.stringify(output)},join(dirname(temporary),'previous'));
         if (${JSON.stringify(phase)} === 'adopted') await rename(temporary,${JSON.stringify(output)});
         console.log('ready'); setInterval(()=>{},1000);
@@ -100,9 +139,9 @@ test('preparation only allows a fixed build destination, explicit allowlist and 
 test('interrupted client build lock is retained because subprocesses may still be alive', () => fixture(async root => {
   const child = spawn(process.execPath, ['-e', ''], { stdio: 'ignore' }); await once(child, 'exit');
   const lock = join(root, '.rsvp-distribution-client.lock'); await mkdir(lock);
-  await writeFile(join(lock, 'owner.json'), JSON.stringify({ host: hostname(), pid: child.pid, token: 'fixture', recoverable: false }));
+  await writeFile(join(lock, 'owner.json'), JSON.stringify({ schemaVersion: 1, output: join(root, 'client'), host: hostname(), pid: child.pid, token: '00000000-0000-4000-8000-000000000000', recoverable: false }));
   await assert.rejects(withDistributionOutput(join(root, 'client'), () => assert.fail('must not enter')), /surviving subprocesses/);
-  assert.equal(JSON.parse(await readFile(join(lock, 'owner.json'), 'utf8')).token, 'fixture');
+  assert.equal(JSON.parse(await readFile(join(lock, 'owner.json'), 'utf8')).token, '00000000-0000-4000-8000-000000000000');
 }));
 
 test('unmanaged outputs are preserved and incomplete locks are never removed', () => fixture(async root => {

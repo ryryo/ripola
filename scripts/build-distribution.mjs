@@ -67,14 +67,14 @@ export async function buildDistribution(options) {
   if (profile === 'pages' && !shell.includes('/ripola/assets/')) throw new Error('Pages build must use the /ripola/ Vite base.');
   if (profile === 'worker' && shell.includes('/ripola/assets/')) throw new Error('Worker build must use the root Vite base.');
   await mkdir(dirname(output), { recursive: true });
-  return withDistributionOutput(output, async ({ temporary, commit }) => {
+  return withDistributionOutput(output, async ({ output: managedOutput, temporary, commit }) => {
     let existingInfo;
-    try { existingInfo = await lstat(output); }
+    try { existingInfo = await lstat(managedOutput, { bigint: true }); }
     catch (error) { if (error.code !== 'ENOENT') throw error; }
     const existing = Boolean(existingInfo);
     if (existing) {
       if (!options.replaceExisting || !existingInfo.isDirectory() || existingInfo.isSymbolicLink()) throw new Error('Distribution output already exists. Use the default output to replace a managed build; explicit outputs must be new.');
-      const previous = JSON.parse(await readFile(join(output, 'distribution.json'), 'utf8'));
+      const previous = JSON.parse(await readFile(join(managedOutput, 'distribution.json'), 'utf8'));
       if (previous.schemaVersion !== 1 || previous.profile !== profile || previous.localGenerationApi !== false || (previous.audience ?? 'demo') !== audience) throw new Error('Only a previous managed distribution build may be replaced.');
     }
     for (const name of await readdir(client)) await cp(join(client, name), join(temporary, name), { recursive: true, errorOnExist: true, force: false });
@@ -108,7 +108,7 @@ export async function buildDistribution(options) {
     if (profile === 'worker') await writeFile(join(temporary, 'library/audio-sizes.json'), `${JSON.stringify(audioSizes)}\n`, { flag: 'wx' });
     await writeFile(join(temporary, 'distribution.json'), `${JSON.stringify({ schemaVersion: 1, profile, audience, base: expectedBase, generatedAt: new Date().toISOString(), localGenerationApi: false })}\n`, { flag: 'wx' });
     const report = await auditDistribution(temporary, { maxFiles: options.maxFiles, audience });
-    await commit(existing);
+    await commit(existingInfo ?? null);
     if (profile === 'worker') {
       // A preparation artifact outside the upload root; credentials and account-specific Access setup are omitted.
       await writeFile(`${output}.wrangler.jsonc`, `${JSON.stringify({ name: 'ripola', compatibility_date: '2026-10-06', workers_dev: false,
