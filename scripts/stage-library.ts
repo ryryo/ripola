@@ -21,6 +21,7 @@ export interface StageOptions { output: string; maxFiles?: number }
 export function validateStageConfig(input: unknown): StageLibraryConfig {
   if (!input || typeof input !== 'object') throw new Error('An explicit staging allowlist is required.');
   const config = input as StageLibraryConfig;
+  if (Object.hasOwn(config, 'existing')) throw new Error('Audio staging does not support existing. Include every retained and added book in books.');
   if (!['pages', 'worker'].includes(config.target) || typeof config.libraryDir !== 'string' || !config.libraryDir.trim()
     || !Array.isArray(config.books) || !config.books.length || config.books.length > 1000) throw new Error('The staging allowlist is invalid.');
   const audience = config.audience ?? 'demo';
