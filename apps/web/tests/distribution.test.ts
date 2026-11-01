@@ -10,8 +10,35 @@ import type { ReadingDocument } from '../src/reader/model';
 import { stageLibrary, validateStageConfig } from '../../../scripts/stage-library.ts';
 import { auditDistribution, contentHash, MAX_ASSET_BYTES } from '../../../scripts/distribution-utils.mjs';
 import { buildDistribution } from '../../../scripts/build-distribution.mjs';
+import { stageTextLibrary } from '../../../scripts/stage-text-library.ts';
+import { importText } from '../src/reader/text-import';
+import { prepareDocument } from '../src/reader/segmentation';
 
 const ffmpegAvailable = ['ffmpeg', 'ffprobe'].every(command => spawnSync(command, ['-version'], { stdio: 'ignore' }).status === 0);
+
+test('personal text addition retains existing audio bytes, builds, loads and rejects missing text metadata', { skip: !ffmpegAvailable }, async () => temporary(async root => {
+  const original = await fixture(root), existing = join(root, 'existing');
+  await stageLibrary({ ...allowlist(original, 'worker'), audience: 'personal' }, { output: existing });
+  const before = JSON.parse(await readFile(join(existing, 'library/index.json'), 'utf8')) as PublicLibraryManifest;
+  const text = await prepareDocument(importText('# テキスト本\n\n<ruby>原文<rt>げんぶん</rt></ruby>を保持する。', 'md', 'テキスト本'));
+  const source = join(root, 'text.json'); await writeFile(source, JSON.stringify(text));
+  const selection = { id: 'text-test', revision: text.contentHash, documentFile: source, rightsConfirmed: true as const, attribution: '自作の検証原稿' };
+  const stage = join(root, 'stage');
+  assert.equal((await stageTextLibrary({ target: 'worker', audience: 'personal', existing, books: [selection] }, stage)).retained, 1);
+  const catalog = parsePublicLibrary(JSON.parse(await readFile(join(stage, 'library/index.json'), 'utf8')));
+  assert.deepEqual(catalog.books[0], before.books[0]);
+  const entry = catalog.books[1], manifestBytes = await readFile(join(stage, entry.manifestUrl));
+  const book = await loadDistributedBook(entry, '/', async () => new Response(manifestBytes));
+  assert.equal(book.kind, 'text'); assert.equal(book.document.blocks[1].ruby[0].reading, 'げんぶん');
+  assert.equal(book.chunks.length, 0); assert.equal(book.durationSeconds, 0);
+  const client = join(root, 'client'); await mkdir(client);
+  await writeFile(join(client, '_shell.html'), '<html><script src="/assets/app.js"></script></html>');
+  const output = join(root, 'output'); await buildDistribution({ profile: 'worker', audience: 'personal', client, output, staging: stage });
+  assert.deepEqual(await readFile(join(output, before.books[0].manifestUrl)), await readFile(join(existing, before.books[0].manifestUrl)));
+  assert.throws(() => parsePublicLibrary({ ...catalog, books: [{ ...entry, kind: undefined }] }), /参照/);
+  await assert.rejects(loadDistributedBook({ ...entry, totalCharacters: 1 }, '/', async () => new Response(manifestBytes)), /文字数/);
+  await assert.rejects(buildDistribution({ profile: 'worker', client, output: join(root, 'demo'), staging: stage }), /audience/);
+}));
 const bookId = 'book-demo';
 const revision = 'b'.repeat(64);
 const speechKey = 'a'.repeat(64);

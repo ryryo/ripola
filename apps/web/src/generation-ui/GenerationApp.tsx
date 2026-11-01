@@ -37,6 +37,7 @@ function voicesFor(config: GenerationConfig | undefined, provider: GenerationOpt
 
 export interface HomeGenerationProps {
   input: ReactNode;
+  additionalInput?: ReactNode;
   rawText: string;
   inputFormat: InputFormat;
   document?: ReadingDocument;
@@ -304,7 +305,7 @@ export function GenerationApp({ home }: { home?: HomeGenerationProps }) {
         {costPreview}
         {!home && <Button onClick={() => void prepare()} disabled={!document || !voice || Boolean(busy) || configState !== 'ready' || !selectedProviderAvailable} fullWidth>生成計画を確認する</Button>}
       </section>}
-      {home && <><div className="home-generation-actions">{audioEnabled && <Button onClick={() => void prepare()} disabled={!voice || Boolean(busy) || home.textBusy || configState !== 'ready' || !selectedProviderAvailable}>生成内容を確認する</Button>}<Button variant={audioEnabled ? 'outline' : 'filled'} onClick={home.onRead} disabled={Boolean(busy) || home.textBusy}>テキストのみ生成して読む</Button></div><p className="home-action-note">{audioEnabled ? '音声生成は、内容を確認してから開始します。' : 'テキストは端末内で準備します。本文を外へ送りません。'}</p></>}
+      {home && <><div className="home-generation-actions">{audioEnabled && <Button onClick={() => void prepare()} disabled={!voice || Boolean(busy) || home.textBusy || configState !== 'ready' || !selectedProviderAvailable}>生成内容を確認する</Button>}<Button variant={audioEnabled ? 'outline' : 'filled'} onClick={home.onRead} disabled={Boolean(busy) || home.textBusy}>テキストのみ生成して読む</Button></div><p className="home-action-note">{audioEnabled ? '音声生成は、内容を確認してから開始します。' : 'テキストは端末内で準備します。本文を外へ送りません。'}</p>{home.additionalInput}</>}
       </div>
       {!home && selection}
       {audioEnabled && plan && <section className="generation-card generation-confirm"><h2>{home ? '開始前に確認' : '4. 開始前に確認'}</h2><dl><dt>送信先</dt><dd>{plan.options.provider === 'voicevox' ? 'VOICEVOX · このPC' : plan.options.provider === 'irodori' ? plan.options.model === 'irodori-tts-mf' ? 'Irodori MF · このPC' : 'Irodori v4.1 Small 通常 · このPC' : `${plan.options.transport === 'gateway' ? 'Cloudflare · Googleモデル' : 'Google'} · ${plan.options.model}`}</dd><dt>接続先</dt><dd>{plan.endpoint}</dd><dt>課金先</dt><dd>{plan.options.provider !== 'gemini' ? '無料 · このPC' : plan.options.transport === 'gateway' ? 'Cloudflare Gatewayの設定に従います' : 'Googleアカウント'}</dd><dt>対象</dt><dd>{plan.chunks.length}{plan.chunkPlan ? '区間' : '文'} · 保存音声の再利用 {plan.chunks.filter(chunk => chunk.cacheHit).length}{plan.chunkPlan ? '区間' : '文'}</dd><dt>音声の長さ（目安）</dt><dd>約{Math.ceil(plan.estimatedSeconds / 60)}分</dd><dt>概算費用</dt><dd>{plan.options.provider !== 'gemini' ? '無料' : `$${plan.estimatedOutputUsd.toFixed(4)} + 入力等`}<p className="muted">{plan.estimateNote}</p></dd></dl>

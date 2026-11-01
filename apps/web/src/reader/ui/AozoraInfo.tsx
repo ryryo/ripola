@@ -1,6 +1,15 @@
 import type { AozoraProvenance } from '../model';
 export function AozoraInfo({ value }: { value?: AozoraProvenance }) {
   if (!value) return null;
+  if (value.sourceUrl && !/^https:\/\/(?:www\.)?(?:aozora\.gr\.jp|aozora-renewal\.cloud)\//.test(value.sourceUrl)) {
+    return <details className="aozora-provenance"><summary>作品の出典・ルビ</summary>
+      <p>{value.author}『{value.title}』。</p>
+      <p><a href={value.sourceUrl} target="_blank" rel="noreferrer">掲載元の原文</a></p>
+      <p>ルビ{value.counts.ruby.toLocaleString()}件。原資料の表記を保っています。</p>
+      <h3>書誌と作成者</h3><pre>{value.bibliography}</pre><h3>表記について</h3><pre>{value.notationNotes}</pre>
+      <p>本文の利用条件は掲載元・著者の条件に従います。</p>
+    </details>;
+  }
   return <details className="aozora-provenance"><summary>作品の出典・ルビ・外字・入力者注</summary>
     <p>{value.author}『{value.title}』。歴史的な表現を含みます。原資料の表記を保っています。</p>
     <p>{value.sourceUrl && <a href={value.sourceUrl} target="_blank" rel="noreferrer">青空文庫の原文</a>} {value.cardUrl && <a href={value.cardUrl} target="_blank" rel="noreferrer">図書カード</a>}</p>

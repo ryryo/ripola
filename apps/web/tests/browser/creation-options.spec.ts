@@ -1,5 +1,69 @@
 import { expect, test } from '@playwright/test';
 import { audioDemoHref } from '../../src/reader/audio-demo';
+import { createHash } from 'node:crypto';
+import { prepareDocument } from '../../src/reader/segmentation';
+import { importText } from '../../src/reader/text-import';
+
+test('テキスト本の位置は自動保存され再読込と別冊からの復帰でも本ごとに復元する', async ({ page }) => {
+  const document = await prepareDocument(importText('最初の文章を読みます。次の文章に進みます。最後の文章も読みます。', 'txt', '位置保存の検証'));
+  const revision = document.contentHash;
+  const books = ['text-a', 'text-b'].map(id => {
+    const manifest = { schemaVersion: 1, kind: 'text', id, revision, title: document.title, document, updatedAt: '2026-11-01T00:00:00Z', chunks: [], completedChunks: 0, totalChunks: 0, durationSeconds: 0, precision: 'sentence', attribution: '自作', warnings: [] };
+    const body = JSON.stringify(manifest);
+    return { body, entry: { kind: 'text', id, revision, title: document.title, manifestUrl: `library/books/${id}/${revision}/manifest.json`, manifestSha256: createHash('sha256').update(body).digest('hex'), manifestBytes: Buffer.byteLength(body), durationSeconds: 0, precision: 'sentence', attribution: '自作', publicDemo: false, totalCharacters: document.totalCharacters } };
+  });
+  await page.route('**/library/index.json', route => route.fulfill({ json: { schemaVersion: 1, target: 'worker', audience: 'personal', createdAt: '2026-11-01', books: books.map(book => book.entry) } }));
+  for (const book of books) await page.route(`**/${book.entry.manifestUrl}`, route => route.fulfill({ contentType: 'application/json', body: book.body }));
+  const href = (id: string) => `/books?book=${id}&revision=${revision}`;
+  const stage = page.getByTestId('reader-stage');
+  await page.goto(href('text-a'));
+  await page.getByRole('button', { name: '1つ進む', exact: true }).click();
+  await page.getByRole('button', { name: '1つ進む', exact: true }).click();
+  await expect(stage).toHaveAttribute('data-unit-index', '2');
+  await page.reload(); await expect(stage).toHaveAttribute('data-unit-index', '2');
+  await page.goto(href('text-b')); await expect(stage).toHaveAttribute('data-unit-index', '0');
+  await page.getByRole('button', { name: '1つ進む', exact: true }).click();
+  await page.goto(href('text-a')); await expect(stage).toHaveAttribute('data-unit-index', '2');
+  await page.goto(href('text-b')); await expect(stage).toHaveAttribute('data-unit-index', '1');
+});
+
+test('本文とURLの入力欄は独立し、対応先とエラーを表示してBackでも両方を保持する', async ({ page }) => {
+  await page.goto('/');
+  const text = page.getByRole('textbox', { name: '読む文章', exact: true });
+  const url = page.getByRole('textbox', { name: 'URL', exact: true });
+  const manuscript = '入力した文章を保持します。URLは別の欄にあります。';
+  const workUrl = 'https://kakuyomu.jp/works/16816927863114551346';
+  await expect(text).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByText('対応URL：カクヨムの作品トップ、青空文庫の図書カード・本文HTML、noteの無料記事', { exact: true })).toBeVisible();
+  await text.fill(manuscript);
+  await url.fill('https://note.com/example/n/example');
+  await page.getByRole('button', { name: 'URLから読み込む', exact: true }).click();
+  await expect(url).toHaveAttribute('aria-invalid', 'true');
+  await expect(page.getByText('カクヨムの作品トップ、青空文庫の図書カード・本文HTML、noteの記事のURLを入力してください。', { exact: true })).toBeVisible();
+  await expect(text).toHaveValue(manuscript);
+  await url.fill(workUrl);
+  await expect(url).not.toHaveAttribute('aria-invalid', 'true');
+  await text.fill(manuscript + '追記します。');
+  await expect(url).toHaveValue(workUrl);
+  await page.getByRole('button', { name: 'テキストのみ生成して読む', exact: true }).click();
+  await expect(page.getByTestId('current-phrase')).toBeVisible();
+  await page.goBack();
+  await expect(text).toHaveValue(manuscript + '追記します。');
+  await expect(url).toHaveValue(workUrl);
+});
+
+test('本文に貼ったURLはページを取得せず本文として読み、URL欄は空のままにする', async ({ page }) => {
+  await page.goto('/');
+  const workUrl = 'https://kakuyomu.jp/works/16816927863114551346';
+  await page.getByRole('textbox', { name: '読む文章', exact: true }).fill(workUrl);
+  await expect(page.getByRole('textbox', { name: 'URL', exact: true })).toHaveValue('');
+  await expect(page.getByRole('button', { name: 'URLから読み込む', exact: true })).toBeDisabled();
+  await page.getByRole('button', { name: 'テキストのみ生成して読む', exact: true }).click();
+  await expect(page.getByTestId('current-phrase')).toBeVisible();
+  await page.getByRole('button', { name: '本の操作', exact: true }).click();
+  await page.getByRole('button', { name: '原文', exact: true }).click();
+  await expect(page.getByLabel('元の入力', { exact: true })).toHaveValue(workUrl);
+});
 
 test('A samples are three visible rows below the form with direct silent entry and 44px controls', async ({page}, testInfo) => {
   await page.goto('/');const panel=page.getByRole('region',{name:'サンプルで試す'});

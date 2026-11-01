@@ -65,7 +65,7 @@ export function validateSavedReading(value: unknown): asserts value is SavedRead
   const document = value.document;
   if (!text(document.id, 256) || !text(document.contentHash, 256) || document.contentHash.length === 0
     || !text(document.title) || !text(document.rawText) || !integer(document.totalCharacters)
-    || !['txt', 'md', 'pdf', 'aozora'].includes(document.format as string)
+    || !['txt', 'md', 'pdf', 'aozora', 'html'].includes(document.format as string)
     || !Array.isArray(document.warnings) || !document.warnings.every((warning) => text(warning, 10_000))
     || !record(document.versions) || !text(document.versions.parser, 256)
     || !text(document.versions.model, 256) || !text(document.versions.rules, 256)

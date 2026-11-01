@@ -21,7 +21,12 @@ export default defineConfig({
       generatedRouteTree: tree,
       routeFileIgnorePattern: local ? undefined : profile === 'pages' ? '(generate|library|books)\\.tsx$|api\\.local' : '(generate|library|demo)\\.tsx$|api\\.local',
     },
-    importProtection: { behavior: 'error', client: { files: ['**/generation/core/**', '**/server/**'] } },
+    importProtection: { behavior: 'error', client: { files: [
+      '**/generation/core/**', '**/server/**',
+      '**/kakuyomu/cache.ts', '**/kakuyomu/fetch.ts', '**/kakuyomu/importer.ts',
+      '**/kakuyomu/parser.ts', '**/kakuyomu/text-books.ts', '**/kakuyomu/service.server.ts',
+      '**/url-import/*.server.ts',
+    ] } },
   }), react()],
   ssr: { external: ['wrangler'] },
   optimizeDeps: { include: ['budoux', 'decode-named-character-reference', 'unified', 'remark-parse', 'remark-gfm', 'remark-frontmatter'] },

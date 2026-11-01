@@ -4,6 +4,8 @@
 
 ## 直接依存
 
+ローカルのカクヨム取り込みでは、`ayati/novel_downloader`の目次走査を移植しています。固定revision・取り込み範囲は[Web小説の取り込み](../guides/web-novels.md)、著作権表示とMIT全文は[保存したLICENSE](upstream/novel-downloader-LICENSE)を参照してください。Pythonの依存やCLI全体は導入していません。
+
 音声QAの内部許容表記には、版固定したCC0の注釈データを使います。[出典・revision・抽出方法](audio-qa-data.md)を参照してください。
 
 | package | 固定version | package宣言 |

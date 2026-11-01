@@ -26,7 +26,7 @@ export function auditText(text, label, scanLocalCode = false) {
   if (!scanLocalCode && /"(?:apiKey|api_key|GEMINI_API_KEY|privateKey|access_token|refresh_token|authorization|credentials|modelPath|runtimePath|libraryDir|spokenRanges|normalizedRanges|spokenText)"\s*:/i.test(text)) {
     throw new Error(`Credential configuration field in ${label}.`);
   }
-  if (scanLocalCode && /\/api\/local-(?:generation|audio)|GEMINI_API_KEY|RSVP_LIBRARY_DIR|x-goog-api-key|generativelanguage\.googleapis\.com/.test(text)) {
+  if (scanLocalCode && /\/api\/local-(?:generation|audio)|GEMINI_API_KEY|RSVP_LIBRARY_DIR|x-goog-api-key|generativelanguage\.googleapis\.com|previewKakuyomu|startKakuyomu|KakuyomuImporter|kakuyomu-cache|text-source-maps/.test(text)) {
     throw new Error(`Local generation code or configuration in ${label}.`);
   }
 }
@@ -136,13 +136,16 @@ export async function auditDistribution(directory, options = {}) {
           const manifest = JSON.parse(text);
           if (!Array.isArray(manifest.chunks)) throw new Error('Public manifest chunks are invalid.');
           for (const chunk of manifest.chunks) validatePublicMediaMetadata(chunk);
-          await validatePublicPresentation(manifest);
+          if (manifest.kind === 'text') {
+            publicLibraryModule ??= tsImport('../apps/web/src/distribution/library.ts', import.meta.url);
+            (await publicLibraryModule).requireTextBook(manifest);
+          } else await validatePublicPresentation(manifest);
         }
       }
     }
   }
   await visit(directory, '');
-  let audioBooks = 0;
+  let audioBooks = 0, textBooks = 0;
   // The bundled sample catalog has its own subtree; audit it as strictly as staged books.
   for (const prefix of ['', 'samples/audio/']) {
     const catalog = `${prefix}library/index.json`;
@@ -160,7 +163,12 @@ export async function auditDistribution(directory, options = {}) {
         if (book.id !== entry.id || book.revision !== entry.revision || book.schemaVersion !== 1
           || !Number.isFinite(book.durationSeconds) || Math.abs(book.durationSeconds - entry.durationSeconds) > 1e-6
           || Math.abs(book.durationSeconds - book.chunks.reduce((sum, chunk) => sum + chunk.durationSeconds, 0)) > 1e-6) throw new Error('Catalog book identity/duration mismatch.');
-        await validatePublicPresentation(book); referenced.add(prefix + entry.manifestUrl);
+        if ((book.kind ?? 'audio') !== (entry.kind ?? 'audio')) throw new Error('Catalog book kind mismatch.');
+        if (book.kind === 'text') {
+          (await publicLibraryModule).requireTextBook(book);
+          if (entry.totalCharacters !== book.document.totalCharacters) throw new Error('Catalog text character count mismatch.');
+        } else await validatePublicPresentation(book);
+        referenced.add(prefix + entry.manifestUrl);
         for (const chunk of book.chunks) {
           const extension = chunk.mimeType === 'audio/mp4' ? 'm4a' : chunk.mimeType === 'audio/mpeg' ? 'mp3' : undefined;
           if (!extension || chunk.audioUrl !== `library/books/${entry.id}/${entry.revision}/media/${chunk.sha256}.${extension}`) throw new Error('Unexpected audio reference.');
@@ -168,10 +176,10 @@ export async function auditDistribution(directory, options = {}) {
           if (audio.byteLength !== chunk.bytes || contentHash(audio) !== chunk.sha256) throw new Error('Selected audio hash/size mismatch.');
           referenced.add(prefix + chunk.audioUrl);
         }
-        audioBooks++;
+        if (book.kind === 'text') textBooks++; else audioBooks++;
       }
       if (files.some(file => file.path.startsWith(`${prefix}library/`) && !referenced.has(file.path))) throw new Error('Unselected library asset in upload tree.');
     } else if (files.some(file => file.path.startsWith(`${prefix}library/books/`))) throw new Error('Selected audio catalog is missing.');
   }
-  return { audioBooks, fileCount: files.length, totalBytes: files.reduce((sum, file) => sum + file.bytes, 0), files };
+  return { audioBooks, textBooks, fileCount: files.length, totalBytes: files.reduce((sum, file) => sum + file.bytes, 0), files };
 }

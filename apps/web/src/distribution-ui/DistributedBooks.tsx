@@ -7,6 +7,7 @@ import { useLocation } from '@tanstack/react-router';
 import { useEffect, useRef, useState } from 'react';
 import { distributionLoadError, loadDistributedBook, loadDistributionLibrary, type PublicAudioBookManifest, type PublicBookEntry } from '../distribution/library';
 import { AudioReader } from '../reader/ui/AudioReader';
+import { ReaderApp } from '../reader/ui/ReaderApp';
 import { ShareLink } from '../sharing/ShareLink';
 import { Bookshelf } from '../reader/ui/Bookshelf';
 import { BookReadingProgress } from '../reader/ui/BookReadingProgress';
@@ -22,7 +23,7 @@ function distributedBookHref(shelfHref: string, entry: { id: string; revision: s
 
 /** Published demo entries are samples, not neighboring personal library books. */
 function canNavigateDistributed(entry: PublicBookEntry): boolean {
-  return !entry.publicDemo && entry.durationSeconds > 0;
+  return !entry.publicDemo && (entry.kind === 'text' || entry.durationSeconds > 0);
 }
 
 export function DistributedBooks() {
@@ -69,17 +70,18 @@ function DistributedLibrary() {
       current, canRead: canNavigateDistributed, preferred: navigationSnapshot.current,
     }) : undefined;
     const bookNavigation: BookNavigation | undefined = ordered && { previous: ordered.previous, next: ordered.next, shelfHref };
+    if (book.kind === 'text') return <ReaderApp key={`${book.id}:${book.revision}`} initialDocument={book.document} bookNavigation={bookNavigation} textBook={book} />;
     return <AudioReader book={book} demo={isDemo} bookNavigation={bookNavigation} onClose={() => navigation.backTo(isDemo ? import.meta.env.BASE_URL : location.pathname)} />;
   }
   return <div className="generation-shell"><header className="generation-header"><Brand /><div className="header-actions"><ThemeControl /><nav><a href={import.meta.env.BASE_URL}>黙読</a></nav></div></header><main><Stack gap="lg">
     <Button component="a" href={import.meta.env.BASE_URL} variant="subtle" style={{ alignSelf: 'start' }}>黙読リーダーへ</Button>
-    <div className="generation-title"><div><Badge variant="light">{demo ? '音声デモ' : '保存音声'}</Badge><Title order={1}>{demo ? '音声に合わせて、読む。' : '本棚'}</Title><Text c="dimmed">保存した音声を選んで、文章と一緒に読みます。</Text></div></div>
+    <div className="generation-title"><div><Badge variant="light">{demo ? '音声デモ' : '蔵書'}</Badge><Title order={1}>{demo ? '音声に合わせて、読む。' : '本棚'}</Title><Text c="dimmed">{demo ? '保存した音声を選んで、文章と一緒に読みます。' : '本を選んで、テキストや音声で読みます。'}</Text></div></div>
     {error && <Alert color="red" role="alert">{error}</Alert>}
     {!loading && !error && !books.length && <Text>音声付きの本はまだ配置されていません。</Text>}
     {loading && <Text role="status">読み込んでいます…</Text>}
     {!loading && books.length > 0 && <Bookshelf books={shelfBooks} options={shelfOptions} onChange={setShelfOptions}>{entry => <li key={`${entry.id}/${entry.revision}`}><article className="generation-card bookshelf-book" aria-labelledby={`shelf-${entry.id}-${entry.revision}`}>
-      <div className="bookshelf-book-content"><h2 id={`shelf-${entry.id}-${entry.revision}`} title={entry.title}><a href={entry.href} onClick={event => { if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return; event.preventDefault(); if (!loading) open(entry); }}>{entry.title}</a></h2><BookReadingProgress book={entry} /></div>
-      <div className="bookshelf-book-actions"><Button variant="light" onClick={() => open(entry)} disabled={loading} aria-label="音声付きで読む" aria-describedby={`shelf-${entry.id}-${entry.revision}`}>読む</Button></div>
+      <div className="bookshelf-book-content"><h2 id={`shelf-${entry.id}-${entry.revision}`} title={entry.title}><a href={entry.href} onClick={event => { if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return; event.preventDefault(); if (!loading) open(entry); }}>{entry.title}</a></h2>{entry.kind === 'text' ? <Text size="sm" c="dimmed">テキスト · {entry.totalCharacters?.toLocaleString('ja-JP')}字</Text> : <BookReadingProgress book={entry} />}</div>
+      <div className="bookshelf-book-actions"><Button variant="light" onClick={() => open(entry)} disabled={loading} aria-label={entry.kind === 'text' ? 'テキストで読む' : '音声付きで読む'} aria-describedby={`shelf-${entry.id}-${entry.revision}`}>読む</Button></div>
     </article></li>}</Bookshelf>}
     <ShareLink title={demo ? '音声デモ' : '音声ライブラリー'} />
   </Stack></main></div>;

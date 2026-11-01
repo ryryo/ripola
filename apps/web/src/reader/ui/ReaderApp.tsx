@@ -37,29 +37,43 @@ import { readerCapabilities } from '../environment';
 import { FullscreenReadingControls, ReaderDisplayControls, ReaderDisplaySettings, ReaderDisplayToolbar, ReaderTransport } from './ReaderWorkspace';
 import { useAppNavigation, useBeforeAppNavigation, type ReadingSession, type ReadingDraft } from '../../navigation/AppNavigation';
 import { initialReadingDraft, PAGES_DEMO } from '../pages-demo';
+import { BookNavigationBar } from './BookNavigationBar';
+import type { BookNavigation } from '../book-navigation';
+import { kakuyomuWorkUrlInput } from '../../kakuyomu/contracts';
+import { supportedUrlInput, SUPPORTED_URLS, UNSUPPORTED_URL } from '../../url-import/urls';
+import { forgetUrlImportJob, readStoredUrlImportJob } from '../../kakuyomu/storage';
+import { loadTextPosition, saveTextPosition, type TextBookIdentity } from '../text-position';
 
 
 const CAPABILITIES = readerCapabilities(import.meta.env.VITE_RSVP_PROFILE);
 const LocalGeneration = import.meta.env.VITE_RSVP_PROFILE === 'local' ? lazy(() => import('../../generation-ui/GenerationApp').then(module => ({ default: module.GenerationApp }))) : null;
+const UrlImport = import.meta.env.VITE_RSVP_PROFILE === 'local' ? lazy(() => import('../../url-import-ui/UrlImport').then(module => ({ default: module.UrlImport }))) : null;
 
 const HomeContinueReading = lazy(() => import('./HomeContinueReading'));
 
 const SAMPLE = '# 朝の図書館\n\n静かな朝、私は<ruby>図書館<rt>としょかん</rt></ruby>へ向かった。窓辺で一冊の本を開く。\n\n今日は2026年10月5日。温かいお茶は1,200円でした。👩‍💻が書いたが、まだ終わっていない文章もある。\n\n急がず、ひとつずつ。分からないところでは立ち止まり、原文を読み返そう。';
 
-export function ReaderApp() {
+export function ReaderApp({ initialDocument, bookNavigation, textBook }: { initialDocument?: ReadingDocument; bookNavigation?: BookNavigation; textBook?: TextBookIdentity } = {}) {
   const { entryKey } = useAppNavigation();
-  return <ReadingSessionApp key={entryKey} />;
+  return <ReadingSessionApp key={entryKey} initialDocument={initialDocument} bookNavigation={bookNavigation} textBook={textBook} />;
 }
 
-function ReadingSessionApp() {
+function ReadingSessionApp({ initialDocument, bookNavigation, textBook }: { initialDocument?: ReadingDocument; bookNavigation?: BookNavigation; textBook?: TextBookIdentity }) {
   const navigation = useAppNavigation();
-  const [initialSession] = useState(() => navigation.store.sessions.get(navigation.entryKey));
+  const [initialSession] = useState<ReadingSession | undefined>(() => navigation.store.sessions.get(navigation.entryKey) ?? (initialDocument ? {
+    draft: { title: initialDocument.title, text: initialDocument.format === 'md' || initialDocument.format === 'txt' ? initialDocument.rawText : initialDocument.blocks.map(block => block.text).join('\n\n'), format: initialDocument.format === 'md' ? 'md' : 'auto', audioEnabled: false, document: initialDocument },
+    reading: { document: initialDocument, index: 0, sourceOpen: false },
+  } : undefined));
   const [initialDraft] = useState<ReadingDraft>(() => initialSession?.draft ?? navigation.store.draft ?? { ...initialReadingDraft(import.meta.env.VITE_RSVP_PROFILE, typeof window === 'undefined' ? undefined : window.history.state), audioEnabled: false });
   const [controller] = useState(() => {
     const controller = new PlaybackController(DEFAULT_SETTINGS);
     if (initialSession?.reading) {
       controller.load(initialSession.reading.document.units, initialSession.reading.index);
       if (initialSession.reading.anchor) controller.seekSource(initialSession.reading.anchor);
+      else if (textBook) {
+        const anchor = loadTextPosition(textBook, initialSession.reading.document);
+        if (anchor) controller.seekSource(anchor);
+      }
     }
     return controller;
   });
@@ -76,6 +90,10 @@ function ReadingSessionApp() {
   const [draftPdfData, setDraftPdfData] = useState<ArrayBuffer | undefined>(initialDraft.pdfData);
   const [input, setInput] = useState(() => initialDraft.text);
   const [format, setFormat] = useState<InputFormat>(() => initialDraft.format);
+  const [urlInput, setUrlInput] = useState(() => initialDraft.url ?? '');
+  const [urlError, setUrlError] = useState('');
+  const [urlImport, setUrlImport] = useState<string>();
+  const restoredUrlImport = useRef(false);
   const draftEdited = useRef(Boolean(initialSession || navigation.store.draft));
   const historyDraft = useRef({ title, text: input, format });
   historyDraft.current = { title, text: input, format };
@@ -100,6 +118,24 @@ function ReadingSessionApp() {
   const [error, setError] = useState('');
   const [fallbackRaw, setFallbackRaw] = useState('');
   const [notice, setNotice] = useState('');
+  useEffect(() => {
+    if (!textBook || !document) return;
+    let warned = false;
+    const persist = () => {
+      const anchor = controller.getSourcePosition();
+      if (anchor && !saveTextPosition(textBook, document, anchor) && !warned) {
+        warned = true; setNotice('このブラウザに読書位置を保存できません。ブラウザの保存設定と空き容量を確認してください。');
+      }
+    };
+    const unsubscribe = controller.subscribe(persist);
+    window.addEventListener('pagehide', persist);
+    globalThis.document.addEventListener('visibilitychange', persist);
+    return () => {
+      persist(); unsubscribe();
+      window.removeEventListener('pagehide', persist);
+      globalThis.document.removeEventListener('visibilitychange', persist);
+    };
+  }, [controller, document, textBook?.id, textBook?.revision]);
   const [saved, setSaved] = useState<SavedReading>();
   const [saving, setSaving] = useState(false);
   const storageBusy = useRef(false);
@@ -110,9 +146,9 @@ function ReadingSessionApp() {
   const sentenceIndex = sentenceIndexAt(sentences, playback.index);
   const pauseReading = useCallback(() => controller.pause(), [controller]);
   const fullscreen = useFullscreenReader(pauseReading);
-  const session = useRef<ReadingSession>({ draft: { title, text: input, format, audioEnabled } });
+  const session = useRef<ReadingSession>({ draft: { title, text: input, url: urlInput, format, audioEnabled } });
   session.current = {
-    draft: { title, text: input, format, audioEnabled, document: generationDocument, pdfData: draftPdfData },
+    draft: { title, text: input, url: urlInput, format, audioEnabled, document: generationDocument, pdfData: draftPdfData },
     reading: document ? { document, pdfData, index: playback.index, anchor: controller.getSourcePosition(), sourceOpen } : undefined,
   };
   useBeforeAppNavigation(entryKey => {
@@ -154,7 +190,13 @@ function ReadingSessionApp() {
 
   useEffect(() => {
     let active = true;
-    void loadReading().then(value => { if (active) setSaved(value); }).catch(e => {
+    void loadReading().then(value => {
+      if (active) {
+        setSaved(value);
+        if (initialDocument && value?.document.contentHash === initialDocument.contentHash && !navigation.store.sessions.has(navigation.entryKey)
+          && (!textBook || !loadTextPosition(textBook, initialDocument))) controller.seekSource(value.anchor);
+      }
+    }).catch(e => {
       if (active) setNotice(`保存したデータを開けませんでした。${message(e)}「保存を削除」で消去できます。`);
     });
     const stop = () => controller.pause();
@@ -175,6 +217,16 @@ function ReadingSessionApp() {
       window.removeEventListener('resize', stop);
     };
   }, [controller, preserveHistoryDraft]);
+
+  useEffect(() => {
+    if (import.meta.env.VITE_RSVP_PROFILE !== 'local' || restoredUrlImport.current) return;
+    restoredUrlImport.current = true;
+    const saved = readStoredUrlImportJob();
+    if (!saved) return;
+    if (urlInput.trim() && kakuyomuWorkUrlInput(urlInput) !== saved.url) return;
+    setUrlInput(saved.url);
+    setUrlImport(saved.url);
+  }, []);
 
   const update = useCallback((patch: Partial<ReaderSettings>) => {
     if (patch.cpm !== undefined) setCpmInput(String(patch.cpm));
@@ -332,7 +384,24 @@ function ReadingSessionApp() {
   const completed = playback.status === 'completed';
   const count = completed ? document?.totalCharacters ?? 0 : current?.cumulativeCharacters ?? 0;
 
-  function changeDraft() { draftEdited.current = true; setGenerationDocument(undefined); setDraftPdfData(undefined); setDraftRevision(value => value + 1); }
+  function changeDraft() {
+    draftEdited.current = true;
+    setGenerationDocument(undefined); setDraftPdfData(undefined); setDraftRevision(value => value + 1);
+  }
+  function changeUrl(value: string) {
+    draftEdited.current = true;
+    setUrlInput(value); setUrlError(''); setUrlImport(undefined);
+    forgetUrlImportJob();
+  }
+  function importUrl() {
+    const source = supportedUrlInput(urlInput);
+    if (!source) {
+      setUrlError(urlInput.trim() ? UNSUPPORTED_URL : '読み込むURLを入力してください。');
+      return;
+    }
+    controller.pause();
+    setUrlError(''); setUrlInput(source.url); setUrlImport(source.url);
+  }
   const draftDisabled = loading || audioBusy;
   const onGenerationBusy = useCallback((value: boolean) => setAudioBusy(value), []);
   const manuscriptFields = <>
@@ -346,15 +415,23 @@ function ReadingSessionApp() {
     {import.meta.env.VITE_RSVP_PROFILE === 'pages' && input === PAGES_DEMO.text && <p className="input-note">デモ文：夏目漱石『吾輩は猫である』冒頭（<a href={PAGES_DEMO.sourceUrl} target="_blank" rel="noreferrer">青空文庫</a>）。そのまま読み始めるか、自分の文章に書き換えられます。</p>}
     {generationDocument && <details className="home-manuscript-preview"><summary>取り込んだ本文を確認 · {generationDocument.title} · {generationDocument.totalCharacters.toLocaleString()}字</summary><pre>{generationDocument.blocks.map(block => block.text).join('\n\n')}</pre>{generationDocument.warnings.map((warning, i) => <p className="muted" key={i}>{warning}</p>)}</details>}
   </>;
+  const urlFields = UrlImport && <>
+    <div className="divider"><span>または、URLから読み込む</span></div>
+    <TextInput label="URL" type="url" description={SUPPORTED_URLS} placeholder="https://…" value={urlInput} onChange={event => changeUrl(event.currentTarget.value)} error={urlError || undefined} disabled={draftDisabled} maxLength={2048} spellCheck={false} />
+    <div className="home-generation-actions"><Button variant="light" onClick={importUrl} disabled={draftDisabled || !urlInput.trim()}>URLから読み込む</Button></div>
+    {urlImport && <Suspense fallback={<div className="loading-card">URLを読み込んでいます…</div>}><UrlImport key={urlImport} url={urlImport} onRead={document => openReading(document)} /></Suspense>}
+  </>;
   const sampleActions = <section className="home-samples" aria-label="サンプルで試す"><h2>サンプルで試す</h2>
     <AudioDemo disabled={draftDisabled} />
     <article className="home-sample-item" aria-label="短い黙読サンプル"><span className="sample-glyph" aria-hidden="true">Aa</span><div className="sample-copy"><h3>短く試す</h3><p>朝の図書館</p><p className="sample-meta">短い文章 · 音声なし</p></div><Button variant="light" onClick={() => { setInput(SAMPLE); setFormat('auto'); setTitle('朝の図書館'); changeDraft(); void importInput(undefined, SAMPLE); }} disabled={draftDisabled}>テキストで読む</Button></article>
     <article className="home-sample-item" aria-label="全文の黙読サンプル"><span className="sample-glyph" aria-hidden="true">▤</span><div className="sample-copy"><h3>全文を読む</h3><p>吾輩は猫である</p><p className="sample-meta">全11章 · ルビ付き · 音声なし</p></div><Button variant="light" disabled={draftDisabled} onClick={() => void importInput(undefined, undefined, true)}>全文で読む</Button></article>
   </section>;
   const importPanel = <>
-    {LocalGeneration ? <Suspense fallback={<div className="loading-card">入力フォームを準備しています…</div>}><LocalGeneration home={{ input: manuscriptFields, rawText: input, inputFormat: format, document: generationDocument, revision: draftRevision, enabled: audioEnabled, onToggle: setAudioEnabled, prepareDocument: () => importInput(undefined, undefined, false, true), onRead: () => { void importInput(); }, textBusy: loading, onBusyChange: onGenerationBusy }} /></Suspense> : <div className="home-composer">{manuscriptFields}<EnvironmentAvailability /><div className="home-generation-actions"><Button disabled={draftDisabled} onClick={() => void importInput()}>テキストのみ生成して読む</Button></div><p className="home-action-note">本文を外へ送りません。</p></div>}
-    {sampleActions}
-    <p className="input-note import-scope">横書き1段のテキスト層付きPDF・青空文庫HTMLに対応。OCR・縦書き・段組PDFの自動復元には対応していません。</p>
+    {LocalGeneration
+      ? <Suspense fallback={<div className="loading-card">入力フォームを準備しています…</div>}><LocalGeneration home={{ input: manuscriptFields, additionalInput: urlFields, rawText: input, inputFormat: format, document: generationDocument, revision: draftRevision, enabled: audioEnabled, onToggle: setAudioEnabled, prepareDocument: () => importInput(undefined, undefined, false, true), onRead: () => { void importInput(); }, textBusy: loading, onBusyChange: onGenerationBusy }} /></Suspense>
+      : <div className="home-composer">{manuscriptFields}<EnvironmentAvailability /><div className="home-generation-actions"><Button disabled={draftDisabled} onClick={() => void importInput()}>テキストのみ生成して読む</Button></div><p className="home-action-note">本文を外へ送りません。</p></div>}
+    {!urlImport && sampleActions}
+    {!urlImport && <p className="input-note import-scope">横書き1段のテキスト層付きPDF・青空文庫HTMLに対応。OCR・縦書き・段組PDFの自動復元には対応していません。</p>}
   </>;
 
   return <div style={font.style} className={`app-shell ${document ? 'is-reading' : 'home-shell'}`}>
@@ -363,6 +440,7 @@ function ReadingSessionApp() {
       <Button component="a" href={`${import.meta.env.BASE_URL}${CAPABILITIES.audioRoute}`} variant="light" size="sm">{CAPABILITIES.localGeneration ? 'このPCの本棚' : '本棚'}</Button>
       {!document && <Button variant="subtle" size="sm" onClick={() => { controller.pause(); setHelpOpen(true); }}>使い方</Button>}</div></header>
     <main className={document ? 'reading-main' : 'welcome-main'}>
+      {document && !fullscreen.active && bookNavigation && <BookNavigationBar {...bookNavigation} onNavigate={pauseReading} />}
       {!document && <div className="welcome-intro"><h1><span>ひとつずつ、</span><wbr /><span>一定のペースで。</span></h1><p>{LocalGeneration ? '文章を入れて、テキストだけでも、音声と一緒でも。' : '文章を入れて、自分のペースで読みはじめる。'}</p></div>}
       <div className={document ? 'document-content' : 'welcome-content'}>
         {error && !importOpen && <Alert color="red" title="読み込めませんでした" role="alert" mb="md">{error}</Alert>}
@@ -427,7 +505,7 @@ function ReadingSessionApp() {
       {document?.provenance && <section className="settings-section"><h2>作品情報</h2><AozoraInfo value={document.provenance} /></section>}
       <section className="settings-section"><h2>ページURLを共有</h2><ShareLink title={document?.title ?? 'リーダー'} /></section>
     </div></Drawer>
-    <Drawer className="reader-drawer" opened={helpOpen} onClose={() => setHelpOpen(false)} title="使い方" position="right" size="md" closeButtonProps={{'aria-label':'閉じる'}}><p className="muted">文章を貼り付けるかファイルを選び、「テキストのみ生成して読む」で読みはじめます。</p>{LocalGeneration && <p className="muted">「音声も生成する」をオンにすると、声・読み・生成する文を選べます。無料VOICEVOXはこのPCのEngineを使用します。有料Geminiは本文をGoogleに送信するため、送信内容と概算費用を確認してから開始します。</p>}<p className="muted">貼り付け形式は自動判定です。「変更」でテキスト・Markdownを指定できます。フォーム下の3つのサンプルは、音声付き冒頭・短い黙読・全文11章から直接開けます。</p>{!LocalGeneration && <p className="muted">公開デモと個人用Workerは、端末内のテキスト取り込み・RSVP生成と準備済み音声の再生に対応します。Gemini・VOICEVOXの音声生成はローカルPC版限定です。</p>}<p className="muted">読書は一時停止や前後の移動ができ、原文も確認できます。急がず、自分のペースでどうぞ。</p></Drawer>
+    <Drawer className="reader-drawer" opened={helpOpen} onClose={() => setHelpOpen(false)} title="使い方" position="right" size="md" closeButtonProps={{'aria-label':'閉じる'}}><p className="muted">文章を貼り付けるかファイルを選び、「テキストのみ生成して読む」で読みはじめます。</p>{LocalGeneration && <p className="muted">URL欄はカクヨムの作品トップURLに対応しています。「URLから読み込む」から章・節を選べます。</p>}{LocalGeneration && <p className="muted">「音声も生成する」をオンにすると、声・読み・生成する文を選べます。無料VOICEVOXはこのPCのEngineを使用します。有料Geminiは本文をGoogleに送信するため、送信内容と概算費用を確認してから開始します。</p>}<p className="muted">貼り付け形式は自動判定です。「変更」でテキスト・Markdownを指定できます。フォーム下の3つのサンプルは、音声付き冒頭・短い黙読・全文11章から直接開けます。</p>{!LocalGeneration && <p className="muted">公開デモと個人用Workerは、端末内のテキスト取り込み・RSVP生成と準備済み音声の再生に対応します。Gemini・VOICEVOXの音声生成はローカルPC版限定です。</p>}<p className="muted">読書は一時停止や前後の移動ができ、原文も確認できます。急がず、自分のペースでどうぞ。</p></Drawer>
   </div>;
 }
 

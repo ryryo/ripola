@@ -9,6 +9,7 @@ declare module '@tanstack/react-router' {
 
 export interface ReadingDraft {
   title: string; text: string; format: InputFormat; audioEnabled: boolean;
+  url?: string;
   document?: ReadingDocument; pdfData?: ArrayBuffer;
 }
 export interface ReadingSession {

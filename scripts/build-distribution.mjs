@@ -3,6 +3,7 @@ import { spawn } from 'node:child_process';
 import { basename, dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { auditDistribution, contentHash, isInside, MAX_ASSET_BYTES, readLibraryFile, validatePublicPresentation } from './distribution-utils.mjs';
+import { tsImport } from 'tsx/esm/api';
 import { withDistributionOutput } from './distribution-transaction.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
@@ -28,7 +29,12 @@ async function copyStaging(stage, destination, profile, audience) {
     const manifest = JSON.parse(bytes.toString('utf8'));
     if (manifest.id !== book.id || manifest.revision !== book.revision || manifest.schemaVersion !== 1 || manifest.precision !== 'sentence'
       || !Array.isArray(manifest.chunks) || manifest.chunks.length !== manifest.totalChunks || manifest.completedChunks !== manifest.totalChunks) throw new Error('Staged manifest is incomplete.');
-    await validatePublicPresentation(manifest);
+    if ((manifest.kind ?? 'audio') !== (book.kind ?? 'audio')) throw new Error('Staged book kind mismatch.');
+    if (manifest.kind === 'text') {
+      const { requireTextBook } = await tsImport('../apps/web/src/distribution/library.ts', import.meta.url);
+      requireTextBook(manifest);
+      if (book.totalCharacters !== manifest.document.totalCharacters) throw new Error('Staged text character count mismatch.');
+    } else await validatePublicPresentation(manifest);
     referenced.add(book.manifestUrl);
     for (const chunk of manifest.chunks) {
       const extension = chunk.mimeType === 'audio/mp4' ? 'm4a' : chunk.mimeType === 'audio/mpeg' ? 'mp3' : undefined;

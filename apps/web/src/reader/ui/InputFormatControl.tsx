@@ -9,7 +9,7 @@ export function InputFormatControl({ text, value, sourceFormat, disabled, onChan
 }) {
   const [expanded, setExpanded] = useState(false);
   const detected = useMemo(() => sourceFormat ?? resolveInputFormat(text, value), [sourceFormat, text, value]);
-  const dedicated = detected === 'pdf' || detected === 'aozora';
+  const dedicated = detected === 'pdf' || detected === 'aozora' || detected === 'html';
   return <div className="input-format-control">
     <div className="input-format-result"><span role="status">形式：{value === 'auto' ? '自動判定' : '手動指定'} · {FORMAT_NAMES[detected]}</span>
       {!dedicated && <Button variant="subtle" size="sm" aria-expanded={expanded} disabled={disabled} onClick={() => setExpanded(previous => !previous)}>変更</Button>}

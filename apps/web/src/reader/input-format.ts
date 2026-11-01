@@ -1,7 +1,7 @@
 import type { ReadingDocument } from './model';
 
 export type InputFormat = 'auto' | 'md' | 'txt';
-export const FORMAT_NAMES: Record<ReadingDocument['format'], string> = { md: 'Markdown', txt: 'テキスト', pdf: 'PDF', aozora: '青空文庫HTML' };
+export const FORMAT_NAMES: Record<ReadingDocument['format'], string> = { md: 'Markdown', txt: 'テキスト', pdf: 'PDF', aozora: '青空文庫HTML', html: '記事HTML' };
 
 /** Conservative hints, not a grammar validator. A manual choice always wins. */
 export function detectTextFormat(text: string): 'md' | 'txt' {

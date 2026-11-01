@@ -1,6 +1,8 @@
 import { requireAudioPresentation, type AudioPresentationReport } from '../reader/audio-presentation';
 import type { AudioAlignmentCue, AudioTimelineEntry, AcousticTimingEstimate, VoicevoxTimingEvidence } from '../generation/contracts';
 import type { ReadingDocument, SourceRange, RubySpan } from '../reader/model';
+import { DEFAULT_SETTINGS } from '../reader/model';
+import { validateSavedReading } from '../reader/storage';
 
 export interface MediaTimingAnchor {
   sourceSeconds: number;
@@ -51,6 +53,8 @@ export interface PublicAudioChunk {
   timing: MediaTimingMeasurement & { durationDeltaSeconds: number; sourceAudioHash: string; sourcePcmHash: string; decodedPcmHash: string };
 }
 export interface PublicAudioBookManifest {
+  /** Omitted for existing audio books. Text books have no audio chunks or clock. */
+  kind?: 'text';
   presentation?: AudioPresentationReport;
   schemaVersion: 1;
   id: string;
@@ -67,6 +71,8 @@ export interface PublicAudioBookManifest {
   attribution: string;
 }
 export interface PublicBookEntry {
+  kind?: 'text';
+  totalCharacters?: number;
   id: string;
   revision: string;
   title: string;
@@ -163,7 +169,8 @@ export function parsePublicLibrary(value: unknown): PublicLibraryManifest {
     if (!validDistributionId(book.id) || !validDistributionId(book.revision) || typeof book.title !== 'string'
       || book.manifestUrl !== `library/books/${book.id}/${book.revision}/manifest.json`
       || !validContentHash(book.manifestSha256) || !Number.isSafeInteger(book.manifestBytes) || Number(book.manifestBytes) <= 0
-      || !Number.isFinite(book.durationSeconds) || Number(book.durationSeconds) <= 0 || book.precision !== 'sentence'
+      || !Number.isFinite(book.durationSeconds) || (book.kind === 'text' ? book.durationSeconds !== 0 || !Number.isSafeInteger(book.totalCharacters) || Number(book.totalCharacters) < 1 : Number(book.durationSeconds) <= 0)
+      || (book.kind !== undefined && book.kind !== 'text') || book.precision !== 'sentence'
       || typeof book.attribution !== 'string' || typeof book.publicDemo !== 'boolean' || ((data.target === 'pages' || data.audience === 'demo') && !book.publicDemo)) {
       throw new Error('配布bookの参照が正しくありません。');
     }
@@ -172,6 +179,7 @@ export function parsePublicLibrary(value: unknown): PublicLibraryManifest {
       ...(typeof book.updatedAt === 'string' && Number.isFinite(Date.parse(book.updatedAt)) ? { updatedAt: book.updatedAt } : {}),
       manifestSha256: book.manifestSha256, manifestBytes: Number(book.manifestBytes), durationSeconds: Number(book.durationSeconds),
       precision: 'sentence' as const, attribution: book.attribution, publicDemo: book.publicDemo,
+      ...(book.kind === 'text' ? { kind: 'text' as const, totalCharacters: Number(book.totalCharacters) } : {}),
     };
   });
   if (new Set(books.map(book => `${book.id}/${book.revision}`)).size !== books.length) throw new Error('配布bookが重複しています。');
@@ -192,6 +200,12 @@ export async function loadDistributedBook(entry: PublicBookEntry, baseUrl = '/',
   if (book.schemaVersion !== 1 || book.id !== entry.id || book.revision !== entry.revision || !Array.isArray(book.chunks) || !book.document || book.precision !== 'sentence') {
     throw new Error('配布manifestの形式が正しくありません。');
   }
+  if ((book.kind ?? 'audio') !== (entry.kind ?? 'audio') || book.title !== entry.title) throw new Error('配布bookの種類またはタイトルが一致しません。');
+  if (book.kind === 'text') {
+    requireTextBook(book);
+    if (book.document.totalCharacters !== entry.totalCharacters) throw new Error('配布本文の文字数が一致しません。');
+    return book;
+  }
   const presentation = requireAudioPresentation(book);
   return { ...book, presentation, chunks: book.chunks.map(chunk => {
     const extension = chunk.mimeType === 'audio/mp4' ? 'm4a' : chunk.mimeType === 'audio/mpeg' ? 'mp3' : undefined;
@@ -201,6 +215,18 @@ export async function loadDistributedBook(entry: PublicBookEntry, baseUrl = '/',
     }
     return { ...chunk, audioUrl: distributionAssetUrl(chunk.audioUrl, baseUrl) };
   }) };
+}
+
+/** Text distribution is explicit; an empty/broken audio book never becomes a text book. */
+export function requireTextBook(book: PublicAudioBookManifest): void {
+  if (book.kind !== 'text' || book.schemaVersion !== 1 || !validDistributionId(book.id) || !validContentHash(book.revision)
+    || typeof book.title !== 'string' || !book.title.trim() || book.document?.title !== book.title || book.document.contentHash !== book.revision
+    || !Array.isArray(book.chunks) || book.chunks.length !== 0 || book.completedChunks !== 0 || book.totalChunks !== 0
+    || book.durationSeconds !== 0 || book.precision !== 'sentence' || typeof book.attribution !== 'string' || !book.attribution.trim()
+    || !Array.isArray(book.warnings) || !book.warnings.every(warning => typeof warning === 'string')
+    || !book.document?.blocks.length || book.document.totalCharacters < 1) throw new Error('テキスト配布bookの形式が正しくありません。');
+  validateSavedReading({ schemaVersion: 1, document: book.document, settings: DEFAULT_SETTINGS, savedAt: book.updatedAt,
+    anchor: { blockId: book.document.blocks[0].id, offset: 0 } });
 }
 
 /** Keep inspection failures visible without reflecting fetched content or internal paths. */

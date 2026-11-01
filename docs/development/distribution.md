@@ -26,6 +26,8 @@ node --import tsx scripts/stage-library.ts --config <allowlist.json> --output <�
 
 allowlistは`target`（pages/worker）、ローカルの`libraryDir`、明示した`books`のid/revision・`rightsConfirmed: true`・帰属を持ちます。demo用途（省略時もdemo）ではWorkerを含め全冊`publicDemo: true`を要求します。個人用は`audience: "personal"`とtarget=workerを明示し、`pnpm build:worker --audience personal --staging ...`でdist/personal-workerへ準備します。用途を違えたstageの混入と既存出力の上書きを拒否します。権利確認のflagは利用許諾の取得やライセンス選択の代わりではありません。
 
+テキスト本だけを追加する場合は`pnpm stage:text`を使います。manifestをserializeした実byte数で25 MiB以下を事前確認し、専用の一時directoryで作成して最終監査後にatomicに確定します。失敗時は完成先directoryを残しません。同じid/revisionが既存catalogにある場合は保存済みmanifest bytesを再利用し、異なるbytesになろうとした場合は拒否します。`updatedAt`省略時は元ファイルのmtimeを使い、stage時刻は使いません。詳細は[カクヨムの公開作品をテキストで読む](../guides/web-novels.md)を参照してください。
+
 | 出力に含めるもの | 出力へ含めないもの |
 | --- | --- |
 | 選択した本の一覧、本文artifact、manifest、対応表、圧縮M4A | 元WAV、元PDF/MDファイル、全library、jobログ、env、key、認証JSON |

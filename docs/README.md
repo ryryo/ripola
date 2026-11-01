@@ -20,7 +20,7 @@ clone後、このリポジトリをCodexで開いて利用します。たとえ�
 ## 利用と開発の資料
 
 - [初期セットアップ](../.agents/skills/ripola-generate-audio/references/setup.md)・[設定](../.agents/skills/ripola-generate-audio/references/configuration.md)
-- [読書](guides/reading.md)・[青空文庫](guides/aozora-and-navigation.md)
+- [読書](guides/reading.md)・[青空文庫](guides/aozora-and-navigation.md)・[URLから作品を取り込む](guides/web-novels.md)・[取得元の規約とnote先行実装](research/web-source-policy.md)
 - [音声生成](../.agents/skills/ripola-generate-audio/references/audio-generation.md)・[GeminiとCloudflare](../.agents/skills/ripola-generate-audio/references/gemini-cloudflare.md)・[同期補正](../.agents/skills/ripola-generate-audio/references/forced-alignment.md)
 - [Irodoriの任意追加](../.agents/skills/ripola-generate-audio/references/irodori.md)・[Irodoriの実装境界](development/irodori.md)・[第三者条件](licenses/irodori.md)
 - [Cloudflare配布](guides/cloudflare-deployment.md)・[個人用Worker](../.agents/skills/ripola-publish-personal/references/personal-worker.md)

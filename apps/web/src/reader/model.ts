@@ -28,7 +28,7 @@ export interface TextBlock {
 export interface PdfPage { number: number; width: number; height: number }
 export interface DraftDocument {
   title: string;
-  format: 'txt' | 'md' | 'pdf' | 'aozora';
+  format: 'txt' | 'md' | 'pdf' | 'aozora' | 'html';
   rawText: string;
   blocks: TextBlock[];
   warnings: string[];
