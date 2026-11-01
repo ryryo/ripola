@@ -241,3 +241,22 @@ test('a personal catalog copied into client assets cannot pass the demo build au
   await writeFile(join(client,'library/index.json'),JSON.stringify({schemaVersion:1,target:'worker',audience:'personal',createdAt:'2026-10-07',books:[]}));
   await assert.rejects(buildDistribution({profile:'worker',client,output:join(root,'demo')}),/Personal library/);
 }));
+
+test('audio staging requires the full A plus B selection and refuses unsupported existing input', { skip: !ffmpegAvailable }, async () => temporary(async root => {
+  const library = await fixture(root), addedId = 'book-added';
+  const originalPath = join(library, 'books', `${bookId}_${revision}.json`);
+  const originalBytes = await readFile(originalPath);
+  const saved = JSON.parse(originalBytes.toString('utf8')) as AudioBookManifest;
+  const addedPath = join(library, 'books', `${addedId}_${revision}.json`);
+  await writeFile(addedPath, JSON.stringify({ ...saved, id: addedId, document: { ...saved.document, id: addedId } }));
+  const addedBytes = await readFile(addedPath);
+  const selected = allowlist(library, 'worker');
+  const config = { ...selected, audience: 'personal', books: [...selected.books, { ...selected.books[0], id: addedId }] };
+  await assert.rejects(stageLibrary({ ...config, existing: library, books: [config.books[1]] }, { output: join(root, 'rejected') }), /does not support existing/);
+  const stage = join(root, 'all-selected');
+  await stageLibrary(config, { output: stage });
+  const catalog = JSON.parse(await readFile(join(stage, 'library/index.json'), 'utf8')) as PublicLibraryManifest;
+  assert.deepEqual(catalog.books.map(book => book.id), [bookId, addedId]);
+  assert.deepEqual(await readFile(originalPath), originalBytes);
+  assert.deepEqual(await readFile(addedPath), addedBytes);
+}));
