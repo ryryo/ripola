@@ -1,18 +1,33 @@
 import { spawn } from 'node:child_process';
-import { readFile } from 'node:fs/promises';
+import { readFile, realpath, stat } from 'node:fs/promises';
 import { homedir } from 'node:os';
-import { join, resolve } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const script = fileURLToPath(import.meta.url);
 
-async function run(command, args, cwd = repository) {
-  await new Promise((accept, reject) => {
-    const child = spawn(command, args, { cwd, stdio: 'inherit', shell: false });
+async function run(command, args, cwd = repository, capture = false) {
+  return new Promise((accept, reject) => {
+    const child = spawn(command, args, { cwd, stdio: capture ? ['ignore', 'pipe', 'inherit'] : 'inherit', shell: false });
+    let output = '';
+    if (capture) child.stdout.on('data', value => { output += value; });
     child.on('error', reject);
-    child.on('exit', (code, signal) => code === 0 ? accept() : reject(new Error(`${command} failed (${signal ?? code}).`)));
+    child.on('close', (code, signal) => code === 0 ? accept(output) : reject(new Error(`${command} failed (${signal ?? code}).`)));
   });
+}
+
+async function storageDirectory(destination) {
+  let directory = resolve(destination);
+  for (;;) {
+    try {
+      if (!(await stat(directory)).isDirectory()) throw new Error('Storage destination must have a directory ancestor.');
+      return await realpath(directory);
+    } catch (error) {
+      if (error.code !== 'ENOENT' || dirname(directory) === directory) throw error;
+      directory = dirname(directory);
+    }
+  }
 }
 
 export function parsePreparation(args) {
@@ -31,18 +46,31 @@ export function parsePreparation(args) {
 async function main() {
   const args = process.argv.slice(2);
   const options = parsePreparation(args);
+  const config = JSON.parse(await readFile(options.config, 'utf8'));
+  if (options.kind === 'audio' && Object.hasOwn(config, 'existing')) throw new Error('Audio staging does not support existing. Include every retained and added book in books.');
+  if (!['pages', 'worker'].includes(config.target)) throw new Error('Allowlist requires target=pages|worker.');
   if (!options.scratch) {
     const guard = process.env.RIPOLA_STORAGE_GUARD ?? join(homedir(), '.codex/storage-maintenance/guard.py');
-    await run('python3', [guard, 'check', '--path', repository, '--needed-gib', String(options.needed)]);
+    let version;
+    try { version = await run('python3', [guard, 'version'], repository, true); }
+    catch (error) { throw new Error('Storage guard API v2 is required; version probe failed and preparation was not started.', { cause: error }); }
+    if (version.trim() !== '2') throw new Error('Storage guard API v2 is required; preparation was not started.');
+    // Candidates/previous live beside output; Vite and PDF assets can be on other filesystems.
+    const destinations = [repository, join(repository, config.audience === 'personal' ? 'dist' : 'dist/distribution')];
+    if (!options.client) destinations.push(join(repository, 'apps/web/dist', config.target), join(repository, 'apps/web/public/pdfjs'));
+    const checked = new Set();
+    for (const destination of destinations) {
+      const directory = await storageDirectory(destination);
+      if (checked.has(directory)) continue;
+      await run('python3', [guard, 'check', '--path', directory, '--needed-gib', String(options.needed)]);
+      checked.add(directory);
+    }
     // Only the owner created by guard may remove this stage. No persistent numbered copy.
-    await run('python3', [guard, 'scratch', '--', process.execPath, script, ...args, '--scratch', '{scratch}']);
+    await run('python3', [guard, 'scratch', '--needed-gib', String(options.needed), '--', process.execPath, script, ...args, '--scratch', '{scratch}']);
     return;
   }
   if (!process.env.WORKSPACE_SCRATCH || resolve(options.scratch) !== resolve(process.env.WORKSPACE_SCRATCH)) throw new Error('Scratch must be allocated by the storage guard.');
   const stage = join(resolve(options.scratch), 'stage');
-  const config = JSON.parse(await readFile(options.config, 'utf8'));
-  if (options.kind === 'audio' && Object.hasOwn(config, 'existing')) throw new Error('Audio staging does not support existing. Include every retained and added book in books.');
-  if (!['pages', 'worker'].includes(config.target)) throw new Error('Allowlist requires target=pages|worker.');
   await run(process.execPath, ['--import', 'tsx', `scripts/stage-${options.kind === 'text' ? 'text-' : ''}library.ts`, '--config', options.config, '--output', stage]);
   const buildArgs = ['scripts/build-distribution.mjs', '--profile', config.target, '--audience', config.audience ?? 'demo', '--staging', stage];
   if (options.client) buildArgs.push('--client', options.client);

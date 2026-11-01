@@ -17,7 +17,9 @@ node scripts/prepare-distribution.mjs --config staging-private/allowlist.json
 
 テキストstage CLIを含む版では、テキスト本の追加に `--kind text` を付けます。この容量対策commitには別作業の `stage-text-library.ts` を含めず、対応版の導入までは利用できません。`existing` が既存catalogを含む配布物、`books` が追加対象となるのは、このテキストstageの契約です。既存clientでビルドを省く小規模検証には `--client /absolute/path/to/client` を指定できます。
 
-`--needed-gib` はstage・変換作業中音声・候補配布物・client buildを含む追加容量の見積もりです。省略時は2 GiB、必要量が大きければ増やします。guardの場所を変える場合だけ `RIPOLA_STORAGE_GUARD` へ指定します。検証の標準出力や必要な小さい記録はscratchの外へ保存してください。scratchは調査結果の永続保存先ではありません。
+`--needed-gib` はstage・変換作業中音声・候補配布物・client buildを含む追加容量の見積もりです。省略時は2 GiB、必要量が大きければ増やします。入口は共通guard API v2（`version` が `2`）を必須とし、旧版・確認不能ならstageやbuildの前に停止します。同じ見積もりを `scratch --needed-gib N -- ...` に渡し、guardが実際のstage保存先のfilesystemを確認します。repoに加えて候補配布物の親、build時のclient・PDF資材保存先も、最も近い既存directoryの実pathで確認します。新しいdirectoryはその親のfilesystemを使う前提です。指定済み `--client` は読取り専用なので、その入力先に追加容量を要求しません。見積もりは各書込み先で全体ピーク分を保守的に確認する値であり、空き容量の予約・並行消費の防止・製品ピークの自動測定ではありません。確認後のmount/symlink変更や、書込み先を変える未承認のbuild設定までは保証しません。
+
+guardの場所を変える場合だけ `RIPOLA_STORAGE_GUARD` へ指定します。検証の標準出力や必要な小さい記録はscratchの外へ保存してください。scratchは調査結果の永続保存先ではありません。
 
 ## 置換・中断・同時実行
 
@@ -32,6 +34,7 @@ CLIでViteを実行する間もprofileごとに排他にします。直子の失
 ```sh
 node --experimental-vm-modules --test scripts/distribution-storage-memory.test.mjs
 python3 ~/.codex/storage-maintenance/guard.py scratch -- node --test scripts/distribution-storage.test.mjs
+python3 ~/.codex/storage-maintenance/guard.py scratch --needed-gib 0.01 -- node --test scripts/preparation-storage.test.mjs
 python3 ~/.codex/storage-maintenance/guard.py scratch -- env TMPDIR={scratch} node --import tsx --test apps/web/tests/distribution.test.ts
 ```
 
