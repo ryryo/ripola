@@ -6,6 +6,8 @@
 
 公開OSSデモは掲載許可済みサンプルだけ、個人用Workerは本人のCloudflareアカウントへ選択した私用本文・音声・同期用対応表を配布します。どちらも端末内テキスト取り込み・RSVP生成と音声再生を使い、サーバー音声生成は無効です。[個人用Workerの実行手順](../../.agents/skills/ripola-publish-personal/references/personal-worker.md)で入力・manifest・Git外保存・出力・設定の分離を説明します。
 
+通常配布の固定出力・一時stage・中断復旧・検証データの回収は[保存期間の手順](distribution-storage.md)に従います。日付付きの配布コピーを更新ごとに残しません。
+
 ## 生成と配布を分ける
 
 同じPCのローカルサーバーでTTS・保存・対応表・圧縮を済ませ、配布側は完成assetを読むだけです。Workerにはローカル生成route/API・TTS secretを含めません。Static Assetsはdeploy時にuploadする読み取り用資材で、Workerの[filesystem](https://developers.cloudflare.com/workers/runtime-apis/nodejs/fs/)は生成正本の永続保存先ではありません。本の追加・更新・削除は再build/deployで反映します。
@@ -109,7 +111,7 @@ QRは確認済みの通常HTTPS URLをブラウザ内で生成し、外部QRサ�
 
 設定は配布rootの外に置き、今回だけ`workers_dev: true`、`preview_urls: false`を明示しました。生成された一般設定案の`workers_dev: false`は個人配布の既定として維持します。公開サンプルにはAccessを設定していません。`assets.directory`は検査済みの静的出力、`html_handling`は`auto-trailing-slash`、`not_found_handling`は`none`を使います。`/`と`/books/`の実HTMLを配り、任意のmissing assetや生成APIへHTMLを返すSPA fallbackを使わない構成です。音声Rangeだけを補う[専用Worker script](../../scripts/public-audio-worker.mjs)を追加しました。永続storage・provider secret・生成APIは追加しません。
 
-更新時は公開権利とbook/revisionを確認し、専用allowlistからstage、新しいdirectoryへworker build、配布監査、`wrangler deploy --config deployment/public-preview.wrangler.jsonc --assets <検査済みの公開出力>`の順で反映します。アカウントを確認し、同名の別サービスを上書きしません。ビルドとdeployはTTSを呼びません。[localとの分担・将来の保存と同期](local-cloud.md)に現在の一方向配布と追加案をまとめます。
+更新時は公開権利とbook/revisionを確認し、専用allowlistから一時stage、固定既定先へworker build、配布監査、`wrangler deploy --config deployment/public-preview.wrangler.jsonc --assets <検査済みの公開出力>`の順で反映します。アカウントを確認し、同名の別サービスを上書きしません。ビルドとdeployはTTSを呼びません。[localとの分担・将来の保存と同期](local-cloud.md)に現在の一方向配布と追加案をまとめます。
 
 ### 公開音声のRange補助
 

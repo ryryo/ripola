@@ -1,8 +1,9 @@
-import { cp, lstat, mkdir, mkdtemp, readFile, readdir, realpath, rename, rm, writeFile } from 'node:fs/promises';
+import { cp, lstat, mkdir, readFile, readdir, realpath, writeFile } from 'node:fs/promises';
 import { spawn } from 'node:child_process';
 import { basename, dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { auditDistribution, contentHash, isInside, MAX_ASSET_BYTES, readLibraryFile, validatePublicPresentation } from './distribution-utils.mjs';
+import { withDistributionOutput } from './distribution-transaction.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 function validId(value) { return typeof value === 'string' && /^[a-zA-Z0-9][a-zA-Z0-9_-]{0,127}$/.test(value); }
@@ -66,17 +67,16 @@ export async function buildDistribution(options) {
   if (profile === 'pages' && !shell.includes('/ripola/assets/')) throw new Error('Pages build must use the /ripola/ Vite base.');
   if (profile === 'worker' && shell.includes('/ripola/assets/')) throw new Error('Worker build must use the root Vite base.');
   await mkdir(dirname(output), { recursive: true });
-  let existing = false;
-  try {
-    const info = await lstat(output);
-    if (!options.replaceExisting || !info.isDirectory() || info.isSymbolicLink()) throw new Error('Distribution output already exists. Choose a new directory; previous builds are preserved.');
-    const previous = JSON.parse(await readFile(join(output, 'distribution.json'), 'utf8'));
-    if (previous.schemaVersion !== 1 || previous.profile !== profile || previous.localGenerationApi !== false || (previous.audience ?? 'demo') !== audience) throw new Error('Only a previous managed distribution build may be replaced.');
-    existing = true;
-  } catch (error) { if (error.code !== 'ENOENT') throw error; }
-  const temporary = await mkdtemp(join(dirname(output), '.rsvp-distribution-'));
-  let backup;
-  try {
+  return withDistributionOutput(output, async ({ temporary, commit }) => {
+    let existingInfo;
+    try { existingInfo = await lstat(output); }
+    catch (error) { if (error.code !== 'ENOENT') throw error; }
+    const existing = Boolean(existingInfo);
+    if (existing) {
+      if (!options.replaceExisting || !existingInfo.isDirectory() || existingInfo.isSymbolicLink()) throw new Error('Distribution output already exists. Use the default output to replace a managed build; explicit outputs must be new.');
+      const previous = JSON.parse(await readFile(join(output, 'distribution.json'), 'utf8'));
+      if (previous.schemaVersion !== 1 || previous.profile !== profile || previous.localGenerationApi !== false || (previous.audience ?? 'demo') !== audience) throw new Error('Only a previous managed distribution build may be replaced.');
+    }
     for (const name of await readdir(client)) await cp(join(client, name), join(temporary, name), { recursive: true, errorOnExist: true, force: false });
     // Vite's package license collector does not include a vendored source file.
     // Ship the full copyright and MIT permission notice even if minification drops its source comment.
@@ -108,23 +108,14 @@ export async function buildDistribution(options) {
     if (profile === 'worker') await writeFile(join(temporary, 'library/audio-sizes.json'), `${JSON.stringify(audioSizes)}\n`, { flag: 'wx' });
     await writeFile(join(temporary, 'distribution.json'), `${JSON.stringify({ schemaVersion: 1, profile, audience, base: expectedBase, generatedAt: new Date().toISOString(), localGenerationApi: false })}\n`, { flag: 'wx' });
     const report = await auditDistribution(temporary, { maxFiles: options.maxFiles, audience });
-    if (existing) {
-      backup = `${temporary}.previous`;
-      await rename(output, backup);
-    }
-    await rename(temporary, output);
-    if (backup) { await rm(backup, { recursive: true, force: true }); backup = undefined; }
+    await commit(existing);
     if (profile === 'worker') {
       // A preparation artifact outside the upload root; credentials and account-specific Access setup are omitted.
       await writeFile(`${output}.wrangler.jsonc`, `${JSON.stringify({ name: 'ripola', compatibility_date: '2026-10-06', workers_dev: false,
         assets: { directory: `./${basename(output)}`, not_found_handling: 'none' } }, null, 2)}\n`, { flag: 'wx' }).catch(error => { if (error.code !== 'EEXIST') throw error; });
     }
     return { output, profile, audience, fileCount: report.fileCount, totalBytes: report.totalBytes, localGenerationApi: false };
-  } catch (error) {
-    await rm(temporary, { recursive: true, force: true });
-    if (backup) await rename(backup, output);
-    throw error;
-  }
+  });
 }
 
 async function main() {
@@ -136,18 +127,23 @@ async function main() {
   }
   const profile = flags.get('--profile');
   if (!['pages', 'worker'].includes(profile)) throw new Error('Only pages and worker distribution profiles are allowed.');
-  if (!flags.has('--client')) {
-    for (const [command, args] of [[process.execPath, ['scripts/prepare-pdf-assets.mjs']], ['pnpm', ['--filter', '@ripola/web', 'build']]]) {
-      await new Promise((resolve, reject) => {
-        const child = spawn(command, args, { cwd: repository, env: { ...process.env, VITE_RSVP_PROFILE: profile }, stdio: 'inherit', shell: false });
-        child.on('error', reject);
-        child.on('exit', code => code === 0 ? resolve() : reject(new Error(`Public ${profile} build failed.`)));
-      });
+  const prepare = async () => {
+    if (!flags.has('--client')) {
+      for (const [command, args] of [[process.execPath, ['scripts/prepare-pdf-assets.mjs']], ['pnpm', ['--filter', '@ripola/web', 'build']]]) {
+        await new Promise((resolve, reject) => {
+          const child = spawn(command, args, { cwd: repository, env: { ...process.env, VITE_RSVP_PROFILE: profile }, stdio: 'inherit', shell: false });
+          child.on('error', reject);
+          child.on('exit', code => code === 0 ? resolve() : reject(new Error(`Public ${profile} build failed.`)));
+        });
+      }
     }
-  }
-  const report = await buildDistribution({ profile, audience: flags.get('--audience'), staging: flags.get('--staging'), output: flags.get('--output'), client: flags.get('--client'), replaceExisting: !flags.has('--output'),
-    ...(flags.has('--max-files') ? { maxFiles: Number(flags.get('--max-files')) } : {}) });
-  console.log(JSON.stringify({ ...report, note: 'Prepared static assets only. Review access controls before deployment; nothing was deployed.' }));
+    const report = await buildDistribution({ profile, audience: flags.get('--audience'), staging: flags.get('--staging'), output: flags.get('--output'), client: flags.get('--client'), replaceExisting: !flags.has('--output'),
+      ...(flags.has('--max-files') ? { maxFiles: Number(flags.get('--max-files')) } : {}) });
+    console.log(JSON.stringify({ ...report, note: 'Prepared static assets only. Review access controls before deployment; nothing was deployed.' }));
+  };
+  // Vite mutates a shared profile client tree before the final output lock is acquired.
+  if (flags.has('--client')) await prepare();
+  else await withDistributionOutput(join(repository, 'dist', `.client-${profile}`), prepare, { recoverable: false });
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
   main().catch(error => { console.error(error instanceof Error ? error.message : 'Distribution build failed.'); process.exitCode = 1; });

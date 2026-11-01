@@ -54,8 +54,8 @@ stage/buildのcatalogはallowlistで選択した蔵書全体です。新しい�
 新規生成で検証済みの圧縮音声はそのまま配布します。旧WAVだけの音声はffmpeg/ffprobeでAACへ変換します。TTSは呼び直しません。
 
 ```sh
-pnpm run stage --config staging-private/allowlist.json --output staging-private/release-001
-pnpm build:worker --audience personal --staging staging-private/release-001
+python3 ~/.codex/storage-maintenance/guard.py check --path "$PWD" --needed-gib 2
+node scripts/prepare-distribution.mjs --config staging-private/allowlist.json
 pnpm audit:audio --distribution dist/personal-worker
 ```
 
@@ -67,7 +67,7 @@ if [ ! -e deployment/personal.wrangler.jsonc ]; then
 fi
 ```
 
-stageは新しいdirectoryを指定します。個人用の出力は公開デモ出力とは別です。設定のnameを自分の一意なWorker名にし、既存Wranglerログインのアカウントが本人の配布先であることを確認します。公開プレビュー用の設定やWorker名を流用しません。既存ログインを使える場合、新しいtokenやenv項目は不要です。
+このMacでは[保存期間の手順](../../../../docs/development/distribution-storage.md)に従い、stageはguardのscratch内へ作って終了後に回収します。通常buildは固定のdist/personal-workerを再利用し、連番stageや日付付きの全体コピーを積み増しません。guardがない環境では所有範囲の明確な一時領域を用意し、既存stage CLIと既定outputのbuildを使います。個人用の出力は公開デモ出力とは別です。設定のnameを自分の一意なWorker名にし、既存Wranglerログインのアカウントが本人の配布先であることを確認します。公開プレビュー用の設定やWorker名を流用しません。既存ログインを使える場合、新しいtokenやenv項目は不要です。
 
 準備だけなら次のdry-runで確認できます。
 
