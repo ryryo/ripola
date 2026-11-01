@@ -94,6 +94,26 @@ test('CLI compile failure with a surviving grandchild blocks the next build', ()
   }
 }));
 
+test('CLI audit failure after successful compile releases the client lock for retry', () => fixture(async root => {
+  const repo = join(root, 'repo'); await mkdir(join(repo, 'scripts'), { recursive: true }); await mkdir(join(root, 'bin'));
+  for (const name of ['build-distribution.mjs', 'distribution-transaction.mjs']) await copyFile(new URL(name, import.meta.url), join(repo, 'scripts', name));
+  const lock = join(repo, 'dist/.rsvp-distribution-.client-worker.lock');
+  await writeFile(join(repo, 'scripts/distribution-utils.mjs'), `import {existsSync} from 'node:fs'; export const MAX_ASSET_BYTES=1; export function isInside(){return false}; export function contentHash(){}; export function auditDistribution(){if(!existsSync(${JSON.stringify(lock)}))throw new Error('client lock released before audit');throw new Error('fixture audit failure')}; export function readLibraryFile(){}; export function validatePublicPresentation(){};`);
+  await writeFile(join(repo, 'scripts/prepare-pdf-assets.mjs'), '');
+  const counter = join(root, 'compile-count'), pnpm = join(root, 'bin/pnpm');
+  await writeFile(pnpm, `#!/usr/bin/env node\nconst fs=require('node:fs');const p=${JSON.stringify(counter)};fs.writeFileSync(p,String((fs.existsSync(p)?Number(fs.readFileSync(p,'utf8')):0)+1));process.exit(0);`);
+  await chmod(pnpm, 0o700);
+  const adopted = join(repo, 'dist/distribution/worker'); await mkdir(adopted, { recursive: true }); await writeFile(join(adopted, 'asset'), 'adopted');
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const child = spawn(process.execPath, [join(repo, 'scripts/build-distribution.mjs'), '--profile', 'worker'], { cwd: repo, env: { ...process.env, PATH: `${join(root, 'bin')}:${process.env.PATH}` }, stdio: ['ignore', 'pipe', 'pipe'] });
+    let log = ''; child.stdout.on('data', value => { log += value; }); child.stderr.on('data', value => { log += value; });
+    const [code] = await once(child, 'close'); assert.equal(code, 1); assert.match(log, /fixture audit failure/);
+    await assert.rejects(access(lock), { code: 'ENOENT' });
+    assert.equal(await readFile(join(adopted, 'asset'), 'utf8'), 'adopted');
+  }
+  assert.equal(await readFile(counter, 'utf8'), '2');
+}));
+
 for (const phase of ['candidate', 'previous', 'adopted']) {
   test(`SIGKILL at ${phase} is recovered on retry without losing adopted data`, () => fixture(async root => {
     const output = join(root, 'worker'); await mkdir(output); await writeFile(join(output, 'asset'), 'original');

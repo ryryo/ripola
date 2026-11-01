@@ -127,23 +127,26 @@ async function main() {
   }
   const profile = flags.get('--profile');
   if (!['pages', 'worker'].includes(profile)) throw new Error('Only pages and worker distribution profiles are allowed.');
-  const prepare = async () => {
-    if (!flags.has('--client')) {
-      for (const [command, args] of [[process.execPath, ['scripts/prepare-pdf-assets.mjs']], ['pnpm', ['--filter', '@ripola/web', 'build']]]) {
-        await new Promise((resolve, reject) => {
-          const child = spawn(command, args, { cwd: repository, env: { ...process.env, VITE_RSVP_PROFILE: profile }, stdio: 'inherit', shell: false });
-          child.on('error', reject);
-          child.on('exit', code => code === 0 ? resolve() : reject(new Error(`Public ${profile} build failed.`)));
-        });
-      }
-    }
+  const postprocess = async () => {
     const report = await buildDistribution({ profile, audience: flags.get('--audience'), staging: flags.get('--staging'), output: flags.get('--output'), client: flags.get('--client'), replaceExisting: !flags.has('--output'),
       ...(flags.has('--max-files') ? { maxFiles: Number(flags.get('--max-files')) } : {}) });
     console.log(JSON.stringify({ ...report, note: 'Prepared static assets only. Review access controls before deployment; nothing was deployed.' }));
   };
-  // Vite mutates a shared profile client tree before the final output lock is acquired.
-  if (flags.has('--client')) await prepare();
-  else await withDistributionOutput(join(repository, 'dist', `.client-${profile}`), prepare, { recoverable: false });
+  if (flags.has('--client')) { await postprocess(); return; }
+  // Keep the client locked until postprocessing finishes reading it. Only an
+  // uncertain compiler failure must retain this workspace for inspection.
+  const result = await withDistributionOutput(join(repository, 'dist', `.client-${profile}`), async () => {
+    for (const [command, args] of [[process.execPath, ['scripts/prepare-pdf-assets.mjs']], ['pnpm', ['--filter', '@ripola/web', 'build']]]) {
+      await new Promise((resolve, reject) => {
+        const child = spawn(command, args, { cwd: repository, env: { ...process.env, VITE_RSVP_PROFILE: profile }, stdio: 'inherit', shell: false });
+        child.on('error', reject);
+        child.on('exit', code => code === 0 ? resolve() : reject(new Error(`Public ${profile} build failed.`)));
+      });
+    }
+    try { await postprocess(); return { ok: true }; }
+    catch (error) { return { ok: false, error }; }
+  }, { recoverable: false });
+  if (!result.ok) throw result.error;
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
   main().catch(error => { console.error(error instanceof Error ? error.message : 'Distribution build failed.'); process.exitCode = 1; });
