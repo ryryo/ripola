@@ -3622,5 +3622,61 @@
     "domains": [
       "layout"
     ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "creation-options.spec.ts",
+    "title": "テキスト本の位置は自動保存され再読込と別冊からの復帰でも本ごとに復元する",
+    "lane": "related",
+    "domains": [
+      "layout",
+      "distribution"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "creation-options.spec.ts",
+    "title": "テキスト本の位置は自動保存され再読込と別冊からの復帰でも本ごとに復元する",
+    "lane": "related",
+    "domains": [
+      "layout",
+      "distribution"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "creation-options.spec.ts",
+    "title": "本文とURLの入力欄は独立し、対応先とエラーを表示してBackでも両方を保持する",
+    "lane": "related",
+    "domains": [
+      "import"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "creation-options.spec.ts",
+    "title": "本文とURLの入力欄は独立し、対応先とエラーを表示してBackでも両方を保持する",
+    "lane": "related",
+    "domains": [
+      "import"
+    ]
+  },
+  {
+    "project": "desktop-chromium",
+    "file": "creation-options.spec.ts",
+    "title": "本文に貼ったURLはページを取得せず本文として読み、URL欄は空のままにする",
+    "lane": "related",
+    "domains": [
+      "import"
+    ]
+  },
+  {
+    "project": "mobile-chromium",
+    "file": "creation-options.spec.ts",
+    "title": "本文に貼ったURLはページを取得せず本文として読み、URL欄は空のままにする",
+    "lane": "related",
+    "domains": [
+      "import"
+    ]
   }
 ]
