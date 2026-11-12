@@ -1,6 +1,6 @@
 import { Button, CheckIcon, ColorSwatch, NativeSelect, Slider, Switch } from '@mantine/core';
 import { useId, type ReactNode } from 'react';
-import type { ReaderSettings } from '../model';
+import type { ReaderSettings, WritingMode } from '../model';
 import { resetDisplaySettings } from '../preferences';
 import { FontSelect, DisplayAmount, FontSize } from './ReadingOptions';
 import { ReadingModeControls } from './ReadingModeControls';
@@ -14,6 +14,23 @@ export function ReaderDisplayToolbar({ settings, onChange, onSettings }: {
     <ReadingModeControls mode={settings.mode} onChange={mode => onChange({ mode })} />
     <Button variant="subtle" onClick={onSettings}>表示設定</Button>
   </div>;
+}
+
+export function PhraseNavigation({ writingMode = 'horizontal-tb', canGoBack, canGoForward, onStep }: {
+  writingMode?: WritingMode; canGoBack: boolean; canGoForward: boolean; onStep: (direction: -1 | 1) => void;
+}) {
+  const vertical = writingMode === 'vertical-rl';
+  const arrow = (direction: -1 | 1, enabled: boolean) => {
+    const previous = direction === -1;
+    const label = previous ? '前のフレーズに戻る' : '次のフレーズに進む';
+    return <button type="button" className="phrase-step" aria-label={label} title={label} aria-keyshortcuts={previous ? 'ArrowLeft' : 'ArrowRight'}
+      disabled={!enabled} onClick={() => onStep(direction)}>
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d={previous !== vertical ? 'M15 6l-6 6 6 6' : 'M9 6l6 6-6 6'} />
+      </svg>
+    </button>;
+  };
+  return <div className="phrase-steps" data-writing-mode={writingMode}>{arrow(-1, canGoBack)}{arrow(1, canGoForward)}</div>;
 }
 
 export function ReaderTransport({ progress, previous, next, playing, playLabel, disabled, onToggle, speed, secondary }: {

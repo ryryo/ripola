@@ -104,10 +104,10 @@ export function ReaderPlayButton({ playing, disabled = false, label = '再生', 
   </button>;
 }
 
-export function FullscreenReader({ fullscreen, playing, children, seek, speed, modes, displayControls, readingControls, displaySettings, position, fullText = false, toggle, pause, disabled = false, playLabel = '再生', showProgress = true, multiline = false }: {
+export function FullscreenReader({ fullscreen, playing, children, seek, navigation, speed, modes, displayControls, readingControls, displaySettings, position, fullText = false, toggle, pause, disabled = false, playLabel = '再生', showProgress = true, multiline = false }: {
   fullscreen: ReturnType<typeof useFullscreenReader>; playing: boolean; children: ReactNode; seek: ReactNode; speed: ReactNode; modes: ReactNode; displayControls?: ReactNode;
   toggle: () => void; pause: () => void; disabled?: boolean; playLabel?: string; showProgress?: boolean; multiline?: boolean;
-  fullText?: boolean; readingControls?: ReactNode; displaySettings?: ReactNode; position?: ReactNode;
+  fullText?: boolean; navigation?: ReactNode; readingControls?: ReactNode; displaySettings?: ReactNode; position?: ReactNode;
 }) {
   const footerRef = useRef<HTMLDivElement>(null);
   const compact = useMediaQuery('(max-width: 600px), (max-width: 950px) and (max-height: 520px)');
@@ -153,6 +153,7 @@ export function FullscreenReader({ fullscreen, playing, children, seek, speed, m
     {fullscreen.active && <div className="fullscreen-mode-controls" hidden={playing}>{modes}</div>}
     {children}
     {fullscreen.active && <div ref={footerRef} className="fullscreen-footer">
+      {navigation}
       {!compact && !desktopReader && <div className="fullscreen-display-controls" hidden={playing} inert={playing}>{settings}</div>}
       <div className="fullscreen-seek" hidden={!showProgress} inert={!showProgress}>{desktopReader && <span className="fullscreen-position-value">{position}</span>}{seek}</div>
       <div className="fullscreen-actions">

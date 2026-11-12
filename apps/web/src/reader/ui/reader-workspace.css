@@ -82,6 +82,12 @@
 .fullscreen-reader[data-fullscreen='true'] .audio-stage[data-buffering='true'] .audio-playback-status { max-width: 100%; }
 .fullscreen-reader { --reader-document-height: clamp(460px, 74dvh, 840px); --reader-normal-chrome-height: 102px; }
 .fullscreen-reader .phrase-container { flex: 1 1 0; min-height: 0; }
+.phrase-steps { position: relative; z-index: 1; display: flex; justify-content: center; flex-shrink: 0; gap: 16px; background: var(--panel); }
+.phrase-steps[data-writing-mode='vertical-rl'] { flex-direction: row-reverse; }
+.phrase-step { display: grid; place-items: center; flex: none; width: 48px; height: 48px; padding: 0; border: 0; background: transparent; color: var(--muted); cursor: pointer; }
+.phrase-step:hover:not(:disabled) { color: var(--accent-ink); }
+.phrase-step:disabled { opacity: .4; cursor: default; }
+.phrase-step:focus-visible { outline-offset: -3px; }
 .audio-reader .fullscreen-reader[data-fullscreen='false'] .audio-stage:not(.guide-mode):not(.multiline-mode),
 .is-reading .fullscreen-reader[data-fullscreen='false'] .reader-stage:not(.guide-mode):not(.multiline-mode),
 .is-reading .fullscreen-reader[data-fullscreen='false'] .reader-stage:not(.guide-mode):not(.multiline-mode):has(.phrase:not(:empty)) { height: var(--reader-normal-stage-height, clamp(320px, 36dvh, 400px)); min-height: max(320px, calc(var(--reader-font-size, 56px) * 2.4 + 140px)); }

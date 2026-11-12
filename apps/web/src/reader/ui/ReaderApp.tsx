@@ -34,7 +34,7 @@ import { useScreenWakeLock } from './useScreenWakeLock';
 import { hasStoredPreferences } from '../preferences';
 import { resolveInputFormat, type InputFormat } from '../input-format';
 import { readerCapabilities } from '../environment';
-import { FullscreenReadingControls, ReaderDisplayControls, ReaderDisplaySettings, ReaderDisplayToolbar, ReaderTransport } from './ReaderWorkspace';
+import { FullscreenReadingControls, PhraseNavigation, ReaderDisplayControls, ReaderDisplaySettings, ReaderDisplayToolbar, ReaderTransport } from './ReaderWorkspace';
 import { useAppNavigation, useBeforeAppNavigation, type ReadingSession, type ReadingDraft } from '../../navigation/AppNavigation';
 import { initialReadingDraft, PAGES_DEMO } from '../pages-demo';
 import { BookNavigationBar } from './BookNavigationBar';
@@ -237,7 +237,9 @@ function ReadingSessionApp({ initialDocument, bookNavigation, textBook }: { init
 
   useEffect(() => {
     const key = (event: KeyboardEvent) => {
-      if (shortcutBlocked(event) || !document || loading || font.busy || importOpen || sourceOpen || settingsOpen || helpOpen) return;
+      const target = event.target;
+      const phraseButton = (event.code === 'ArrowLeft' || event.code === 'ArrowRight') && target instanceof HTMLButtonElement && target.matches('.phrase-step') ? target : undefined;
+      if (shortcutBlocked(event, phraseButton) || !document || loading || font.busy || importOpen || sourceOpen || settingsOpen || helpOpen) return;
       if (multiline && (event.code === 'ArrowUp' || event.code === 'ArrowDown')) return;
       if (event.code.startsWith('Arrow') && !repeatedArrowAllowed(event, arrowAt)) { event.preventDefault(); return; }
       if (event.code === 'Space') { event.preventDefault(); if (event.repeat) return; if (playback.status === 'playing') controller.pause(); else if (playback.status === 'completed') controller.seek(0); else controller.play(); }
@@ -382,6 +384,10 @@ function ReadingSessionApp({ initialDocument, bookNavigation, textBook }: { init
   const openSource = () => { fullscreen.exit(); controller.pause(); setSourceOpen(true); };
   const openSettings = () => { controller.pause(); setSettingsOpen(true); };
   const completed = playback.status === 'completed';
+  const phraseNavigation = document && settings.mode !== 'guide' && !multiline
+    ? <PhraseNavigation writingMode={settings.writingMode} canGoBack={!loading && !font.busy && playback.index > 0}
+        canGoForward={!loading && !font.busy && playback.index < document.units.length - 1} onStep={direction => controller.step(direction)} />
+    : null;
   const count = completed ? document?.totalCharacters ?? 0 : current?.cumulativeCharacters ?? 0;
 
   function changeDraft() {
@@ -461,6 +467,7 @@ function ReadingSessionApp({ initialDocument, bookNavigation, textBook }: { init
           <ReaderDisplayToolbar settings={settings} onChange={patch => { controller.pause(); update(patch); }} onSettings={openSettings} />
           {(font.busy || font.error) && <p className="font-stage-status" role="status">{font.error || '書体と文字の配置を準備しています。停止したままお待ちください。'}</p>}
           <FullscreenReader fullscreen={fullscreen} playing={playback.status === 'playing'} pause={pauseReading} disabled={loading || font.busy} showProgress={settings.fullscreenProgress ?? true} multiline={multiline}
+            navigation={phraseNavigation}
             playLabel={completed ? 'もう一度' : current?.kind === 'static' ? '次のフレーズへ' : '再生'}
             toggle={() => { if (playback.status === 'playing') controller.pause(); else { if (completed) controller.seek(0); controller.play(); } }}
             seek={<label><span>読書の再生位置</span><input aria-label="読書の再生位置" type="range" min="0" max={Math.max(0, document.units.length - 1)} step="1" value={playback.index} disabled={document.units.length < 2} onChange={event => controller.seek(Number(event.target.value))} /></label>}
@@ -472,7 +479,11 @@ function ReadingSessionApp({ initialDocument, bookNavigation, textBook }: { init
             speed={<label>読む速さ（字/分）<input aria-label="読む速さ（字/分）" type="number" min="100" max="3000" step="50" value={cpmInput} onChange={event => { setCpmInput(event.target.value); const value = Number(event.target.value); if (Number.isFinite(value) && value >= 100 && value <= 3000) update({ cpm: Math.round(value) }); }} onBlur={() => setCpmInput(String(settings.cpm))} /></label>}>
           <section className={`reader-stage ${settings.mode === 'guide' ? 'guide-mode' : multiline ? 'multiline-mode' : ''} ${settings.guide ? 'with-guide' : ''}`} aria-label="フレーズ表示" data-testid="reader-stage" data-unit-index={playback.index} data-sentence-index={sentenceIndex} style={{ '--display-line-height': MULTILINE_SPACING[settings.multilineSpacing ?? 'normal'], '--reader-font-size': `${settings.fontSize}px`, '--display-lines': settings.focusedDisplay?.kind === 'multiline' ? settings.focusedDisplay.maxLines : 1 } as CSSProperties}>
             <div className="stage-topline"><span>{completed ? '読了' : current?.kind === 'static' ? '原文で確認' : playback.status === 'playing' ? '再生中' : '一時停止'}</span></div>
-            {settings.mode === 'guide' ? <GuideReader key={document.id} writingMode={settings.writingMode} blocks={document.blocks} units={document.units} currentIndices={[playback.index]} fontSize={settings.documentFontSize ?? 20} playing={playback.status === 'playing'} ruby={settings.ruby} family={READING_FONTS[font.applied].family} onJump={index => controller.seek(index)} onPause={pauseReading} onPlayIndex={index => { controller.seek(index); controller.play(); }} canPlayIndex={index => document.units[index]?.kind === 'text' && !font.busy && !loading} searchKey={`text:${document.id}`} /> : current?.kind === 'static' ? <div className="static-notice"><h2>コード・表は原文で。</h2><p>内容を確認してから、次のフレーズへ進めます。</p><Button variant="light" onClick={openSource}>原文を開く</Button></div> : multiline ? <DisplaySetReader multilineSpacing={settings.multilineSpacing} highlightColor={settings.highlightColor} highlightIntensity={settings.highlightIntensity} disabled={font.busy || loading} session={displaySession} lines={settings.focusedDisplay?.kind === 'multiline' ? settings.focusedDisplay.maxLines : 2} fontSize={settings.fontSize} family={READING_FONTS[font.applied].family} ruby={settings.ruby} writingMode={settings.writingMode} playing={playback.status === 'playing'} /> : <PhraseDisplay writingMode={settings.writingMode} unit={current} sourceUnits={current ? [current] : undefined} activeUnit={current} playing={playback.status === 'playing'} getProgress={() => { const timing = controller.getProgress(); return timing.unitDurationMs > 0 ? timing.unitElapsedMs / timing.unitDurationMs : 0; }} fontSize={settings.fontSize} ruby={settings.ruby} family={READING_FONTS[font.applied].family} />}
+            {settings.mode === 'guide' ? <GuideReader key={document.id} writingMode={settings.writingMode} blocks={document.blocks} units={document.units} currentIndices={[playback.index]} fontSize={settings.documentFontSize ?? 20} playing={playback.status === 'playing'} ruby={settings.ruby} family={READING_FONTS[font.applied].family} onJump={index => controller.seek(index)} onPause={pauseReading} onPlayIndex={index => { controller.seek(index); controller.play(); }} canPlayIndex={index => document.units[index]?.kind === 'text' && !font.busy && !loading} searchKey={`text:${document.id}`} />
+              : current?.kind === 'static' ? <div className="static-notice"><h2>コード・表は原文で。</h2><p>内容を確認してから、次のフレーズへ進めます。</p><Button variant="light" onClick={openSource}>原文を開く</Button></div>
+              : multiline ? <DisplaySetReader multilineSpacing={settings.multilineSpacing} highlightColor={settings.highlightColor} highlightIntensity={settings.highlightIntensity} disabled={font.busy || loading} session={displaySession} lines={settings.focusedDisplay?.kind === 'multiline' ? settings.focusedDisplay.maxLines : 2} fontSize={settings.fontSize} family={READING_FONTS[font.applied].family} ruby={settings.ruby} writingMode={settings.writingMode} playing={playback.status === 'playing'} />
+              : <PhraseDisplay writingMode={settings.writingMode} unit={current} sourceUnits={current ? [current] : undefined} activeUnit={current} playing={playback.status === 'playing'} getProgress={() => { const timing = controller.getProgress(); return timing.unitDurationMs > 0 ? timing.unitElapsedMs / timing.unitDurationMs : 0; }} fontSize={settings.fontSize} ruby={settings.ruby} family={READING_FONTS[font.applied].family} />}
+            {!fullscreen.active && phraseNavigation}
 
             {fullscreen.active && settings.mode !== 'guide' && <ReaderPlayButton playing={playback.status === 'playing'} disabled={loading || font.busy}
               label={completed ? 'もう一度' : current?.kind === 'static' ? '次のフレーズへ' : '再生'}
