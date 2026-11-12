@@ -1016,6 +1016,90 @@ for (const kind of ['silent', 'audio'] as const) {
   });
 }
 
+test('vertical touch scrolling stays forward during momentum in normal and fullscreen reading', async ({ page }, info) => {
+  test.skip(!info.project.name.startsWith('mobile'), 'Native touch regression uses the mobile viewport.');
+  test.setTimeout(60_000);
+  const text = Array.from({ length: 150 }, (_, index) => `第${index + 1}段落です。` + '図書館で本を読む。窓の外に空が広がる。'.repeat(1 + (index * 17 % 10))).join('\n\n');
+  const viewport = page.getByTestId('guide-viewport');
+  const client = await page.context().newCDPSession(page);
+  for (const fullscreen of [false, true]) {
+    if (fullscreen) await page.evaluate(() => localStorage.clear());
+    await read(page, text);
+    await settings(page); await adjustReaderDisplay(page, '本文の向き', 'vertical-rl'); await close(page);
+    await page.getByRole('button', { name: '全文表示', exact: true }).click();
+    if (fullscreen) {
+      await page.evaluate(() => { Element.prototype.requestFullscreen = () => Promise.reject(new Error('mobile fallback')); });
+      await page.getByRole('button', { name: '全画面で読む', exact: true }).click();
+    }
+    await viewport.scrollIntoViewIfNeeded();
+    await page.evaluate(() => document.fonts.ready.then(() => undefined));
+    await viewport.evaluate(element => {
+      type Anchor = { node: Element; index: number; right: number; width: number };
+      const sample = { running: true, compared: 0, backward: [] as Array<{ distance: number; before: number; width: number; offset: number }> };
+      (window as Window & { guideMomentum?: typeof sample }).guideMomentum = sample;
+      let anchor: Anchor | undefined;
+      const frame = () => {
+        if (!sample.running) return;
+        const bounds = element.getBoundingClientRect();
+        const width = element.scrollWidth;
+        const rect = anchor?.node.isConnected ? anchor.node.getClientRects()[anchor.index] : undefined;
+        if (anchor && rect) {
+          const distance = rect.right - bounds.right - anchor.right;
+          if (distance < -2 && width < anchor.width) {
+            sample.backward.push({ distance, before: anchor.width, width, offset: element.scrollLeft });
+          }
+          sample.compared++;
+        }
+        anchor = undefined;
+        for (const node of element.querySelectorAll('.guide-unit')) {
+          const fragments = [...node.getClientRects()];
+          const index = fragments.findIndex(fragment => fragment.left < bounds.right - 20 && fragment.right > bounds.left + 20);
+          if (index >= 0) {
+            anchor = { node, index, right: fragments[index].right - bounds.right, width };
+            break;
+          }
+        }
+        requestAnimationFrame(frame);
+      };
+      requestAnimationFrame(frame);
+    });
+    const box = (await viewport.boundingBox())!;
+    const y = box.y + box.height / 2;
+    const start = box.x + 30;
+    const distance = box.width - 60;
+    const initialOffset = await viewport.evaluate(element => element.scrollLeft);
+    for (let swipe = 0; swipe < 14; swipe++) {
+      await client.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: start, y }] });
+      const steps = swipe % 4 ? 6 : 12;
+      for (let step = 1; step <= steps; step++) {
+        await client.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: start + distance * step / steps, y }] });
+        if (step < steps) await page.waitForTimeout(9);
+      }
+      await client.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+      await page.waitForTimeout(swipe % 3 ? 145 : 380);
+    }
+    const result = await page.evaluate(() => {
+      const sample = (window as typeof window & { guideMomentum: { running: boolean; compared: number; backward: unknown[] } }).guideMomentum;
+      sample.running = false;
+      return { compared: sample.compared, backward: sample.backward };
+    });
+    await info.attach(`momentum-${fullscreen ? 'fullscreen' : 'normal'}`, { body: JSON.stringify(result), contentType: 'application/json' });
+    expect(result.compared).toBeGreaterThan(50);
+    expect(result.backward, fullscreen ? 'fullscreen' : 'normal').toEqual([]);
+    expect(await viewport.evaluate(element => element.scrollLeft)).toBeLessThan(initialOffset - 1000);
+    await expect.poll(() => viewport.locator('.guide-scroll-width-floor').evaluate(element => element.getBoundingClientRect().width)).toBe(0);
+    await searchGuide(page, '第150段落');
+    await chooseGuideMatch(page);
+    await expect.poll(() => viewport.evaluate(element => {
+      element.scrollLeft = -element.scrollWidth;
+      const bounds = element.getBoundingClientRect();
+      const finalUnit = element.querySelectorAll('.guide-unit');
+      return Array.from(finalUnit[finalUnit.length - 1]?.getClientRects() ?? []).some(rect =>
+        rect.left >= bounds.left && rect.right <= bounds.right && rect.bottom <= bounds.bottom);
+    })).toBe(true);
+  }
+});
+
 test('vertical fullscreen touch scrolling keeps visible text stable across virtual row measurements and retains search and following', async ({ page }, info) => {
   test.skip(!info.project.name.startsWith('mobile'), 'Native touch regression uses the mobile viewport.');
   test.setTimeout(90000);

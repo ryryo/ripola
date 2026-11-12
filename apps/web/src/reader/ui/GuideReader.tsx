@@ -30,6 +30,9 @@ export function GuideReader({ blocks, units, currentIndices, playing, ruby, fami
   }, [searchFocused, copyOpen, menuOpen, setOverlayOpen]);
   useEffect(() => { setSearchOpen(false); setSearchFocused(false); if (!desktop) { setCopyOpen(false); setMenuOpen(false); } }, [desktop]);
   const viewport = useRef<HTMLDivElement>(null);
+  const tailSpacer = useRef<HTMLDivElement>(null);
+  const widthFloor = useRef<HTMLDivElement>(null);
+  const keepTouchWidth = useVerticalTouchScrollWidth(viewport, widthFloor, tailSpacer, vertical);
   const [view, setView] = useState<{ scroll: number; prefix: number[] | null }>({ scroll: 0, prefix: null });
   const committedWindow = useRef<{ first: number; end: number } | null>(null);
   const [inlineSize, setInlineSize] = useState(600);
@@ -371,7 +374,10 @@ export function GuideReader({ blocks, units, currentIndices, playing, ruby, fami
       onKeyDown={event => { if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'PageUp', 'PageDown', 'Home', 'End', 'Space'].includes(event.code)) { setFollow(false); setViewingSelection(false); } }}>
       <GuideScrollAnchor viewport={viewport} vertical={vertical} enabled={preserveView} onLayout={() => {
         const element = viewport.current;
-        if (element) setScroll(vertical ? -element.scrollLeft : element.scrollTop);
+        if (element) {
+          keepTouchWidth();
+          setScroll(vertical ? -element.scrollLeft : element.scrollTop);
+        }
       }}>
       <div style={{ blockSize: prefix[first] }} aria-hidden="true" />
       {rows.slice(first, end).map(row => <MeasuredRow key={row.id} row={row} onMeasure={measure} vertical={vertical}
@@ -379,12 +385,84 @@ export function GuideReader({ blocks, units, currentIndices, playing, ruby, fami
         {row.units.map(({ unit, index }) => <button key={unit.id} type="button" className={`guide-unit ${active.has(index) ? 'active' : ''}`} aria-current={active.has(index) ? 'location' : undefined} data-unit-id={unit.id} data-unit-index={index} data-search-current={selectedUnit === index ? 'true' : undefined}
           onClick={() => { setViewingSelection(false); setCanReturnToReading(false); searchScroll.current = null; searchPrefix.current = null; setFollow(true); setSearchOpen(false); setSearchFocused(false); onJump(index); }} title="ここへ移動して停止"><RubyText unit={unit} show={ruby} vertical={vertical} /></button>)}
       </MeasuredRow>)}
-      <div style={{ blockSize: (prefix.at(-1) ?? 0) - (prefix[end] ?? 0) }} aria-hidden="true" />
+      <div ref={tailSpacer} style={{ blockSize: (prefix.at(-1) ?? 0) - (prefix[end] ?? 0) }} aria-hidden="true" />
       </GuideScrollAnchor>
+      {vertical && <div ref={widthFloor} className="guide-scroll-width-floor" aria-hidden="true" />}
     </div>
     <p className="guide-status" role="status">{follow ? '読んでいる位置を追います。' : '自由にスクロールできます。'}</p>
     {desktop ? <Modal opened={copyOpen} onClose={() => setCopyOpen(false)} title="全文を静止表示・コピー" withinPortal={false} size="xl" centered closeButtonProps={{ 'aria-label': '全文を閉じる' }}><textarea className="fullscreen-guide-copy" aria-label="コピーする全文" value={blocks.map(block => block.text).join('\n\n')} readOnly rows={12} /></Modal> : <details className="guide-static-text" onToggle={onPause}><summary>全文を静止表示・コピー</summary><textarea aria-label="コピーする全文" value={blocks.map(block => block.text).join('\n\n')} readOnly rows={8} /></details>}
   </div>;
+}
+
+function useVerticalTouchScrollWidth(
+  viewport: RefObject<HTMLDivElement | null>,
+  floor: RefObject<HTMLDivElement | null>,
+  tail: RefObject<HTMLDivElement | null>,
+  vertical: boolean,
+) {
+  const heldWidth = useRef(0);
+  const idleTimer = useRef<number | undefined>(undefined);
+  const release = useCallback(() => {
+    window.clearTimeout(idleTimer.current);
+    heldWidth.current = 0;
+    floor.current?.style.removeProperty('block-size');
+  }, [floor]);
+  const keepWidth = useCallback(() => {
+    const element = viewport.current;
+    const spacer = tail.current;
+    if (!heldWidth.current || !element || !spacer || !floor.current) return;
+
+    // Release at the real end, even if the held width extends beyond it.
+    if (spacer.getBoundingClientRect().left >= element.getBoundingClientRect().left + element.clientLeft - 1) {
+      release();
+      return;
+    }
+    const width = element.scrollWidth;
+    if (width > heldWidth.current) {
+      heldWidth.current = width;
+      floor.current.style.blockSize = `${width}px`;
+    }
+  }, [floor, release, tail, viewport]);
+
+  useLayoutEffect(() => {
+    const element = viewport.current;
+    const widthGuard = floor.current;
+    if (!vertical || !element || !widthGuard) return;
+    const waitForIdle = () => {
+      window.clearTimeout(idleTimer.current);
+      // A scrollend for the previous fling can arrive as a new touch begins.
+      // Release after the touch and scroll events have both gone quiet.
+      idleTimer.current = window.setTimeout(release, 250);
+    };
+    const touch = () => {
+      if (!heldWidth.current && element.scrollWidth > element.clientWidth) {
+        heldWidth.current = element.scrollWidth;
+        widthGuard.style.blockSize = `${heldWidth.current}px`;
+      }
+      waitForIdle();
+    };
+    const scroll = () => {
+      if (!heldWidth.current) return;
+      keepWidth();
+      if (heldWidth.current) waitForIdle();
+    };
+    // Native momentum can jump backward when measured rows shrink scrollWidth.
+    // Keep the overflow boundary steady without changing any visible row.
+    element.addEventListener('touchstart', touch, { passive: true });
+    element.addEventListener('touchmove', touch, { passive: true });
+    element.addEventListener('touchend', waitForIdle, { passive: true });
+    element.addEventListener('touchcancel', waitForIdle, { passive: true });
+    element.addEventListener('scroll', scroll);
+    return () => {
+      release();
+      element.removeEventListener('touchstart', touch);
+      element.removeEventListener('touchmove', touch);
+      element.removeEventListener('touchend', waitForIdle);
+      element.removeEventListener('touchcancel', waitForIdle);
+      element.removeEventListener('scroll', scroll);
+    };
+  }, [floor, keepWidth, release, vertical, viewport]);
+  return keepWidth;
 }
 
 function MeasuredRow({ row, onMeasure, children, vertical, matches, selectedId, layoutKey }: {

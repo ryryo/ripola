@@ -2,6 +2,7 @@
 .phrase-container.vertical-phrase-frame { flex-direction: row-reverse; align-items: center; min-width: 0; }
 .vertical-phrase-frame .phrase { max-height: 100%; min-height: 0; min-width: 0; text-orientation: mixed; }
 .vertical-phrase-frame .guide { width: 15px; height: 1px; }
-.guide-viewport[data-writing-mode='vertical-rl'] { writing-mode: vertical-rl; text-orientation: mixed; overflow-y: hidden; }
+.guide-viewport[data-writing-mode='vertical-rl'] { position: relative; writing-mode: vertical-rl; text-orientation: mixed; overflow-y: hidden; }
+.guide-scroll-width-floor { position: absolute; inset-block-start: 0; inset-inline-start: 0; inline-size: 1px; block-size: 0; visibility: hidden; pointer-events: none; }
 .guide-viewport[data-writing-mode='vertical-rl'] .guide-row { inline-size: 100%; }
 .guide-viewport[data-writing-mode='vertical-rl'] .guide-unit { text-align: start; }
